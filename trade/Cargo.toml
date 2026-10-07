@@ -1,0 +1,15 @@
+[package]
+name = "hl-trade"
+description = "Hyperliquid order primitives shared by every market kind: order, cancel, modify, TIF rules (market orders are FrontendMarket, never Gtc), tick and lot rounding."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

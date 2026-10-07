@@ -1,0 +1,140 @@
+//! `ledger.json` is one live mainnet row of every type seen on 2026-10-06,
+//! keyed by type, as the venue sent it.
+
+use std::collections::BTreeMap;
+
+use super::*;
+
+const LIVE: &str = include_str!("ledger.json");
+
+fn dec(text: &str) -> Dec {
+    Dec::parse(text).unwrap()
+}
+
+fn address(text: &str) -> Address {
+    text.parse().unwrap()
+}
+
+fn rows() -> BTreeMap<String, LedgerUpdate> {
+    serde_json::from_str(LIVE).unwrap()
+}
+
+#[test]
+fn every_live_row_reads_and_keeps_its_type() {
+    let rows = rows();
+    assert_eq!(rows.len(), 12);
+    for (kind, row) in &rows {
+        assert_eq!(row.delta.kind(), kind);
+        assert!(row.hash.starts_with("0x") && row.hash.len() == 66, "{kind}");
+        assert!(row.time > 1_700_000_000_000, "{kind}");
+    }
+}
+
+#[test]
+fn the_modelled_types_read_field_for_field() {
+    let rows = rows();
+    let delta = |kind: &str| rows[kind].delta.clone();
+    let user = address("0x51172933b60847085e2a959e860e2ec9e240ac09");
+    assert_eq!(
+        delta("send"),
+        Delta::Send {
+            user,
+            destination: user,
+            source_dex: String::new(),
+            destination_dex: "spot".to_owned(),
+            token: "USDC".to_owned(),
+            amount: dec("2550"),
+            usdc_value: dec("2550"),
+            fee: Dec::ZERO,
+            native_token_fee: Dec::ZERO,
+            nonce: Some(1_764_137_111_508),
+            fee_token: String::new(),
+        }
+    );
+    assert_eq!(
+        delta("internalTransfer"),
+        Delta::InternalTransfer {
+            usdc: dec("2462"),
+            user,
+            destination: address("0xac84a81cd786abde89136b77482866905106adb6"),
+            fee: Dec::ONE,
+        }
+    );
+    assert_eq!(
+        delta("spotTransfer"),
+        Delta::SpotTransfer {
+            token: "KNTQ".to_owned(),
+            amount: dec("10"),
+            usdc_value: dec("1.55759"),
+            user,
+            destination: address("0x200000000000000000000000000000000000007c"),
+            fee: Dec::ZERO,
+            native_token_fee: dec("0.00002"),
+            nonce: Some(1_764_245_231_181),
+            fee_token: String::new(),
+        }
+    );
+    assert_eq!(delta("deposit"), Delta::Deposit { usdc: dec("2525.99") });
+    assert_eq!(
+        delta("withdraw"),
+        Delta::Withdraw { usdc: dec("52912.218999"), nonce: 1_759_909_832_650_000, fee: Dec::ONE }
+    );
+    assert_eq!(delta("accountClassTransfer"), Delta::AccountClassTransfer { usdc: dec("49981.11"), to_perp: true });
+    assert_eq!(
+        delta("accountActivationGas"),
+        Delta::AccountActivationGas { amount: Dec::ONE, token: "USDC".to_owned() }
+    );
+    let hlp = address("0xdfc24b077bc1425ad1dea75bcb6f8158e10df303");
+    assert_eq!(delta("vaultDeposit"), Delta::VaultDeposit { vault: hlp, usdc: dec("58499.16") });
+    assert_eq!(
+        delta("vaultWithdraw"),
+        Delta::VaultWithdraw {
+            vault: hlp,
+            user: address("0x5f3df357144f748d7d53f30719a6e4040e2c7d04"),
+            requested_usd: dec("24987.57"),
+            commission: Dec::ZERO,
+            closing_cost: Dec::ZERO,
+            basis: dec("25000.721474"),
+            net_withdrawn_usd: dec("24987.57"),
+        }
+    );
+}
+
+#[test]
+fn a_type_this_build_does_not_model_is_other_by_name() {
+    let rows = rows();
+    for kind in ["spotGenesis", "cStakingTransfer", "deployGasAuction"] {
+        assert_eq!(rows[kind].delta, Delta::Other { kind: kind.to_owned() });
+    }
+}
+
+#[test]
+fn a_known_type_that_changed_shape_does_not_blank_the_list() {
+    let text = r#"[
+        {"time":1,"hash":"0x00","delta":{"type":"deposit","usdc":"5"}},
+        {"time":2,"hash":"0x01","delta":{"type":"deposit","amount":"5"}},
+        {"time":3,"hash":"0x02","delta":{"type":"somethingNew","x":[1,2]}},
+        {"time":4,"hash":"0x03","delta":{"noType":true}}
+    ]"#;
+    let rows: Vec<LedgerUpdate> = serde_json::from_str(text).unwrap();
+    let kinds: Vec<&Delta> = rows.iter().map(|row| &row.delta).collect();
+    assert_eq!(
+        kinds,
+        [
+            &Delta::Deposit { usdc: dec("5") },
+            &Delta::Other { kind: "deposit".to_owned() },
+            &Delta::Other { kind: "somethingNew".to_owned() },
+            &Delta::Other { kind: String::new() },
+        ]
+    );
+}
+
+#[test]
+fn the_request_carries_an_end_only_when_given() {
+    let user = address("0x0D1d9635D0640821d15e323ac8AdADfA9c111414");
+    assert_eq!(
+        ledger_request(user, 1_790_000_000_000, None),
+        r#"{"type":"userNonFundingLedgerUpdates","user":"0x0d1d9635d0640821d15e323ac8adadfa9c111414","startTime":1790000000000}"#
+    );
+    assert!(ledger_request(user, 1, Some(2)).ends_with(r#""startTime":1,"endTime":2}"#));
+}

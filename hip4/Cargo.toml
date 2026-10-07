@@ -1,0 +1,20 @@
+[package]
+name = "hl-hip4"
+description = "HIP-4 outcome markets: outcome meta, outcome asset ids, outcome actions, settlement."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+hl-trade.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

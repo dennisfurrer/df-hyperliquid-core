@@ -1,0 +1,18 @@
+[package]
+name = "hl-vault"
+description = "Hyperliquid vaults: vault details, deposit, withdraw, lockups, follower state."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

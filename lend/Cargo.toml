@@ -1,0 +1,19 @@
+[package]
+name = "hl-lend"
+description = "Hyperliquid native lending and borrowing: reserves, rates, utilization, supply, withdraw, borrow, repay, health."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

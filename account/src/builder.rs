@@ -1,0 +1,57 @@
+//! Builder fees: `approveBuilderFee`, and what an account has approved a
+//! builder to charge (`maxBuilderFee`). An order whose builder fee is over
+//! the approval is refused by the venue.
+
+use hl_core::{Address, ApiError, BuilderFee, Field, Json, NonceKey, Transport, UserAction, UserSigned, info};
+
+/// `approveBuilderFee`, signed by the account's own wallet: lets `builder`
+/// charge up to `max_fee` on this account's orders. `maxFeeRate` is the
+/// percent string (880 tenths is `0.88%`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ApproveBuilderFee {
+    max_fee_rate: String,
+    builder: Address,
+    nonce: u64,
+}
+
+impl ApproveBuilderFee {
+    #[must_use]
+    pub fn new(builder: Address, max_fee: BuilderFee, nonce: u64) -> ApproveBuilderFee {
+        ApproveBuilderFee { max_fee_rate: max_fee.percent(), builder, nonce }
+    }
+
+    /// `maxFeeRate` as posted.
+    #[must_use]
+    pub fn max_fee_rate(&self) -> &str {
+        &self.max_fee_rate
+    }
+}
+
+impl UserAction for ApproveBuilderFee {
+    fn user_signed(&self) -> UserSigned<'_> {
+        UserSigned::new("approveBuilderFee", "HyperliquidTransaction:ApproveBuilderFee", NonceKey::Nonce, self.nonce)
+            .field("maxFeeRate", Field::String(&self.max_fee_rate))
+            .field("builder", Field::Address(self.builder))
+    }
+}
+
+/// `{"type":"maxBuilderFee","user":..,"builder":..}`.
+#[must_use]
+pub fn max_builder_fee_request(user: Address, builder: Address) -> String {
+    Json::Object(vec![
+        ("type".to_owned(), Json::String("maxBuilderFee".to_owned())),
+        ("user".to_owned(), Json::String(user.to_hex())),
+        ("builder".to_owned(), Json::String(builder.to_hex())),
+    ])
+    .compact()
+}
+
+/// What `user` has approved `builder` to charge, in tenths of a basis point;
+/// 0 for a builder never approved.
+pub async fn max_builder_fee(
+    transport: &impl Transport,
+    user: Address,
+    builder: Address,
+) -> Result<BuilderFee, ApiError> {
+    info(transport, max_builder_fee_request(user, builder)).await
+}
