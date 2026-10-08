@@ -6,6 +6,7 @@
 //!   [`perps`], [`spot`], [`hip3`], [`hip4`];
 //! - money: [`account`], [`transfer`], [`lend`], [`stake`], [`vault`];
 //! - data and chains: [`ws`], [`hydromancer`], [`evm`];
+//! - composites: [`store`] (live state a page reads) and [`analytics`];
 //! - wires: [`native`] or [`web`].
 //!
 //! A [`Client`] is one network: every crate's reads take it, since it is a
@@ -18,6 +19,8 @@ pub mod client;
 pub use client::{Client, SendError};
 #[cfg(feature = "account")]
 pub use hl_account as account;
+#[cfg(feature = "analytics")]
+pub use hl_analytics as analytics;
 pub use hl_core as core;
 pub use hl_core::{Address, Dec, Network};
 #[cfg(feature = "evm")]
@@ -38,6 +41,8 @@ pub use hl_perps as perps;
 pub use hl_spot as spot;
 #[cfg(feature = "stake")]
 pub use hl_stake as stake;
+#[cfg(feature = "store")]
+pub use hl_store as store;
 #[cfg(feature = "trade")]
 pub use hl_trade as trade;
 #[cfg(feature = "transfer")]

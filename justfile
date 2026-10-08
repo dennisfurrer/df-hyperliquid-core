@@ -7,6 +7,7 @@ fmt:
 clippy:
     cargo clippy --workspace --all-targets -- -D warnings
     cargo clippy -p hl --all-targets --features native,sign -- -D warnings
+    cargo clippy -p hl --features full -- -D warnings
 
 # Every library builds for the browser and Workers, but the native wire.
 wasm:

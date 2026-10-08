@@ -24,6 +24,8 @@ hl-hydromancer = { workspace = true, optional = true }
 hl-evm = { workspace = true, optional = true }
 hl-native = { workspace = true, optional = true }
 hl-web = { workspace = true, optional = true }
+hl-store = { workspace = true, optional = true }
+hl-analytics = { workspace = true, optional = true }
 thiserror.workspace = true
 
 [features]
@@ -31,7 +33,7 @@ thiserror.workspace = true
 default = ["markets", "money"]
 markets = ["trade", "perps", "spot", "hip3", "hip4"]
 money = ["account", "transfer", "lend", "stake", "vault"]
-full = ["markets", "money", "ws", "hydromancer", "evm", "sign"]
+full = ["markets", "money", "ws", "hydromancer", "evm", "store", "analytics", "sign"]
 # The curve: a LocalKey, and a check that every signature is the signer's before it is posted.
 sign = ["hl-core/sign", "hl-evm?/sign"]
 trade = ["dep:hl-trade"]
@@ -47,6 +49,9 @@ vault = ["dep:hl-vault"]
 ws = ["dep:hl-ws"]
 hydromancer = ["dep:hl-hydromancer"]
 evm = ["dep:hl-evm"]
+# Composites: live state a page reads, and builder and deployer analytics.
+store = ["dep:hl-store"]
+analytics = ["dep:hl-analytics"]
 # The wire for a native program (reqwest, tokio-tungstenite) or the browser and Workers (fetch).
 native = ["dep:hl-native"]
 web = ["dep:hl-web"]

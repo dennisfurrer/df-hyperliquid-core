@@ -402,6 +402,7 @@ version = "0.1.0"
 dependencies = [
  "hl",
  "hl-account",
+ "hl-analytics",
  "hl-core",
  "hl-evm",
  "hl-hip3",
@@ -412,6 +413,7 @@ dependencies = [
  "hl-perps",
  "hl-spot",
  "hl-stake",
+ "hl-store",
  "hl-trade",
  "hl-transfer",
  "hl-vault",
