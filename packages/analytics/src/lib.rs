@@ -8,13 +8,17 @@
 //! - [`builders`]: the board, every builder ranked by volume over a window
 //!   ([`Board`]); the curated labels ([`labels`]); how a builder fee works, as numbers
 //!   ([`codes`]); and what a builder code has been paid ([`Rewards`]).
+//! - [`hip3`]: every perp dex and how its deployer set it up ([`Setup`]), what its assets are
+//!   doing ([`Activity`]), and the builders that route perps on a day ([`Routing`]).
 #![deny(clippy::float_arithmetic)]
 
 pub mod builders;
 pub mod date;
+pub mod hip3;
 
 pub use builders::{
     Board, Cap, Kind, Label, Ragged, Rewards, SHARE_OF_CAP, SHARE_UNITS, Stage, Standing, TENTHS_PER_BASIS_POINT,
     Window, codes, labels,
 };
 pub use date::{At, DAY_MS};
+pub use hip3::{Activity, Routing, Setup};
