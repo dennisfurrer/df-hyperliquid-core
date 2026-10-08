@@ -151,3 +151,34 @@ fn the_reads_name_their_type() {
     );
     assert_eq!(all_reserve_states_request(), r#"{"type":"allBorrowLendReserveStates"}"#);
 }
+
+/// One reserve, by token: live on both networks, 2026-10-08, in
+/// `reserve.json`. A token with no reserve is answered HTTP 500.
+#[test]
+fn one_reserve_reads_by_its_token() {
+    struct One(&'static str, RefCell<Vec<String>>);
+    impl Transport for One {
+        fn post(&self, _: &str, body: String) -> impl Future<Output = Result<String, TransportError>> {
+            self.1.borrow_mut().push(body);
+            ready(Ok(self.0.to_owned()))
+        }
+    }
+    let both: serde_json::Value = serde_json::from_str(include_str!("reserve.json")).unwrap();
+    let testnet = both["testnet"].to_string();
+    let transport = One(Box::leak(testnet.into_boxed_str()), RefCell::new(Vec::new()));
+    let hype = block_on(reserve_state(&transport, 1105)).unwrap();
+    assert_eq!((hype.oracle_px, hype.ltv), (dec("69.6255"), dec("0.65")));
+    assert_eq!(transport.1.borrow()[0], r#"{"type":"borrowLendReserveState","token":1105}"#);
+    let usdc: ReserveState = serde_json::from_value(both["mainnet"].clone()).unwrap();
+    assert_eq!(usdc.total_borrowed, dec("395326435.6936439276"));
+}
+
+/// atlas's portfolio-margin account, live on 2026-10-02: a position may come
+/// with no `basis`.
+#[test]
+fn a_position_without_a_basis_reads() {
+    let all: serde_json::Value = serde_json::from_str(include_str!("atlas_pm.json")).unwrap();
+    let state: UserState = serde_json::from_value(all["borrowLendUserState"].clone()).unwrap();
+    assert_eq!(state.position(150).map(|position| position.supply.value), Some(dec("3.32730523")));
+    assert!(!state.is_healthy());
+}

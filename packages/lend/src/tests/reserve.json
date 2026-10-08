@@ -1,0 +1,4 @@
+{
+ "mainnet": {"borrowYearlyRate":"0.05","supplyYearlyRate":"0.033409761","balance":"137143455.2819378078","utilization":"0.742439134","oraclePx":"1.0","ltv":"0.0","totalSupplied":"532469824.9151802659","totalBorrowed":"395326435.6936439276"},
+ "testnet": {"borrowYearlyRate":"0.05","supplyYearlyRate":"0.0","balance":"678271.71197017","utilization":"0.0","oraclePx":"69.6255","ltv":"0.65","totalSupplied":"678271.71197017","totalBorrowed":"0.0"}
+}

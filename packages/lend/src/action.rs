@@ -3,6 +3,8 @@
 
 use hl_core::{Dec, L1Action, Map, Value};
 
+use crate::plan::Key;
+
 /// What a `borrowLend` does to a reserve.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Operation {
@@ -32,9 +34,10 @@ pub enum BadLend {
     NotPositive(Dec),
 }
 
-/// `borrowLend`. `token` is the spot token's index (0 is USDC, 150 HYPE), a
-/// number, not its `NAME:0x..`. An amount of `None` goes as `null`: all of
-/// it, a whole withdraw or a whole repay.
+/// `borrowLend`. `token` is the spot token's index from the caller's
+/// `spotMeta`, a number, not its `NAME:0x..`: USDC is 0 on both networks
+/// (`hl_core::USDC_INDEX`), HYPE 150 on mainnet and 1105 on testnet. An amount
+/// of `None` goes as `null`: all of it, a whole withdraw or a whole repay.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BorrowLend {
     operation: Operation,
@@ -43,6 +46,9 @@ pub struct BorrowLend {
 }
 
 impl BorrowLend {
+    /// L1: an agent may sign it for its master (hip4-tui docs/WIRE.md).
+    pub const KEY: Key = Key::Either;
+
     /// `amount` in the token, already cut to its `weiDecimals`; it goes on
     /// the wire with no trailing zeros.
     pub fn new(operation: Operation, token: u32, amount: Dec) -> Result<BorrowLend, BadLend> {
