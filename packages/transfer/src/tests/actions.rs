@@ -2,7 +2,8 @@
 //! hip4-tui recorded it: its own action functions, run with the key below,
 //! nonce 1790412105001 and a transport that recorded the body instead of
 //! posting it. The digests are viem's `hashTypedData` over the SDK's own
-//! EIP-712 types. Mainnet rows only.
+//! EIP-712 types. Mainnet rows here; `tests/vectors.rs` runs every case on
+//! both networks from `vectors/`.
 
 use std::{
     cell::RefCell,

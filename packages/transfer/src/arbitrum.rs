@@ -3,24 +3,61 @@
 //!
 //! A plain USDC `transfer` to the bridge is credited to the same address on
 //! Hyperliquid in about a minute. Under [`MINIMUM_DEPOSIT`] it is lost.
+//! Mainnet deposits on Arbitrum One, testnet on Arbitrum Sepolia, each with
+//! its own bridge and USDC (hip4-tui docs/WIRE.md).
 
-use hl_core::{Address, Dec, Json, Round, hex};
+use hl_core::{Address, Dec, Json, Network, Round, hex};
 use serde_json::Value;
 
-pub const CHAIN_ID: u64 = 42_161;
-pub const RPC_URL: &str = "https://arb1.arbitrum.io/rpc";
+const fn address(text: &str) -> Address {
+    match Address::parse_const(text) {
+        Some(address) => address,
+        None => Address::ZERO,
+    }
+}
 
 /// The Hyperliquid bridge on Arbitrum One.
-pub const BRIDGE: Address = match Address::parse_const("0x2df1c51e09aecf9cacb7bc98cb1742757f163df7") {
-    Some(address) => address,
-    None => Address::ZERO,
-};
+pub const MAINNET_BRIDGE: Address = address("0x2df1c51e09aecf9cacb7bc98cb1742757f163df7");
+/// Testnet's bridge, on Arbitrum Sepolia.
+pub const TESTNET_BRIDGE: Address = address("0x08cfc1B6b2dCF36A1480b99353A354AA8AC56f89");
 
 /// Native USDC on Arbitrum One.
-pub const USDC: Address = match Address::parse_const("0xaf88d065e77c8cC2239327C5EDb3A432268e5831") {
-    Some(address) => address,
-    None => Address::ZERO,
-};
+pub const MAINNET_USDC: Address = address("0xaf88d065e77c8cC2239327C5EDb3A432268e5831");
+/// The USDC testnet's bridge takes, on Arbitrum Sepolia.
+pub const TESTNET_USDC: Address = address("0x1baAbB04529D43a73232B713C0FE471f7c7334d5");
+
+/// The bridge a deposit on `network` goes to.
+#[must_use]
+pub const fn bridge(network: Network) -> Address {
+    match network {
+        Network::Mainnet => MAINNET_BRIDGE,
+        Network::Testnet => TESTNET_BRIDGE,
+    }
+}
+
+/// The USDC contract a deposit on `network` is a transfer of.
+#[must_use]
+pub const fn usdc(network: Network) -> Address {
+    match network {
+        Network::Mainnet => MAINNET_USDC,
+        Network::Testnet => TESTNET_USDC,
+    }
+}
+
+/// Arbitrum One or Arbitrum Sepolia: the chain user-signed actions name too.
+#[must_use]
+pub const fn chain_id(network: Network) -> u64 {
+    network.signature_chain_id()
+}
+
+/// A public JSON-RPC for that chain.
+#[must_use]
+pub const fn rpc_url(network: Network) -> &'static str {
+    match network {
+        Network::Mainnet => "https://arb1.arbitrum.io/rpc",
+        Network::Testnet => "https://sepolia-rollup.arbitrum.io/rpc",
+    }
+}
 
 pub const USDC_DECIMALS: u32 = 6;
 pub const ETH_DECIMALS: u32 = 18;
@@ -75,13 +112,13 @@ pub fn usdc_transfer_calldata(to: Address, amount: Dec) -> Result<String, BadDep
     Ok(hex::encode_prefixed(&data))
 }
 
-/// [`usdc_transfer_calldata`] to the bridge, refusing what it would lose.
-/// The transaction goes to [`USDC`] on chain [`CHAIN_ID`] with no value.
-pub fn deposit_calldata(amount: Dec) -> Result<String, BadDeposit> {
+/// [`usdc_transfer_calldata`] to the network's bridge, refusing what it
+/// would lose. The transaction goes to [`usdc`] on [`chain_id`] with no value.
+pub fn deposit_calldata(network: Network, amount: Dec) -> Result<String, BadDeposit> {
     if amount.is_positive() && amount < MINIMUM_DEPOSIT {
         return Err(BadDeposit::BelowMinimum(amount));
     }
-    usdc_transfer_calldata(BRIDGE, amount)
+    usdc_transfer_calldata(bridge(network), amount)
 }
 
 /// `0x` calldata for `balanceOf(owner)`.
@@ -103,11 +140,11 @@ pub fn eth_call_request(to: Address, data: &str) -> String {
     rpc("eth_call", vec![call, Json::String("latest".to_owned())])
 }
 
-/// The owner's USDC, read with `balanceOf`; its answer reads with
-/// [`read_quantity`] at [`USDC_DECIMALS`].
+/// The owner's USDC on the network's chain, read with `balanceOf`; its answer
+/// reads with [`read_quantity`] at [`USDC_DECIMALS`].
 #[must_use]
-pub fn usdc_balance_request(owner: Address) -> String {
-    eth_call_request(USDC, &balance_of_calldata(owner))
+pub fn usdc_balance_request(network: Network, owner: Address) -> String {
+    eth_call_request(usdc(network), &balance_of_calldata(owner))
 }
 
 /// The owner's ETH, for gas; its answer reads at [`ETH_DECIMALS`].
@@ -171,20 +208,36 @@ mod tests {
         Dec::parse(text).unwrap()
     }
 
+    /// hip4-tui docs/WIRE.md, "HyperEVM and Arbitrum transactions": Arbitrum
+    /// One on mainnet, Arbitrum Sepolia on testnet, each with its own bridge
+    /// and USDC.
     #[test]
-    fn the_constants_are_the_addresses_they_spell() {
-        assert_eq!(BRIDGE.to_hex(), "0x2df1c51e09aecf9cacb7bc98cb1742757f163df7");
-        assert_eq!(USDC.to_hex(), "0xaf88d065e77c8cc2239327c5edb3a432268e5831");
+    fn each_network_deposits_through_its_own_bridge_and_usdc() {
+        assert_eq!(bridge(Network::Mainnet).to_hex(), "0x2df1c51e09aecf9cacb7bc98cb1742757f163df7");
+        assert_eq!(bridge(Network::Testnet).to_hex(), "0x08cfc1b6b2dcf36a1480b99353a354aa8ac56f89");
+        assert_eq!(usdc(Network::Mainnet).to_hex(), "0xaf88d065e77c8cc2239327c5edb3a432268e5831");
+        assert_eq!(usdc(Network::Testnet).to_hex(), "0x1baabb04529d43a73232b713c0fe471f7c7334d5");
+        assert_eq!((chain_id(Network::Mainnet), chain_id(Network::Testnet)), (42_161, 421_614));
+        assert_eq!(rpc_url(Network::Mainnet), "https://arb1.arbitrum.io/rpc");
+        assert_eq!(rpc_url(Network::Testnet), "https://sepolia-rollup.arbitrum.io/rpc");
         assert_eq!(MINIMUM_DEPOSIT, dec("5"));
     }
 
     #[test]
     fn a_deposit_is_a_usdc_transfer_to_the_bridge_in_millionths() {
         assert_eq!(
-            deposit_calldata(dec("12.5")).unwrap(),
+            deposit_calldata(Network::Mainnet, dec("12.5")).unwrap(),
             concat!(
                 "0xa9059cbb",
                 "0000000000000000000000002df1c51e09aecf9cacb7bc98cb1742757f163df7",
+                "0000000000000000000000000000000000000000000000000000000000bebc20",
+            )
+        );
+        assert_eq!(
+            deposit_calldata(Network::Testnet, dec("12.5")).unwrap(),
+            concat!(
+                "0xa9059cbb",
+                "00000000000000000000000008cfc1b6b2dcf36a1480b99353a354aa8ac56f89",
                 "0000000000000000000000000000000000000000000000000000000000bebc20",
             )
         );
@@ -196,15 +249,20 @@ mod tests {
                 "0000000000000000000000000000000000000000000000000000000000000001",
             )
         );
-        assert_eq!(deposit_calldata(dec("5")).unwrap().len(), 2 + 8 + 64 + 64);
+        assert_eq!(deposit_calldata(Network::Mainnet, dec("5")).unwrap().len(), 2 + 8 + 64 + 64);
     }
 
     #[test]
     fn what_the_bridge_would_lose_or_round_is_refused() {
-        assert_eq!(deposit_calldata(dec("4.999999")), Err(BadDeposit::BelowMinimum(dec("4.999999"))));
-        assert_eq!(deposit_calldata(dec("5.0000001")), Err(BadDeposit::TooFine(dec("5.0000001"))));
-        assert_eq!(deposit_calldata(Dec::ZERO), Err(BadDeposit::NotPositive(Dec::ZERO)));
-        assert_eq!(usdc_transfer_calldata(BRIDGE, dec("-5")), Err(BadDeposit::NotPositive(dec("-5"))));
+        for network in Network::ALL {
+            assert_eq!(deposit_calldata(network, dec("4.999999")), Err(BadDeposit::BelowMinimum(dec("4.999999"))));
+            assert_eq!(deposit_calldata(network, dec("5.0000001")), Err(BadDeposit::TooFine(dec("5.0000001"))));
+            assert_eq!(deposit_calldata(network, Dec::ZERO), Err(BadDeposit::NotPositive(Dec::ZERO)));
+        }
+        assert_eq!(
+            usdc_transfer_calldata(bridge(Network::Mainnet), dec("-5")),
+            Err(BadDeposit::NotPositive(dec("-5")))
+        );
     }
 
     #[test]
@@ -215,11 +273,15 @@ mod tests {
             "0x70a0823100000000000000000000000014791697260e4c9a71f18484c9f997b308e59325"
         );
         assert_eq!(
-            usdc_balance_request(owner),
+            usdc_balance_request(Network::Mainnet, owner),
             concat!(
                 r#"{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[{"to":"0xaf88d065e77c8cc2239327c5edb3a432268e5831","#,
                 r#""data":"0x70a0823100000000000000000000000014791697260e4c9a71f18484c9f997b308e59325"},"latest"]}"#
             )
+        );
+        assert!(
+            usdc_balance_request(Network::Testnet, owner)
+                .contains(r#""to":"0x1baabb04529d43a73232b713c0fe471f7c7334d5""#)
         );
         assert_eq!(
             eth_balance_request(owner),

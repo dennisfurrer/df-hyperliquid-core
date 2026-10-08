@@ -21,6 +21,15 @@ pub fn ledger_request(user: Address, start_time: u64, end_time: Option<u64>) -> 
     Json::Object(request).compact()
 }
 
+/// The row a send signed with `nonce` made: a read back that finds the very
+/// action. Only `send` and `spotTransfer` rows carry their action's nonce.
+#[must_use]
+pub fn find(rows: &[LedgerUpdate], nonce: u64) -> Option<&LedgerUpdate> {
+    rows.iter().find(|row| {
+        matches!(row.delta, Delta::Send { nonce: Some(said), .. } | Delta::SpotTransfer { nonce: Some(said), .. } if said == nonce)
+    })
+}
+
 /// The rows as the venue sends them, oldest first.
 pub async fn ledger(
     transport: &impl Transport,
@@ -135,8 +144,25 @@ pub enum Delta {
         basis: Dec,
         net_withdrawn_usd: Dec,
     },
-    /// A type this build does not read, by name: `spotGenesis`,
-    /// `cStakingTransfer`, `deployGasAuction`, and whatever comes next.
+    /// HYPE between spot and the staking balance: `cDeposit` in, `cWithdraw`
+    /// out once its queue has passed.
+    #[serde(rename_all = "camelCase")]
+    CStakingTransfer {
+        token: String,
+        amount: Dec,
+        is_deposit: bool,
+    },
+    /// A deployer's share of a token it launched.
+    SpotGenesis {
+        token: String,
+        amount: Dec,
+    },
+    /// A bid in a deploy gas auction.
+    DeployGasAuction {
+        token: String,
+        amount: Dec,
+    },
+    /// A type this build does not read, by name.
     #[serde(skip_deserializing)]
     Other {
         kind: String,
@@ -157,7 +183,22 @@ impl Delta {
             Delta::AccountActivationGas { .. } => "accountActivationGas",
             Delta::VaultDeposit { .. } => "vaultDeposit",
             Delta::VaultWithdraw { .. } => "vaultWithdraw",
+            Delta::CStakingTransfer { .. } => "cStakingTransfer",
+            Delta::SpotGenesis { .. } => "spotGenesis",
+            Delta::DeployGasAuction { .. } => "deployGasAuction",
             Delta::Other { kind } => kind,
+        }
+    }
+
+    /// The nonce the row carries, as the venue writes it. A send's is its
+    /// action's; a withdrawal's runs to sixteen digits (live:
+    /// `1759909832650000`) and is not.
+    #[must_use]
+    pub const fn nonce(&self) -> Option<u64> {
+        match self {
+            Delta::Send { nonce, .. } | Delta::SpotTransfer { nonce, .. } => *nonce,
+            Delta::Withdraw { nonce, .. } => Some(*nonce),
+            _ => None,
         }
     }
 }

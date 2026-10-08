@@ -100,12 +100,33 @@ fn the_modelled_types_read_field_for_field() {
     );
 }
 
+/// HYPE in and out of staking (`cDeposit`, `cWithdraw`), a deployer's
+/// genesis share and a gas auction's bid.
 #[test]
-fn a_type_this_build_does_not_model_is_other_by_name() {
+fn the_staking_genesis_and_auction_rows_read() {
     let rows = rows();
-    for kind in ["spotGenesis", "cStakingTransfer", "deployGasAuction"] {
-        assert_eq!(rows[kind].delta, Delta::Other { kind: kind.to_owned() });
-    }
+    assert_eq!(
+        rows["cStakingTransfer"].delta,
+        Delta::CStakingTransfer { token: "HYPE".to_owned(), amount: dec("2915.2795455"), is_deposit: true }
+    );
+    assert_eq!(rows["spotGenesis"].delta, Delta::SpotGenesis { token: "KNTQ".to_owned(), amount: dec("730000000") });
+    assert_eq!(
+        rows["deployGasAuction"].delta,
+        Delta::DeployGasAuction { token: "HYPE".to_owned(), amount: dec("500") }
+    );
+    assert!(rows.values().all(|row| !matches!(row.delta, Delta::Other { .. })), "every live type is modelled");
+}
+
+/// A send's row carries the nonce it was signed with, so a read back finds
+/// the very action; rows without one are never matched.
+#[test]
+fn a_send_is_found_in_the_ledger_by_its_nonce() {
+    let rows: Vec<LedgerUpdate> = rows().into_values().collect();
+    assert_eq!(find(&rows, 1_764_137_111_508).map(|row| row.delta.kind()), Some("send"));
+    assert_eq!(find(&rows, 1_764_245_231_181).map(|row| row.delta.kind()), Some("spotTransfer"));
+    assert_eq!(rows.iter().filter_map(|row| row.delta.nonce()).count(), 3, "send, spotTransfer, withdraw");
+    assert_eq!(find(&rows, 1_759_909_832_650_000), None, "a withdrawal's nonce is not its action's");
+    assert_eq!(find(&rows, 1), None);
 }
 
 #[test]

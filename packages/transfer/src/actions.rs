@@ -1,10 +1,11 @@
-//! The user-signed actions that move money: each one's keys in the
-//! `@nktkas/hyperliquid` 0.33.2 order, amounts already in normal form,
-//! addresses lowercase. Signed by the account's own wallet only.
+//! The actions that move money, each one's keys in the `@nktkas/hyperliquid`
+//! 0.33.2 order, amounts already in normal form, addresses lowercase. The
+//! user-signed ones are signed by the account's own wallet only;
+//! [`AgentSendAsset`], an L1 action, by an agent for its master.
 
-use hl_core::{Address, Field, Network, NonceKey, UserAction, UserSigned};
+use hl_core::{Address, Field, L1Action, Map, Network, NonceKey, UserAction, UserSigned};
 
-use crate::amount::Amount;
+use crate::{amount::Amount, keeping::Keeping, plan::Key};
 
 /// A balance as `sendAsset` names it: spot.
 pub const SPOT_DEX: &str = "spot";
@@ -25,6 +26,9 @@ pub struct SendAsset {
 }
 
 impl SendAsset {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     /// `token` is `NAME:0x<tokenId>`, as `spotMeta` lists it.
     #[must_use]
     pub fn new(
@@ -96,6 +100,9 @@ pub struct SpotSend {
 }
 
 impl SpotSend {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     #[must_use]
     pub fn new(destination: Address, token: &str, amount: Amount, time: u64) -> SpotSend {
         SpotSend { destination: destination.to_hex(), token: token.to_owned(), amount, time }
@@ -120,6 +127,9 @@ pub struct UsdSend {
 }
 
 impl UsdSend {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> UsdSend {
         UsdSend { destination: destination.to_hex(), amount, time }
@@ -143,6 +153,9 @@ pub struct UsdClassTransfer {
 }
 
 impl UsdClassTransfer {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     #[must_use]
     pub const fn new(amount: Amount, to_perp: bool, nonce: u64) -> UsdClassTransfer {
         UsdClassTransfer { amount, to_perp, nonce }
@@ -167,6 +180,9 @@ pub struct Withdraw3 {
 }
 
 impl Withdraw3 {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> Withdraw3 {
         Withdraw3 { destination: destination.to_hex(), amount, time }
@@ -183,6 +199,108 @@ impl UserAction for Withdraw3 {
         UserSigned::new("withdraw3", "HyperliquidTransaction:Withdraw", NonceKey::Time, self.time)
             .field("destination", Field::String(&self.destination))
             .field("amount", Field::String(self.amount.as_str()))
+    }
+}
+
+/// A spot token out of the account: `spotSend` for a separate account, and
+/// `sendAsset` from spot to spot for a pooled one, which refuses `spotSend`,
+/// or for one whose mode is not known, since both kinds take it (hip4-tui's
+/// rule). Both go to a person, or through a system address to HyperEVM.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SpotOut {
+    SpotSend(SpotSend),
+    SendAsset(SendAsset),
+}
+
+impl SpotOut {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
+    /// `token` is `NAME:0x<tokenId>`.
+    #[must_use]
+    pub fn new(destination: Address, token: &str, amount: Amount, keeping: Keeping, nonce: u64) -> SpotOut {
+        match keeping {
+            Keeping::Apart => SpotOut::SpotSend(SpotSend::new(destination, token, amount, nonce)),
+            Keeping::Pooled | Keeping::Unknown => {
+                SpotOut::SendAsset(SendAsset::new(destination, SPOT_DEX, SPOT_DEX, token, amount, nonce))
+            }
+        }
+    }
+}
+
+impl UserAction for SpotOut {
+    fn user_signed(&self) -> UserSigned<'_> {
+        match self {
+            SpotOut::SpotSend(send) => send.user_signed(),
+            SpotOut::SendAsset(send) => send.user_signed(),
+        }
+    }
+}
+
+/// `agentSendAsset`: `sendAsset`'s fields as an L1 action, which an agent
+/// signs for its master. The destination is the account itself, so it only
+/// moves between the account's own balances; atlas moves collateral between
+/// dexes with it, no wallet asked. In `@nktkas/hyperliquid` since 0.33.0.
+///
+/// The action carries its nonce, and it is signed with that same nonce.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AgentSendAsset {
+    account: Address,
+    source_dex: String,
+    destination_dex: String,
+    token: String,
+    amount: Amount,
+    nonce: u64,
+}
+
+impl AgentSendAsset {
+    /// L1: an agent the account approved, or the account's own key.
+    pub const KEY: Key = Key::Either;
+
+    /// From `source_dex` to `destination_dex` of `account`, which is also the
+    /// destination. `token` is `NAME:0x<tokenId>`.
+    #[must_use]
+    pub fn new(
+        account: Address,
+        source_dex: &str,
+        destination_dex: &str,
+        token: &str,
+        amount: Amount,
+        nonce: u64,
+    ) -> AgentSendAsset {
+        AgentSendAsset {
+            account,
+            source_dex: source_dex.to_owned(),
+            destination_dex: destination_dex.to_owned(),
+            token: token.to_owned(),
+            amount,
+            nonce,
+        }
+    }
+
+    /// The nonce inside the action, which is also the one it is signed with.
+    #[must_use]
+    pub const fn nonce(&self) -> u64 {
+        self.nonce
+    }
+
+    #[must_use]
+    pub const fn amount(&self) -> &Amount {
+        &self.amount
+    }
+}
+
+impl L1Action for AgentSendAsset {
+    fn action(&self) -> Map {
+        Map::new()
+            .put("type", "agentSendAsset")
+            .put("destination", self.account.to_hex())
+            .put("sourceDex", self.source_dex.clone())
+            .put("destinationDex", self.destination_dex.clone())
+            .put("token", self.token.clone())
+            .put("amount", self.amount.as_str().to_owned())
+            .put("fromSubAccount", "")
+            .put("nonce", self.nonce)
     }
 }
 
