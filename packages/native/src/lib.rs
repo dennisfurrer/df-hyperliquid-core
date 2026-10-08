@@ -10,9 +10,12 @@
 //! tokio runtime. Nothing here retries: whether to send again is the caller's
 //! decision, and for `/exchange` the answer is never.
 
+pub mod socket;
+
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use hl_core::{Http, Method, Request, Response, TransportError};
+pub use socket::{Event, Feed, FeedError};
 
 /// How long a request may take, connection and answer together, unless the
 /// program says otherwise.

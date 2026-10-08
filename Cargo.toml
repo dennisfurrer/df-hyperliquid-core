@@ -66,6 +66,8 @@ rmp-serde = "1.3.1"
 # hl-native only: one HTTP client on rustls, and the runtime it needs. Pins follow hip4-tui.
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "http2"] }
 tokio = { version = "1.53.1", default-features = false }
+tokio-tungstenite = { version = "0.29.0", features = ["rustls-tls-webpki-roots"] }
+futures-util = { version = "0.3.34", default-features = false, features = ["std", "sink"] }
 
 # hl-web only. wasm-bindgen is exact: its test runner and the apps' wasm-bindgen CLI (coreserve, atlas)
 # must match it. The test crate is the one released with it.
