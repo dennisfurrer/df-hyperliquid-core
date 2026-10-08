@@ -1,0 +1,18 @@
+{
+  "builder": "0xab5dbc057628bc18523c4cdfc0e1e2ebdbecb704",
+  "overall": {
+    "tradingDays": 139,
+    "uniqueMarkets": 2772,
+    "maxMarketsDay": { "date": "2026-09-16", "markets": 289 }
+  },
+  "categories": [
+    { "category": "crypto", "builderFee": "40.00644858", "volume": "42222077.5986",
+      "volumeShare": "0.5857771077", "fills": 999235, "fillsShare": "0.7413580503",
+      "uniqueUsers": 3578, "uniqueUsersShare": "0.8353957506", "tradingDays": 139,
+      "uniqueMarkets": 2459, "maxMarketsDay": { "date": "2026-09-16", "markets": 289 } },
+    { "category": "sports", "builderFee": "0.00", "volume": "29413841.89781",
+      "volumeShare": "0.4080792849", "fills": 347302, "fillsShare": "0.2576722529",
+      "uniqueUsers": 1174, "uniqueUsersShare": "0.2741069344", "tradingDays": 56,
+      "uniqueMarkets": 303, "maxMarketsDay": { "date": "2026-06-23", "markets": 69 } }
+  ]
+}

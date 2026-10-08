@@ -1,0 +1,43 @@
+{
+    "type": "l4BookUpdates",
+    "channel": "l4BookUpdates",
+    "seq": 1,
+    "cursor": "500:1704067200000",
+    "coins": ["ETH"],
+    "data": {
+        "height": 782007304,
+        "timestamp": 1704067200000,
+        "diffs": [
+            {
+                "type": "new",
+                "coin": "ETH",
+                "oid": 217148811876,
+                "user": "0x742d35cc6634c0532925a3b844bc9e7595f7f2e2",
+                "side": "B",
+                "px": "3245.50",
+                "sz": "1.5"
+            },
+            {
+                "type": "new",
+                "coin": "ETH",
+                "oid": 217148811877,
+                "user": "0x8f3c55aa1122c0532925a3b844bc9e7595f7f9a1",
+                "side": "B",
+                "px": "3245.50",
+                "sz": "0.8",
+                "insertBefore": 217148811876
+            },
+            {
+                "type": "update",
+                "coin": "ETH",
+                "oid": 217148811800,
+                "sz": "2.0"
+            },
+            {
+                "type": "remove",
+                "coin": "ETH",
+                "oid": 217148811750
+            }
+        ]
+    }
+}

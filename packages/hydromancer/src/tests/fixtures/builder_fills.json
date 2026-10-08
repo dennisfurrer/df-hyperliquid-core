@@ -1,0 +1,16 @@
+{
+  "type": "builderFills",
+  "channel": "builderFills",
+  "seq": 1,
+  "cursor": "1151458031:1789686702602:17",
+  "fills": [
+    ["0x4ee1ece8c089c545d43661015ba8930908cdbd1e",
+     {"coin": "#36020", "px": "0.49501", "sz": "40", "side": "B",
+      "time": 1789686702602, "dir": "Buy", "builderFee": null,
+      "builder": "0xAB5DBC057628BC18523C4CDFC0E1E2EBDBECB704", "txIndex": 16}],
+    ["0x852835f6a97563bed4899bd246147dd35a8bb778",
+     {"coin": "#36021", "px": "0.50499", "sz": "40", "side": "A",
+      "time": 1789686707131, "dir": "Sell", "builderFee": "0.02",
+      "builder": "0xAB5DBC057628BC18523C4CDFC0E1E2EBDBECB704", "txIndex": 0}]
+  ]
+}

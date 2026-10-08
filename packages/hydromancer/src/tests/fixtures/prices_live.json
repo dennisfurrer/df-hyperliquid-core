@@ -1,0 +1,18 @@
+{
+  "ZEC": [
+    {"blockNumber":1153543944,"coin":"ZEC","dex":"hyperliquid","extPerpPx":"1511.905",
+     "markPx":"1512.10","oraclePx":"1512.00","time":1789835699602},
+    {"blockNumber":1153543945,"coin":"ZEC","dex":"hyperliquid","extPerpPx":"1512.105",
+     "markPx":"1512.60","oraclePx":"1512.40","time":1789835702694},
+    {"blockNumber":1153543946,"coin":"ZEC","dex":"hyperliquid","extPerpPx":"1512.505",
+     "markPx":"1513.20","oraclePx":"1513.10","time":1789835705686},
+    {"blockNumber":1153543947,"coin":"ZEC","dex":"hyperliquid","extPerpPx":"1512.905",
+     "markPx":"1513.80","oraclePx":"1513.60","time":1789835708778}
+  ],
+  "xyz:GOLD": [
+    {"blockNumber":1153543945,"coin":"xyz:GOLD","dex":"xyz","extPerpPx":"4377.50",
+     "markPx":"4376.90","oraclePx":"4376.60","time":1789835705711,"updateClass":"Normal"},
+    {"blockNumber":1153543946,"coin":"xyz:GOLD","dex":"xyz","extPerpPx":"4378.00",
+     "markPx":"4377.10","oraclePx":"4376.80","time":1789835708711,"updateClass":"Normal"}
+  ]
+}

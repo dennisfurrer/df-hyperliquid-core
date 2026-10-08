@@ -16,6 +16,7 @@ members = [
   # transports: the wire an app plugs into hl-core, one per platform
   "packages/native",
   "packages/web",
+  "packages/hydromancer",
 ]
 
 [workspace.package]
@@ -41,6 +42,7 @@ hl-stake = { path = "packages/stake" }
 hl-vault = { path = "packages/vault" }
 hl-native = { path = "packages/native" }
 hl-web = { path = "packages/web" }
+hl-hydromancer = { path = "packages/hydromancer" }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -52,6 +54,10 @@ keccak = "0.2.2"
 zeroize = "1.9.0"
 # k256 0.13 reaches getrandom 0.2; on wasm32 it needs the js backend.
 getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
+# Hydromancer's L4 snapshot is zstd over msgpack. Both pure Rust, so they build for wasm32;
+# the pins follow atlas (verified 2026-10-08).
+ruzstd = "0.9.0"
+rmp-serde = "1.3.1"
 
 # hl-native only: one HTTP client on rustls, and the runtime it needs. Pins follow hip4-tui.
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "http2"] }

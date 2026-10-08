@@ -12,6 +12,7 @@ flowchart BT
   LEND("hl-lend") --> CORE
   STAKE("hl-stake") --> CORE
   VAULT("hl-vault") --> CORE
+  HYDRO("hl-hydromancer") --> CORE
   TRADE --> CORE
 
   PERPS("hl-perps") --> TRADE
@@ -33,6 +34,7 @@ flowchart BT
 | `hl-lend` | `borrowLend` (supply, withdraw, borrow, repay; `null` for all), `allBorrowLendReserveStates`, `borrowLendUserState` |
 | `hl-stake` | `cDeposit`, `cWithdraw`, `tokenDelegate`, validators, delegator summary, delegations, rewards and history; the one-day delegation lock and seven-day unstaking queue |
 | `hl-vault` | `vaultTransfer`, `vaultDetails`, `userVaultEquities`, `leadingVaults`; lockups (HLP four days, others one) |
+| `hl-hydromancer` | Hydromancer, a third-party data provider, mainnet only (`Hydromancer::mainnet`, the caller's key as a bearer header, cut from any error): the L4 book (`l4Book` snapshot decoder, the `l4BookUpdates` socket frames, an `Assembler` that resyncs on a height gap, `Book` with matching and owners, L4 to L2 levels), the outcome builder dashboard, `perpPriceHistoryByTime`, the `builderFills` socket, and Hyperliquid's daily `builder_fills` files |
 
 ## Rules
 
