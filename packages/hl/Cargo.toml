@@ -1,0 +1,66 @@
+[package]
+name = "hl"
+description = "The whole family behind one dependency: every hl crate behind a feature, and a Client that reads through one network's rate-limit gate and signs and sends for it."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+hl-trade = { workspace = true, optional = true }
+hl-perps = { workspace = true, optional = true }
+hl-spot = { workspace = true, optional = true }
+hl-hip3 = { workspace = true, optional = true }
+hl-hip4 = { workspace = true, optional = true }
+hl-account = { workspace = true, optional = true }
+hl-transfer = { workspace = true, optional = true }
+hl-lend = { workspace = true, optional = true }
+hl-stake = { workspace = true, optional = true }
+hl-vault = { workspace = true, optional = true }
+hl-ws = { workspace = true, optional = true }
+hl-hydromancer = { workspace = true, optional = true }
+hl-evm = { workspace = true, optional = true }
+hl-native = { workspace = true, optional = true }
+hl-web = { workspace = true, optional = true }
+thiserror.workspace = true
+
+[features]
+# Every venue crate. The data crates, the HyperEVM and the wires are asked for by name.
+default = ["markets", "money"]
+markets = ["trade", "perps", "spot", "hip3", "hip4"]
+money = ["account", "transfer", "lend", "stake", "vault"]
+full = ["markets", "money", "ws", "hydromancer", "evm", "sign"]
+# The curve: a LocalKey, and a check that every signature is the signer's before it is posted.
+sign = ["hl-core/sign", "hl-evm?/sign"]
+trade = ["dep:hl-trade"]
+perps = ["dep:hl-perps"]
+spot = ["dep:hl-spot"]
+hip3 = ["dep:hl-hip3"]
+hip4 = ["dep:hl-hip4"]
+account = ["dep:hl-account"]
+transfer = ["dep:hl-transfer"]
+lend = ["dep:hl-lend"]
+stake = ["dep:hl-stake"]
+vault = ["dep:hl-vault"]
+ws = ["dep:hl-ws"]
+hydromancer = ["dep:hl-hydromancer"]
+evm = ["dep:hl-evm"]
+# The wire for a native program (reqwest, tokio-tungstenite) or the browser and Workers (fetch).
+native = ["dep:hl-native"]
+web = ["dep:hl-web"]
+
+[dev-dependencies]
+# The tests send, so they ask for the curve; a build of the library alone does not.
+hl = { workspace = true, features = ["sign"] }
+hl-core = { workspace = true, features = ["sign"] }
+hl-native.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[[example]]
+name = "perps_page"
+required-features = ["markets", "native"]
+
+[lints]
+workspace = true

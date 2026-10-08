@@ -397,6 +397,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
 
 [[package]]
+name = "hl"
+version = "0.1.0"
+dependencies = [
+ "hl",
+ "hl-account",
+ "hl-core",
+ "hl-evm",
+ "hl-hip3",
+ "hl-hip4",
+ "hl-hydromancer",
+ "hl-lend",
+ "hl-native",
+ "hl-perps",
+ "hl-spot",
+ "hl-stake",
+ "hl-trade",
+ "hl-transfer",
+ "hl-vault",
+ "hl-web",
+ "hl-ws",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "hl-account"
 version = "0.1.0"
 dependencies = [

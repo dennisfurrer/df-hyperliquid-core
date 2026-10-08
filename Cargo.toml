@@ -19,6 +19,8 @@ members = [
   "packages/hydromancer",
   "packages/ws",
   "packages/evm",
+  # the family behind one dependency
+  "packages/hl",
 ]
 
 [workspace.package]
@@ -47,6 +49,7 @@ hl-web = { path = "packages/web" }
 hl-hydromancer = { path = "packages/hydromancer" }
 hl-ws = { path = "packages/ws" }
 hl-evm = { path = "packages/evm" }
+hl = { path = "packages/hl" }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
