@@ -3,7 +3,7 @@
 //! user-signed ones are signed by the account's own wallet only;
 //! [`AgentSendAsset`], an L1 action, by an agent for its master.
 
-use hl_core::{Address, Field, L1Action, Map, Network, NonceKey, UserAction, UserSigned};
+use hl_core::{ActionKind, Address, Field, L1Action, Map, Network, NonceKey, UserAction, UserSigned};
 
 use crate::{amount::Amount, keeping::Keeping, plan::Key};
 
@@ -27,7 +27,7 @@ pub struct SendAsset {
 
 impl SendAsset {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::SendAsset.signers();
 
     /// `token` is `NAME:0x<tokenId>`, as `spotMeta` lists it.
     #[must_use]
@@ -101,7 +101,7 @@ pub struct SpotSend {
 
 impl SpotSend {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::SpotSend.signers();
 
     #[must_use]
     pub fn new(destination: Address, token: &str, amount: Amount, time: u64) -> SpotSend {
@@ -128,7 +128,7 @@ pub struct UsdSend {
 
 impl UsdSend {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::UsdSend.signers();
 
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> UsdSend {
@@ -154,7 +154,7 @@ pub struct UsdClassTransfer {
 
 impl UsdClassTransfer {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::UsdClassTransfer.signers();
 
     #[must_use]
     pub const fn new(amount: Amount, to_perp: bool, nonce: u64) -> UsdClassTransfer {
@@ -181,7 +181,7 @@ pub struct Withdraw3 {
 
 impl Withdraw3 {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::Withdraw3.signers();
 
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> Withdraw3 {
@@ -214,7 +214,7 @@ pub enum SpotOut {
 
 impl SpotOut {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = SpotSend::KEY;
 
     /// `token` is `NAME:0x<tokenId>`.
     #[must_use]
@@ -255,7 +255,7 @@ pub struct AgentSendAsset {
 
 impl AgentSendAsset {
     /// L1: an agent the account approved, or the account's own key.
-    pub const KEY: Key = Key::Either;
+    pub const KEY: Key = ActionKind::AgentSendAsset.signers();
 
     /// From `source_dex` to `destination_dex` of `account`, which is also the
     /// destination. `token` is `NAME:0x<tokenId>`.

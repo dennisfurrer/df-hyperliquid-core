@@ -1,7 +1,7 @@
 //! `cDeposit`, `cWithdraw` and `tokenDelegate`, user-signed, keys in the
 //! `@nktkas/hyperliquid` 0.33.2 order.
 
-use hl_core::{Address, BadUnits, Dec, Field, NonceKey, UserAction, UserSigned, exact_units};
+use hl_core::{ActionKind, Address, BadUnits, Dec, Field, NonceKey, UserAction, UserSigned, exact_units};
 
 use crate::plan::Key;
 
@@ -23,7 +23,7 @@ pub struct CDeposit {
 
 impl CDeposit {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::CDeposit.signers();
 
     pub fn new(hype: Dec, nonce: u64) -> Result<CDeposit, BadUnits> {
         Ok(CDeposit { wei: hype_wei(hype)?, nonce })
@@ -52,7 +52,7 @@ pub struct CWithdraw {
 
 impl CWithdraw {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::CWithdraw.signers();
 
     pub fn new(hype: Dec, nonce: u64) -> Result<CWithdraw, BadUnits> {
         Ok(CWithdraw { wei: hype_wei(hype)?, nonce })
@@ -83,7 +83,7 @@ pub struct TokenDelegate {
 
 impl TokenDelegate {
     /// User-signed: only the account's own key.
-    pub const KEY: Key = Key::Main;
+    pub const KEY: Key = ActionKind::TokenDelegate.signers();
 
     pub fn delegate(validator: Address, hype: Dec, nonce: u64) -> Result<TokenDelegate, BadUnits> {
         Ok(TokenDelegate { validator, wei: hype_wei(hype)?, is_undelegate: false, nonce })

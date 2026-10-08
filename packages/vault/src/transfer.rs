@@ -2,7 +2,7 @@
 //! millionths, keys in the `@nktkas/hyperliquid` 0.33.2 order. HLP's address
 //! and a vault's lockup differ between the networks.
 
-use hl_core::{Address, BadUnits, Dec, L1Action, Map, Network, exact_units};
+use hl_core::{ActionKind, Address, BadUnits, Dec, L1Action, Map, Network, exact_units};
 
 use crate::plan::Key;
 
@@ -62,7 +62,7 @@ pub struct VaultTransfer {
 
 impl VaultTransfer {
     /// L1: an agent may sign it for its master (hip4-tui docs/WIRE.md).
-    pub const KEY: Key = Key::Either;
+    pub const KEY: Key = ActionKind::VaultTransfer.signers();
 
     /// USDC from the perp balance into `vault`, at most six places: refused
     /// rather than rounded when finer.

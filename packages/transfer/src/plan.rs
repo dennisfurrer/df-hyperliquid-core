@@ -6,7 +6,7 @@
 //! signing ([`Key`]); an agent's signature on a user-signed action recovers
 //! to the agent, which holds nothing.
 
-use hl_core::{Address, Dec, Network, USDC_INDEX};
+use hl_core::{ActionKind, Address, Dec, Network, USDC_INDEX};
 
 use crate::{
     actions::{AgentSendAsset, PERP_DEX, SPOT_DEX, SendAsset, SpotOut, UsdClassTransfer, UsdSend, Withdraw3},
@@ -19,31 +19,26 @@ use crate::{
 /// USDC on the perp side counts in millionths.
 pub const USD_DECIMALS: u32 = 6;
 
-/// Which key may sign an action (hip4-tui docs/WIRE.md, "Who may sign what").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Key {
-    /// Only the account's own key: every user-signed action.
-    Main,
-    /// An agent the account approved, or the account's own key.
-    Either,
-}
+/// Who may sign an action (hip4-tui docs/WIRE.md, "Who may sign what"):
+/// hl-core's [`Signers`](hl_core::Signers), the rule hl-account checks a key
+/// against. `Main` is the account's own key only; `Either` takes an agent the
+/// account approved too.
+pub use hl_core::Signers as Key;
 
-impl Key {
-    /// Whether an agent's signature is taken.
-    #[must_use]
-    pub const fn takes_agent(self) -> bool {
-        matches!(self, Key::Either)
-    }
-}
+/// This crate's actions.
+const KINDS: [ActionKind; 6] = [
+    ActionKind::UsdClassTransfer,
+    ActionKind::UsdSend,
+    ActionKind::SpotSend,
+    ActionKind::SendAsset,
+    ActionKind::Withdraw3,
+    ActionKind::AgentSendAsset,
+];
 
 /// The key each of this crate's actions needs, by its wire `type`.
 #[must_use]
 pub fn key(kind: &str) -> Option<Key> {
-    match kind {
-        "usdClassTransfer" | "usdSend" | "spotSend" | "sendAsset" | "withdraw3" => Some(Key::Main),
-        "agentSendAsset" => Some(Key::Either),
-        _ => None,
-    }
+    ActionKind::from_wire(kind).filter(|kind| KINDS.contains(kind)).map(ActionKind::signers)
 }
 
 /// A figure a read back checks.

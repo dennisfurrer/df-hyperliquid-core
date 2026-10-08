@@ -3,37 +3,26 @@
 //! lands. hip4-tui's `tui/src/moves/plan.rs`, without the form. A token is its
 //! spot index from the caller's `spotMeta`.
 
-use hl_core::{Dec, Network};
+use hl_core::{ActionKind, Dec, Network};
 
 use crate::{
     action::{BadLend, BorrowLend},
     state::{ReserveState, UserState, reserve},
 };
 
-/// Which key may sign an action (hip4-tui docs/WIRE.md, "Who may sign what").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Key {
-    /// Only the account's own key.
-    Main,
-    /// An agent the account approved, or the account's own key.
-    Either,
-}
+/// Who may sign an action (hip4-tui docs/WIRE.md, "Who may sign what"):
+/// hl-core's [`Signers`](hl_core::Signers), the rule hl-account checks a key
+/// against. `Main` is the account's own key only; `Either` takes an agent the
+/// account approved too.
+pub use hl_core::Signers as Key;
 
-impl Key {
-    /// Whether an agent's signature is taken.
-    #[must_use]
-    pub const fn takes_agent(self) -> bool {
-        matches!(self, Key::Either)
-    }
-}
+/// This crate's actions.
+const KINDS: [ActionKind; 1] = [ActionKind::BorrowLend];
 
 /// The key each of this crate's actions needs, by its wire `type`.
 #[must_use]
 pub fn key(kind: &str) -> Option<Key> {
-    match kind {
-        "borrowLend" => Some(Key::Either),
-        _ => None,
-    }
+    ActionKind::from_wire(kind).filter(|kind| KINDS.contains(kind)).map(ActionKind::signers)
 }
 
 /// A figure a read back checks: a position's `value` in

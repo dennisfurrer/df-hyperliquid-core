@@ -11,7 +11,7 @@
 //! - [`readiness`]: whether a builder can be paid, and what an order naming
 //!   one needs first.
 //! - [`limits`]: what an address may still send, and how fast that runs down.
-//! - [`signers`]: who may sign what; [`agent`]: agents, which there is no
+//! - [`signers`]: who may sign what (hl-core's); [`agent`]: agents, which there is no
 //!   revoking, so an agent address is never used twice.
 //! - [`sub_account`]: subaccounts, and what a subaccount refuses.
 //! - [`fees`], [`portfolio`], [`referral`]: the account's other reads.
@@ -32,7 +32,6 @@ pub mod onboarding;
 pub mod portfolio;
 pub mod readiness;
 pub mod referral;
-pub mod signers;
 pub mod state;
 pub mod sub_account;
 pub mod usable;
@@ -45,6 +44,8 @@ pub use agent::{
 pub use builder::{ApproveBuilderFee, max_builder_fee, max_builder_fee_request};
 pub use dollars::Dollars;
 pub use fees::{Fees, fees, fees_request};
+/// Who may sign what lives in hl-core, where the money crates read it too.
+pub use hl_core::signers;
 use hl_core::{Address, ApiError, Transport, info};
 pub use hl_core::{L1Action, UserAction};
 pub use limits::{Budget, RateLimit, Sample, rate_limit, rate_limit_request};

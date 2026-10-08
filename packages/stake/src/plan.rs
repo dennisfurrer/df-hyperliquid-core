@@ -3,38 +3,26 @@
 //! and when what it moved is free again. hip4-tui's `tui/src/moves/plan.rs`,
 //! without the form.
 
-use hl_core::{Address, BadUnits, Dec, Network};
+use hl_core::{ActionKind, Address, BadUnits, Dec, Network};
 
 use crate::{
     actions::{CDeposit, CWithdraw, TokenDelegate},
     reads::{Delegation, DelegatorSummary, MAX_PENDING_WITHDRAWALS, locked_until, unstaking_ms},
 };
 
-/// Which key may sign an action (hip4-tui docs/WIRE.md, "Who may sign what").
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Key {
-    /// Only the account's own key: every user-signed action. An agent's
-    /// signature recovers to the agent, which holds nothing.
-    Main,
-    /// An agent the account approved, or the account's own key.
-    Either,
-}
+/// Who may sign an action (hip4-tui docs/WIRE.md, "Who may sign what"):
+/// hl-core's [`Signers`](hl_core::Signers), the rule hl-account checks a key
+/// against. `Main` is the account's own key only; `Either` takes an agent the
+/// account approved too.
+pub use hl_core::Signers as Key;
 
-impl Key {
-    /// Whether an agent's signature is taken.
-    #[must_use]
-    pub const fn takes_agent(self) -> bool {
-        matches!(self, Key::Either)
-    }
-}
+/// This crate's actions.
+const KINDS: [ActionKind; 3] = [ActionKind::CDeposit, ActionKind::CWithdraw, ActionKind::TokenDelegate];
 
 /// The key each of this crate's actions needs, by its wire `type`.
 #[must_use]
 pub fn key(kind: &str) -> Option<Key> {
-    match kind {
-        "cDeposit" | "cWithdraw" | "tokenDelegate" => Some(Key::Main),
-        _ => None,
-    }
+    ActionKind::from_wire(kind).filter(|kind| KINDS.contains(kind)).map(ActionKind::signers)
 }
 
 /// A figure a read back checks.

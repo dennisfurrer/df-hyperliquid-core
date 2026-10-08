@@ -1,5 +1,6 @@
 //! Who may sign what, as data per action kind: the account's own (main) key
-//! only, or an agent too.
+//! only, or an agent too. Every crate that builds an action reads it here, so
+//! a plan and a refusal agree.
 //!
 //! - Every user-signed action needs the main key. The venue recovers the
 //!   signer from the signature and acts for it, and an agent holds nothing,
@@ -14,7 +15,7 @@
 //!   wrong account.
 //!
 //! Recovery from a leaked agent key is replacement, since there is no revoke
-//! ([`crate::agent`]).
+//! (hl-account's `agent`).
 
 use std::fmt;
 
@@ -54,7 +55,7 @@ pub enum ActionKind {
     UserSetAbstraction,
 }
 
-/// Which key signs.
+/// Which key signs: the one in hand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
     /// The account's own wallet.
@@ -63,13 +64,22 @@ pub enum Key {
     Agent,
 }
 
-/// Who may sign one kind of action.
+/// Who may sign one kind of action. [`ActionKind::why`] says why an action
+/// takes the main key alone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Signers {
-    /// The main key only, and why.
-    Main(Why),
-    /// The main key, or an agent for its master.
-    MainOrAgent,
+    /// The account's own key only.
+    Main,
+    /// The account's own key, or an agent for its master.
+    Either,
+}
+
+impl Signers {
+    /// Whether an agent's signature is taken.
+    #[must_use]
+    pub const fn takes_agent(self) -> bool {
+        matches!(self, Signers::Either)
+    }
 }
 
 /// Why an action takes the main key.
@@ -101,8 +111,8 @@ pub struct Refused {
 
 /// Whether `key` may sign `kind`, refused before anything is signed.
 pub fn may_sign(kind: ActionKind, key: Key) -> Result<(), Refused> {
-    match (kind.signers(), key) {
-        (Signers::Main(why), Key::Agent) => Err(Refused { kind, why }),
+    match (kind.why(), key) {
+        (Some(why), Key::Agent) => Err(Refused { kind, why }),
         _ => Ok(()),
     }
 }
@@ -208,15 +218,24 @@ impl ActionKind {
 
     #[must_use]
     pub const fn signers(self) -> Signers {
+        match self.why() {
+            Some(_) => Signers::Main,
+            None => Signers::Either,
+        }
+    }
+
+    /// Why only the account's own key may sign it; `None` when an agent may.
+    #[must_use]
+    pub const fn why(self) -> Option<Why> {
         if self.is_user_signed() {
-            return Signers::Main(Why::UserSigned);
+            return Some(Why::UserSigned);
         }
         match self {
             ActionKind::CreateSubAccount
             | ActionKind::SubAccountTransfer
             | ActionKind::SubAccountSpotTransfer
-            | ActionKind::UserOutcome => Signers::Main(Why::WrongAccount),
-            _ => Signers::MainOrAgent,
+            | ActionKind::UserOutcome => Some(Why::WrongAccount),
+            _ => None,
         }
     }
 }

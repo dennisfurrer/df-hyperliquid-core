@@ -1,6 +1,5 @@
-use hl_core::Json;
-
 use super::*;
+use crate::json::Json;
 
 const NKTKAS: &str = include_str!("../../../../vectors/nktkas-0.33.2.json");
 const DESK: &str = include_str!("../../../../vectors/desk.json");
@@ -29,10 +28,11 @@ fn an_agent_signs_what_hip4_tui_lets_it_and_nothing_else() {
     ]);
     for kind in agent_may {
         assert_eq!(may_sign(kind, Key::Agent), Ok(()), "{kind}");
-        assert_eq!(kind.signers(), Signers::MainOrAgent, "{kind}");
+        assert_eq!(kind.signers(), Signers::Either, "{kind}");
+        assert_eq!(kind.why(), None, "{kind}");
     }
     for kind in kinds(&["createSubAccount", "subAccountTransfer", "subAccountSpotTransfer", "userOutcome"]) {
-        assert_eq!(kind.signers(), Signers::Main(Why::WrongAccount), "{kind}");
+        assert_eq!((kind.signers(), kind.why()), (Signers::Main, Some(Why::WrongAccount)), "{kind}");
         assert_eq!(may_sign(kind, Key::Agent), Err(Refused { kind, why: Why::WrongAccount }), "{kind}");
         assert_eq!(may_sign(kind, Key::Main), Ok(()), "{kind}");
     }
@@ -55,7 +55,7 @@ fn every_user_signed_action_takes_the_main_key_and_an_agent_cannot_approve_a_bui
     ]);
     for kind in user_signed {
         assert!(kind.is_user_signed(), "{kind}");
-        assert_eq!(kind.signers(), Signers::Main(Why::UserSigned), "{kind}");
+        assert_eq!((kind.signers(), kind.why()), (Signers::Main, Some(Why::UserSigned)), "{kind}");
         assert!(may_sign(kind, Key::Agent).is_err(), "{kind}");
     }
     let refused = may_sign(ActionKind::ApproveBuilderFee, Key::Agent).unwrap_err();
@@ -105,4 +105,15 @@ fn every_kind_reads_back_from_its_own_name() {
         assert_eq!(ActionKind::from_wire(kind.wire()), Some(kind));
     }
     assert_eq!(ActionKind::from_wire("approveagent"), None, "names are as the venue spells them");
+}
+
+#[test]
+fn only_either_takes_an_agent() {
+    assert!(Signers::Either.takes_agent());
+    assert!(!Signers::Main.takes_agent());
+    for kind in ActionKind::ALL {
+        assert_eq!(kind.signers().takes_agent(), may_sign(kind, Key::Agent).is_ok(), "{kind}");
+        assert_eq!(kind.why().is_none(), kind.signers().takes_agent(), "{kind}");
+        assert_eq!(may_sign(kind, Key::Main), Ok(()), "{kind}: the account's own key signs anything");
+    }
 }

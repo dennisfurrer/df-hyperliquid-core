@@ -1,7 +1,7 @@
 //! `borrowLend`: `{type, operation, token, amount}`, keys in the
 //! `@nktkas/hyperliquid` 0.33.2 order.
 
-use hl_core::{Dec, L1Action, Map, Value};
+use hl_core::{ActionKind, Dec, L1Action, Map, Value};
 
 use crate::plan::Key;
 
@@ -47,7 +47,7 @@ pub struct BorrowLend {
 
 impl BorrowLend {
     /// L1: an agent may sign it for its master (hip4-tui docs/WIRE.md).
-    pub const KEY: Key = Key::Either;
+    pub const KEY: Key = ActionKind::BorrowLend.signers();
 
     /// `amount` in the token, already cut to its `weiDecimals`; it goes on
     /// the wire with no trailing zeros.
