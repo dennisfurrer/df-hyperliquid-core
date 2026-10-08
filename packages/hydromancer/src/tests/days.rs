@@ -88,6 +88,26 @@ fn a_file_that_is_not_a_whole_lz4_frame_is_refused() {
     }
 }
 
+/// A line that does not read is left out of every sum and counted, so a day read short says so:
+/// the recorded files read whole, and a line cut short or a figure that is no number is one
+/// skipped each.
+#[test]
+fn a_line_that_does_not_read_is_counted_as_skipped() {
+    assert_eq!((day(WIDE, WIDE_BUILDER).skipped, day(SMALL, SMALL_BUILDER).skipped), (0, 0));
+    let text = String::from_utf8(unframe(SMALL).unwrap()).unwrap();
+    let whole = read_day(address(SMALL_BUILDER), "20260926", &text).unwrap();
+    let fill = text.lines().nth(1).unwrap();
+    let cut = fill.split(',').take(3).collect::<Vec<_>>().join(",");
+    let garbled = text.replacen(fill, &fill.replacen(',', ",x", 4), 1);
+    let worse = format!("{}\n{cut}\n\n", garbled.trim_end());
+    let short = read_day(address(SMALL_BUILDER), "20260926", &worse).unwrap();
+    assert_eq!(short.skipped, 2, "the garbled fill and the cut line; the blank line is no fill");
+    assert_eq!(
+        short.perps().fills + short.spot.fills + short.outcomes.fills + 1,
+        whole.perps().fills + whole.spot.fills + whole.outcomes.fills
+    );
+}
+
 #[test]
 fn a_csv_without_the_columns_it_sums_is_refused() {
     assert!(read_day(address(SMALL_BUILDER), "20260926", "time,user,coin\n").is_err());

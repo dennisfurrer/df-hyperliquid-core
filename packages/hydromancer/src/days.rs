@@ -96,6 +96,9 @@ pub struct BuilderDay {
     pub dexes: Vec<(String, Tally)>,
     /// Each perp, native and HIP-3, the busiest first.
     pub coins: Vec<(String, Tally)>,
+    /// Lines that did not read (a field missing, a price or size that is no number), left out of
+    /// every sum: a day read short says by how much.
+    pub skipped: u64,
 }
 
 impl BuilderDay {
@@ -142,8 +145,8 @@ pub async fn builder_day(http: &impl Http, builder: Address, date: &str) -> Resu
     read(builder, date, &response)
 }
 
-/// Sums a day's CSV by market. A line that does not read is skipped; a file without the columns
-/// summed is refused.
+/// Sums a day's CSV by market. A line that does not read is skipped and counted (a blank one is
+/// no line); a file without the columns summed is refused.
 pub fn read_day(builder: Address, date: &str, csv: &str) -> Result<BuilderDay, String> {
     let mut lines = csv.lines();
     let header: Vec<&str> = lines.next().ok_or_else(|| "an empty file".to_owned())?.split(',').collect();
@@ -165,19 +168,26 @@ pub fn read_day(builder: Address, date: &str, csv: &str) -> Result<BuilderDay, S
         outcomes: Tally::default(),
         dexes: Vec::new(),
         coins: Vec::new(),
+        skipped: 0,
     };
     let mut users = BTreeSet::new();
     let mut dexes: BTreeMap<String, Tally> = BTreeMap::new();
     let mut coins: BTreeMap<String, Tally> = BTreeMap::new();
-    for line in lines {
+    for line in lines.filter(|line| !line.trim().is_empty()) {
         let fields: Vec<&str> = line.split(',').collect();
-        let (Some(who), Some(market), Some(price), Some(size)) =
-            (fields.get(user), fields.get(coin), fields.get(px), fields.get(sz))
-        else {
+        let read = (fields.get(user), fields.get(coin), fields.get(px), fields.get(sz));
+        let (Some(who), Some(market), Some(price), Some(size)) = read else {
+            day.skipped += 1;
             continue;
         };
-        let (Ok(price), Ok(size)) = (Dec::parse(price), Dec::parse(size)) else { continue };
-        let Some(notional) = price.checked_mul(size).map(Dec::abs) else { continue };
+        let (Ok(price), Ok(size)) = (Dec::parse(price), Dec::parse(size)) else {
+            day.skipped += 1;
+            continue;
+        };
+        let Some(notional) = price.checked_mul(size).map(Dec::abs) else {
+            day.skipped += 1;
+            continue;
+        };
         let paid = fields.get(fee).and_then(|said| Dec::parse(said).ok()).unwrap_or(Dec::ZERO);
         users.insert(*who);
         match kind_of(market) {
