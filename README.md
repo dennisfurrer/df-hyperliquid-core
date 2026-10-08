@@ -27,6 +27,11 @@ flowchart BT
   STORE --> PERPS
   STORE --> SPOT
   STORE --> HIP3
+
+  ANALYTICS("<b>hl-analytics</b><br/>builders, deployers,<br/>revenue, payouts") --> HIP3
+  ANALYTICS --> HIP4
+  ANALYTICS --> HYDRO
+  ANALYTICS --> ACCOUNT
 ```
 
 | Crate | Owns |
@@ -47,10 +52,11 @@ flowchart BT
 | `hl-evm` | HyperEVM (999 mainnet, 998 testnet) and the Arbitrum side of the bridge: typed JSON-RPC over `Http` (HyperEVM's RPC by network, Arbitrum by URL; `eth_bigBlockGasPrice`, `eth_usingBigBlocks`), exact `U256` quantities, ABI, RLP and EIP-1559 transactions (calls and contract creations; signing is its own `sign` feature), every read precompile `L1Read.sol` names, CoreWriter actions encoded, decoded from `RawAction` logs and read in words, system addresses and the transaction that sends a token back to Core |
 | `hl-web` | the wire for the browser and Workers, on their globals and never `window`: hl-core's `Http` through `fetch`, `Date.now` as the clock, and `Feed`, one hl-ws session over `WebSocket` (subscriptions kept while down and sent on every open, a quiet socket pinged and a silent one dropped on `setTimeout`, dialled again after the session's delay with `Math.random` jitter, a post refused while down and an unanswered one reported, never sent again; typed events read with an async `next`) |
 | `hl-store` | the live state an app keeps, sans-IO: interests a page registers and holds by a handle, counted into hl-ws subscriptions (subscribe, and unsubscribe once nothing needs one, into a `Session` of the same network only) within the venue's per-IP limits; socket frames and the crates' `/info` reads folded per market (book, prints, candles, mids, contexts) and per account and dex (clearinghouse, spot, mode, resting orders, fills, fundings, ledger), snapshots told from deltas, a fill held once, each piece stamped with when it was last told and last changed; views: positions, resting orders, what an account can use on a market by its mode (hl-account's), worth counted once, the touch, the mid, a market's context; up to ten accounts, a subaccount at its own address with its own mode |
+| `hl-analytics` | who builds and deploys, computed from what the caller read (sans-IO, no clock): the builder board (every builder ranked by outcome volume over 24h, 7d, 30d and all, the fills no builder routed beside them holding no place, shares in hundredths of a percent), the curated builder labels with their provenance, a builder fee as numbers (each kind's cap, a share of it, what it pays on a notional), what a builder code has been paid (`referral`) |
 
 ## Rules
 
-- **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. A composite (`hl-store`) may depend on any crate below it, never on the umbrella or a wire. Nothing else crosses.
+- **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. A composite (`hl-store`, `hl-analytics`) may depend on any crate below it, never on the umbrella or a wire. Nothing else crosses.
 - **Standalone:** no `hl-*` crate depends on an app. hip4-tui, atlas and coreserve are consumers, never dependencies.
 - **Targets:** every crate builds native and `wasm32-unknown-unknown`. No tokio, no OS keychain in the family; transports plug in from outside.
 - **Money:** `Dec`, never floats (`clippy::float_arithmetic` denied in every crate).

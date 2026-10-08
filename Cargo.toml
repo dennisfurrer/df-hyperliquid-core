@@ -22,6 +22,8 @@ members = [
   "packages/evm",
   # composites: the state an app keeps, built from any crate above; never the umbrella or a wire.
   "packages/store",
+  # and who builds and deploys, computed from what an app read.
+  "packages/analytics",
   # transports: the wire an app plugs into hl-core, one per platform.
   "packages/native",
   "packages/web",
@@ -56,6 +58,7 @@ hl-hydromancer = { path = "packages/hydromancer" }
 hl-ws = { path = "packages/ws" }
 hl-evm = { path = "packages/evm" }
 hl-store = { path = "packages/store" }
+hl-analytics = { path = "packages/analytics" }
 hl = { path = "packages/hl" }
 
 serde = { version = "1.0.229", features = ["derive"] }
@@ -72,6 +75,9 @@ getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
 # the pins follow atlas (verified 2026-10-08).
 ruzstd = "0.9.0"
 rmp-serde = "1.3.1"
+# hl-analytics only: a payout batch's id is SHA-256 over its rows, as hip4-tui's payout tool
+# computes it. Pure Rust, no_std without its default features.
+sha2 = { version = "0.10.9", default-features = false }
 
 # hl-native only: one HTTP client on rustls, and the runtime it needs. Pins follow hip4-tui.
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "http2"] }

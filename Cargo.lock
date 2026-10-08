@@ -432,6 +432,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hl-analytics"
+version = "0.1.0"
+dependencies = [
+ "hl-account",
+ "hl-core",
+ "hl-hip3",
+ "hl-hip4",
+ "hl-hydromancer",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "hl-core"
 version = "0.1.0"
 dependencies = [
