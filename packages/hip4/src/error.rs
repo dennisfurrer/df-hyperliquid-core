@@ -13,4 +13,6 @@ pub enum OutcomeError {
     Size(Dec),
     #[error("{0} is not an amount of the quote token above zero with at most eight places")]
     Amount(Dec),
+    #[error("a slippage is a fraction from 0 to 0.5, which {0} is not")]
+    Slippage(Dec),
 }

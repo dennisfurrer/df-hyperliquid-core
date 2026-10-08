@@ -14,7 +14,11 @@
 pub mod coin;
 pub mod deploy;
 pub mod error;
+pub mod fields;
 pub mod meta;
+pub mod px;
+pub mod template;
+pub mod time;
 pub mod user;
 
 pub use coin::{Coin, MAX_PRICE, MIN_PRICE, PRICE_PLACES, outcome_price, outcome_size};

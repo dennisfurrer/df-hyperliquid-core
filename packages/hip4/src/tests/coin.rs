@@ -8,6 +8,7 @@ use hl_core::{Address, L1Action, LocalKey, hex, recover};
 use hl_trade::{Cancel, Order, PlaceOrder};
 
 use super::*;
+use crate::px::{Px, Qty};
 
 const NONCE: u64 = 1_712_345_678_000;
 
@@ -147,4 +148,57 @@ fn a_coin_is_spelled_with_a_hash_in_info_and_a_plus_in_balances() {
     }
     assert_eq!(Coin::from_asset(yes.asset().unwrap()), Some(yes));
     assert_eq!("#5160".parse::<Coin>(), Ok(coin()));
+}
+
+fn px(text: &str) -> Px {
+    Px::parse(text).unwrap()
+}
+
+#[test]
+fn an_order_names_a_quotable_price_and_whole_contracts() {
+    let order = coin().order(Side::Buy, px("0.35"), Qty::new(50), Tif::Gtc).unwrap();
+    assert_eq!(
+        PlaceOrder::one(order).wire(),
+        r#"{"type":"order","orders":[{"a":100005160,"b":true,"p":"0.35","s":"50","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na"}"#
+    );
+    assert_eq!(coin().order(Side::Sell, Px::ONE, Qty::new(1), Tif::Gtc), Err(OutcomeError::Price(Dec::ONE)));
+    assert_eq!(coin().order(Side::Sell, Px::ZERO, Qty::new(1), Tif::Alo), Err(OutcomeError::Price(Dec::ZERO)));
+    assert_eq!(coin().order(Side::Buy, px("0.5"), Qty::ZERO, Tif::Gtc), Err(OutcomeError::Size(Dec::ZERO)));
+}
+
+/// atlas's outcome ticket (`outcomes.json`): two percent over a 0.60 ask to
+/// buy, two percent under a 0.58 bid to close.
+#[test]
+fn a_market_order_within_a_slippage_is_bounded_toward_its_reference() {
+    let arsenal = Coin::new(1473, OutcomeSide::Yes);
+    let buy = arsenal.market_within(Side::Buy, px("0.6"), dec("0.02"), Qty::new(16)).unwrap();
+    assert_eq!((buy.price(), buy.size(), buy.tif()), (dec("0.612"), dec("16"), Some(Tif::FrontendMarket)));
+    let sell = arsenal.market_within(Side::Sell, px("0.58"), dec("0.02"), Qty::new(16)).unwrap();
+    assert_eq!((sell.price(), sell.tif()), (dec("0.5684"), Some(Tif::FrontendMarket)));
+    let third = px("0.33333");
+    let up = arsenal.market_within(Side::Buy, third, dec("0.01"), Qty::new(1)).unwrap();
+    assert_eq!(up.price(), dec("0.33666"), "0.3366633 rounds down, toward the reference");
+    let down = arsenal.market_within(Side::Sell, third, dec("0.01"), Qty::new(1)).unwrap();
+    assert_eq!(down.price(), dec("0.33"), "0.3299967 rounds up, toward the reference");
+    let edge = arsenal.market_within(Side::Buy, px("0.99"), dec("0.05"), Qty::new(1)).unwrap();
+    assert_eq!(edge.price(), MAX_PRICE, "past the range it stops at the edge");
+    let floor = arsenal.market_within(Side::Sell, px("0.00001"), dec("0.5"), Qty::new(1)).unwrap();
+    assert_eq!(floor.price(), MIN_PRICE);
+    assert_eq!(
+        arsenal.market_within(Side::Buy, px("0.5"), dec("0.51"), Qty::new(1)),
+        Err(OutcomeError::Slippage(dec("0.51")))
+    );
+    assert_eq!(arsenal.market_within(Side::Buy, px("0.5"), dec("0.01"), Qty::ZERO), Err(OutcomeError::Size(Dec::ZERO)));
+}
+
+#[test]
+fn a_coin_is_looked_up_with_or_without_its_prefix() {
+    let yes = Coin::new(1210, OutcomeSide::Yes);
+    assert_eq!(Coin::lookup(" 12100 "), Some(yes));
+    assert_eq!(Coin::lookup("#12101"), Some(yes.opposite()));
+    assert_eq!(Coin::lookup("+12100"), Some(yes));
+    assert_eq!(Coin::lookup("BTC"), None);
+    assert_eq!(Coin::parse("12100"), None, "venue data carries its prefix");
+    assert!(yes.matches("121") && yes.matches("#1210") && yes.matches("+12100") && yes.matches(""));
+    assert!(!yes.matches("999"));
 }

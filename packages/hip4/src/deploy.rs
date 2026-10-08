@@ -309,7 +309,7 @@ fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
 /// Minutes from 1970 to a `YYYYMMDD-HHMM` stamp (`timed`) or to midnight of a
 /// `YYYYMMDD` one, in UTC. `None` for anything not exactly that shape, and
 /// for a day or a minute that does not exist: `20260231`, `2400`, `1260`.
-fn stamp_minutes(text: &str, timed: bool) -> Option<i64> {
+pub(crate) fn stamp_minutes(text: &str, timed: bool) -> Option<i64> {
     let bytes = text.as_bytes();
     let (day, time) = match timed {
         true if bytes.len() == 13 && bytes[8] == b'-' => (&bytes[..8], Some(&bytes[9..])),

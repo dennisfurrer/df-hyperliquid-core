@@ -4,9 +4,12 @@
 use std::{fmt, str::FromStr};
 
 use hl_core::{Asset, Dec, OutcomeSide, Round};
-use hl_trade::{Order, Side, Tif};
+use hl_trade::{MAX_SLIPPAGE, Order, Side, Tif};
 
-use crate::error::OutcomeError;
+use crate::{
+    error::OutcomeError,
+    px::{Px, Qty},
+};
 
 /// Places an outcome price keeps: a tick is 0.00001.
 pub const PRICE_PLACES: u32 = 5;
@@ -115,6 +118,60 @@ impl Coin {
             Side::Sell => MIN_PRICE,
         };
         Ok(Order::market(asset, side, bound, size))
+    }
+
+    /// A limit order at a price already on the grid. A price an order may not
+    /// name (0 or 1) and no contracts are refused.
+    pub fn order(self, side: Side, price: Px, size: Qty, tif: Tif) -> Result<Order, OutcomeError> {
+        let asset = self.asset().ok_or(OutcomeError::NoAsset(self))?;
+        if !price.is_quotable() {
+            return Err(OutcomeError::Price(price.to_dec()));
+        }
+        if size.is_zero() {
+            return Err(OutcomeError::Size(Dec::ZERO));
+        }
+        Ok(Order::limit(asset, side, price.to_dec(), size.to_dec(), tif))
+    }
+
+    /// A market order bounded `slippage` (a fraction, at most 0.5) past
+    /// `reference`, as atlas's ticket sends one: the bound is on the grid and
+    /// rounded back toward the reference, so it is never looser than asked,
+    /// and stops at the edge of the range. `FrontendMarket`, never `Gtc`.
+    pub fn market_within(self, side: Side, reference: Px, slippage: Dec, size: Qty) -> Result<Order, OutcomeError> {
+        let asset = self.asset().ok_or(OutcomeError::NoAsset(self))?;
+        if slippage.is_negative() || slippage > MAX_SLIPPAGE {
+            return Err(OutcomeError::Slippage(slippage));
+        }
+        if size.is_zero() {
+            return Err(OutcomeError::Size(Dec::ZERO));
+        }
+        let (factor, past) = match side {
+            Side::Buy => (Dec::ONE.checked_add(slippage), Px::ONE),
+            Side::Sell => (Dec::ONE.checked_sub(slippage), Px::ZERO),
+        };
+        let moved = factor
+            .and_then(|factor| reference.to_dec().checked_mul(factor))
+            .ok_or(OutcomeError::Price(reference.to_dec()))?;
+        let bound = Px::on_grid(moved, side.price_rounding()).unwrap_or(past).clamp_to_quotable();
+        Ok(Order::market(asset, side, bound.to_dec(), size.to_dec()))
+    }
+
+    /// Reads `#12100`, `+12100` or a bare `12100`, as a person types one.
+    /// Venue data always carries its prefix: read it with [`Coin::parse`].
+    #[must_use]
+    pub fn lookup(text: &str) -> Option<Coin> {
+        let text = text.trim();
+        match text.starts_with(['#', '+']) {
+            true => Coin::parse(text),
+            false => Coin::parse(&format!("#{text}")),
+        }
+    }
+
+    /// Whether `needle` appears in the encoding, a leading `#` or `+` aside.
+    #[must_use]
+    pub fn matches(self, needle: &str) -> bool {
+        let needle = needle.strip_prefix(['#', '+']).unwrap_or(needle);
+        self.encoding().to_string().contains(needle)
     }
 }
 
