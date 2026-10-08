@@ -1,0 +1,64 @@
+//! The outcome fee model (hip4-tui D11, `docs/WIRE.md`, measured on mainnet
+//! 2026-09-12): a maker fill billed `0.0004 * 2 * 0.96 = 0.000768` and a
+//! taker `0.0007 * 2 * 0.96 = 0.001344` of notional, both exactly, on an
+//! account whose live `userFees` answer is below; every buy billed 0.
+
+use super::*;
+
+/// A live `userFees` answer, as hip4-tui recorded it.
+const FEES: &str = r#"{"dailyUserVlm":[{"date":"2026-09-25","userCross":"244273.31","userAdd":"977934.67","exchange":"7758060965.1000003815"},{"date":"2026-09-26","userCross":"22117.23","userAdd":"652639.39","exchange":"1205047792.5099999905"}],"userCrossRate":"0.00045","userAddRate":"0.00015","userSpotCrossRate":"0.0007","userSpotAddRate":"0.0004","activeReferralDiscount":"0.04","trial":null,"feeTrialEscrow":"0.0","nextTrialAvailableTimestamp":null,"stakingLink":null,"activeStakingDiscount":{"bpsOfMaxSupply":"0.0","discount":"0.0"}}"#;
+
+fn dec(text: &str) -> Dec {
+    Dec::parse(text).unwrap()
+}
+
+fn fees() -> UserFees {
+    serde_json::from_str(FEES).unwrap()
+}
+
+#[test]
+fn outcomes_bill_off_the_spot_schedule_not_the_perp_one() {
+    let fees = fees();
+    assert_eq!((fees.spot_cross, fees.spot_add, fees.referral_discount), (dec("0.0007"), dec("0.0004"), dec("0.04")));
+    assert_eq!(fees.rate(false, Dec::ONE), Some(dec("0.000768")), "a maker fill, as measured");
+    assert_eq!(fees.rate(true, Dec::ONE), Some(dec("0.001344")), "a taker fill, as measured");
+}
+
+#[test]
+fn the_deployer_s_scale_multiplies_by_itself_plus_at_least_one() {
+    assert_eq!(multiplier(Dec::ONE), Some(dec("2")), "every live outcome on 2026-09-12");
+    assert_eq!(multiplier(Dec::ZERO), Some(Dec::ONE));
+    assert_eq!(multiplier(dec("0.5")), Some(dec("1.5")));
+    assert_eq!(multiplier(dec("3")), Some(dec("6")));
+    assert_eq!(deployer_share(Dec::ONE), Some(dec("0.5")));
+    assert_eq!(deployer_share(Dec::ZERO), Some(Dec::ZERO));
+    assert_eq!(deployer_share(dec("3")), Some(dec("0.5")));
+    assert_eq!(deployer_share(dec("0.5")), Some(dec("0.33333333")), "to eight places, toward zero");
+}
+
+#[test]
+fn only_the_closing_side_pays() {
+    let fees = fees();
+    let notional = dec("7.25866");
+    assert_eq!(fees.fee(Side::Buy, true, Dec::ONE, notional), Some(Dec::ZERO), "every buy was billed 0");
+    assert_eq!(fees.fee(Side::Sell, true, Dec::ONE, notional), Some(dec("0.00975563904")));
+    assert_eq!(fees.fee(Side::Sell, false, Dec::ONE, dec("100")), Some(dec("0.0768")));
+}
+
+#[test]
+fn a_fill_s_fee_is_estimated_from_what_it_was() {
+    let fees = fees();
+    let sell = Fill::read(
+        &serde_json::from_str(
+            r##"{"coin":"#12270","px":"0.5","sz":"200.0","side":"A","time":1,"startPosition":"200.0","dir":"Sell",
+        "closedPnl":"0.0","hash":"0x","oid":1,"crossed":false,"fee":"0.0768","tid":1}"##,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(fees.fee_of(&sell, Dec::ONE), Some(dec("0.0768")));
+    assert_eq!(
+        user_fees_request(Address::ZERO),
+        r#"{"type":"userFees","user":"0x0000000000000000000000000000000000000000"}"#
+    );
+}
