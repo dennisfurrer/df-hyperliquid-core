@@ -22,8 +22,7 @@ impl Chain {
     pub const fn id(self) -> u64 {
         match self {
             Chain::HyperEvm(network) => network.evm_chain_id(),
-            Chain::Arbitrum(Network::Mainnet) => ARBITRUM_ONE,
-            Chain::Arbitrum(Network::Testnet) => ARBITRUM_SEPOLIA,
+            Chain::Arbitrum(network) => network.arbitrum_chain_id(),
         }
     }
 

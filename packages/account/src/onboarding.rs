@@ -146,7 +146,7 @@ pub fn steps(account: &AccountRef, network: Network, seen: &Seen<'_>, wants: &Wa
     };
     let deposit = match account.is_sub() {
         true => StepKind::FundFromMaster,
-        false => StepKind::Deposit { chain_id: network.signature_chain_id(), min: MIN_DEPOSIT },
+        false => StepKind::Deposit { chain_id: network.arbitrum_chain_id(), min: MIN_DEPOSIT },
     };
     let mut steps = vec![Step { kind: deposit, status: if funded { Status::Done } else { Status::Needed } }];
     if let Some(agent) = wants.agent {

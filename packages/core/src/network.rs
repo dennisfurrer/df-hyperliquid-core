@@ -75,6 +75,18 @@ impl Network {
         }
     }
 
+    /// The Arbitrum chain the bridge is on: Arbitrum One for mainnet,
+    /// Arbitrum Sepolia for testnet. A deposit goes there. It is its own
+    /// method, not [`Network::signature_chain_id`], though the two agree
+    /// today: one is where the bridge lives, the other what a signature names.
+    #[must_use]
+    pub const fn arbitrum_chain_id(self) -> u64 {
+        match self {
+            Network::Mainnet => 42_161,
+            Network::Testnet => 421_614,
+        }
+    }
+
     /// [`Network::signature_chain_id`] as an action spells it.
     #[must_use]
     pub const fn signature_chain_id_hex(self) -> &'static str {
@@ -108,6 +120,15 @@ impl Network {
         match self {
             Network::Mainnet => MAINNET_USDC,
             Network::Testnet => TESTNET_USDC,
+        }
+    }
+
+    /// Spot HYPE, whose index and token id differ between the networks.
+    #[must_use]
+    pub const fn hype(self) -> Token {
+        match self {
+            Network::Mainnet => MAINNET_HYPE,
+            Network::Testnet => TESTNET_HYPE,
         }
     }
 
@@ -166,6 +187,25 @@ pub const TESTNET_USDC: Token = Token {
     index: USDC_INDEX,
     token_id: "0xeb62eee3685fc4c43992febcd9e75443",
     wire: "USDC:0xeb62eee3685fc4c43992febcd9e75443",
+    wei_decimals: 8,
+};
+
+/// HYPE on mainnet, checked against `spotMeta` on 2026-10-08.
+pub const MAINNET_HYPE: Token = Token {
+    name: "HYPE",
+    index: 150,
+    token_id: "0x0d01dc56dcaaca66ad901c959b4011ec",
+    wire: "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+    wei_decimals: 8,
+};
+
+/// HYPE on testnet, checked against its `spotMeta` on 2026-10-08. Testnet's
+/// token 150 is another token.
+pub const TESTNET_HYPE: Token = Token {
+    name: "HYPE",
+    index: 1105,
+    token_id: "0x7317beb7cceed72ef0b346074cc8e7ab",
+    wire: "HYPE:0x7317beb7cceed72ef0b346074cc8e7ab",
     wei_decimals: 8,
 };
 

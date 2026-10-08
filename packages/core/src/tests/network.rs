@@ -79,3 +79,30 @@ fn each_network_has_its_socket_and_its_hyperevm() {
     assert_eq!(Network::Mainnet.evm_chain_id(), 999);
     assert_eq!(Network::Testnet.evm_chain_id(), 998);
 }
+
+/// Mainnet's as hip4-tui's `net` tests read it from `spotMeta`; both as
+/// hl-transfer's recorded `spotMeta` (2026-10-08) lists them. Testnet's
+/// token 150 is another token.
+#[test]
+fn hype_is_token_150_on_mainnet_and_1105_on_testnet() {
+    let mainnet = Network::Mainnet.hype();
+    assert_eq!((mainnet.name, mainnet.index, mainnet.wei_decimals), ("HYPE", 150, 8));
+    assert_eq!(mainnet.token_id, "0x0d01dc56dcaaca66ad901c959b4011ec");
+    assert_eq!(mainnet.wire, "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec");
+    let testnet = Network::Testnet.hype();
+    assert_eq!((testnet.name, testnet.index, testnet.wei_decimals), ("HYPE", 1105, 8));
+    assert_eq!(testnet.token_id, "0x7317beb7cceed72ef0b346074cc8e7ab");
+    assert_eq!(testnet.wire, "HYPE:0x7317beb7cceed72ef0b346074cc8e7ab");
+    for network in Network::ALL {
+        let hype = network.hype();
+        assert_eq!(hype.wire, format!("{}:{}", hype.name, hype.token_id), "{network}");
+    }
+}
+
+/// The chain the bridge is on: a deposit's, not a signature's, though the
+/// two agree today.
+#[test]
+fn the_bridge_is_on_arbitrum_one_and_arbitrum_sepolia() {
+    assert_eq!(Network::Mainnet.arbitrum_chain_id(), 42_161);
+    assert_eq!(Network::Testnet.arbitrum_chain_id(), 421_614);
+}

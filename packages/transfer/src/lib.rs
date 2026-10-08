@@ -17,7 +17,7 @@
 //! built by hl-evm, not here.
 //!
 //! The network is named everywhere: HYPE and USDC have other indices and ids
-//! on testnet ([`hype`], `hl_core::Network::usdc`), and every other token
+//! on testnet (`hl_core::Network::hype` and `usdc`), and every other token
 //! comes from the caller's `spotMeta` ([`SpotToken`]).
 #![deny(clippy::float_arithmetic)]
 

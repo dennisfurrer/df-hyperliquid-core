@@ -55,7 +55,9 @@ pub use keccak::keccak256;
 pub use l1::{L1Action, connection_id, l1_digest, phantom_agent};
 pub use limit::Spent;
 pub use msgpack::{Map, Value};
-pub use network::{L1_CHAIN_ID, MAINNET_USDC, Network, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork};
+pub use network::{
+    L1_CHAIN_ID, MAINNET_HYPE, MAINNET_USDC, Network, TESTNET_HYPE, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork,
+};
 pub use nonce::NonceClock;
 pub use side::Side;
 #[cfg(feature = "sign")]

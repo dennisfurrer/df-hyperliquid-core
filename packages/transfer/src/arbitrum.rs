@@ -44,10 +44,11 @@ pub const fn usdc(network: Network) -> Address {
     }
 }
 
-/// Arbitrum One or Arbitrum Sepolia: the chain user-signed actions name too.
+/// Arbitrum One or Arbitrum Sepolia, where the bridge is:
+/// [`Network::arbitrum_chain_id`].
 #[must_use]
 pub const fn chain_id(network: Network) -> u64 {
-    network.signature_chain_id()
+    network.arbitrum_chain_id()
 }
 
 /// A public JSON-RPC for that chain.

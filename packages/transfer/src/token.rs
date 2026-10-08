@@ -8,35 +8,16 @@ use serde::Deserialize;
 
 use crate::check::{HYPE_SYSTEM, system_address};
 
-/// HYPE on mainnet, checked against `spotMeta` on 2026-10-08.
-pub const MAINNET_HYPE: Token = Token {
-    name: "HYPE",
-    index: 150,
-    token_id: "0x0d01dc56dcaaca66ad901c959b4011ec",
-    wire: "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
-    wei_decimals: 8,
-};
-
-/// HYPE on testnet, checked against its `spotMeta` on 2026-10-08. Testnet's
-/// token 150 is another token.
-pub const TESTNET_HYPE: Token = Token {
-    name: "HYPE",
-    index: 1105,
-    token_id: "0x7317beb7cceed72ef0b346074cc8e7ab",
-    wire: "HYPE:0x7317beb7cceed72ef0b346074cc8e7ab",
-    wei_decimals: 8,
-};
+/// HYPE on each network: hl-core's, beside USDC.
+pub use hl_core::{MAINNET_HYPE, TESTNET_HYPE};
 
 /// HYPE's decimals on HyperEVM, where it is the chain's own coin.
 pub const HYPE_EVM_DECIMALS: u32 = 18;
 
-/// The network's HYPE.
+/// The network's HYPE: [`Network::hype`].
 #[must_use]
 pub const fn hype(network: Network) -> Token {
-    match network {
-        Network::Mainnet => MAINNET_HYPE,
-        Network::Testnet => TESTNET_HYPE,
-    }
+    network.hype()
 }
 
 /// One token of `spotMeta`'s `tokens`, the fields a transfer reads.
@@ -75,7 +56,7 @@ impl SpotToken {
     /// Whether this is the network's HYPE, by its index there.
     #[must_use]
     pub fn is_hype(&self, network: Network) -> bool {
-        self.index == hype(network).index
+        self.index == network.hype().index
     }
 
     /// Where it crosses from Core to HyperEVM: `0x2222…2222` for HYPE, `0x20`
