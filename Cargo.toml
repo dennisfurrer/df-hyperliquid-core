@@ -20,9 +20,9 @@ members = [
   "packages/hydromancer",
   "packages/ws",
   "packages/evm",
-  # composites: the state an app keeps, built from any crate above; never the umbrella or a wire.
+  # composites, built from any crate above and never the umbrella or a wire: the state an app
+  # keeps, and who builds and deploys, computed from what an app read.
   "packages/store",
-  # and who builds and deploys, computed from what an app read.
   "packages/analytics",
   # transports: the wire an app plugs into hl-core, one per platform.
   "packages/native",
