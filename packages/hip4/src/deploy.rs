@@ -17,7 +17,7 @@ use std::{
     str::FromStr,
 };
 
-use hl_core::{Address, Dec, L1Action, Map, Value};
+use hl_core::{Address, Dec, L1Action, Map, Value, time::Stamp};
 
 /// Why an action could not be made: what the venue would refuse, or what
 /// would pay out the wrong way, before anything is signed.
@@ -282,55 +282,6 @@ fn is_udecimal(text: &str) -> bool {
         })
 }
 
-fn is_leap(year: i64) -> bool {
-    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
-}
-
-fn days_in_month(year: i64, month: i64) -> i64 {
-    match month {
-        2 if is_leap(year) => 29,
-        2 => 28,
-        4 | 6 | 9 | 11 => 30,
-        _ => 31,
-    }
-}
-
-/// Days from 1970-01-01 to a day of the proleptic Gregorian calendar.
-fn days_from_civil(year: i64, month: i64, day: i64) -> i64 {
-    let year = if month <= 2 { year - 1 } else { year };
-    let era = year.div_euclid(400);
-    let year_of_era = year.rem_euclid(400);
-    let shifted = if month > 2 { month - 3 } else { month + 9 };
-    let day_of_year = (153 * shifted + 2) / 5 + day - 1;
-    let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
-    era * 146_097 + day_of_era - 719_468
-}
-
-/// Minutes from 1970 to a `YYYYMMDD-HHMM` stamp (`timed`) or to midnight of a
-/// `YYYYMMDD` one, in UTC. `None` for anything not exactly that shape, and
-/// for a day or a minute that does not exist: `20260231`, `2400`, `1260`.
-pub(crate) fn stamp_minutes(text: &str, timed: bool) -> Option<i64> {
-    let bytes = text.as_bytes();
-    let (day, time) = match timed {
-        true if bytes.len() == 13 && bytes[8] == b'-' => (&bytes[..8], Some(&bytes[9..])),
-        false if bytes.len() == 8 => (bytes, None),
-        _ => return None,
-    };
-    let number = |digits: &[u8]| {
-        digits.iter().try_fold(0_i64, |sum, &byte| byte.is_ascii_digit().then(|| sum * 10 + i64::from(byte - b'0')))
-    };
-    let year = number(&day[..4])?;
-    let month = number(&day[4..6])?;
-    let date = number(&day[6..])?;
-    let (hour, minute) = match time {
-        Some(time) => (number(&time[..2])?, number(&time[2..])?),
-        None => (0, 0),
-    };
-    let real =
-        (1..=12).contains(&month) && (1..=days_in_month(year, month)).contains(&date) && hour < 24 && minute < 60;
-    real.then(|| (days_from_civil(year, month, date) * 24 + hour) * 60 + minute)
-}
-
 /// How a template says a keyword's value is written, by the name
 /// `outcomeTemplates` gives next to each keyword.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -391,8 +342,8 @@ impl Hint {
     pub fn check(&self, keyword: &str, value: &str) -> Result<(), BadValue> {
         plain(keyword, value)?;
         let problem = match self {
-            Hint::DateTime if stamp_minutes(value, true).is_none() => Problem::DateTime,
-            Hint::Date if stamp_minutes(value, false).is_none() => Problem::Date,
+            Hint::DateTime if Stamp::exact(value).is_none() => Problem::DateTime,
+            Hint::Date if Stamp::day(value).is_none() => Problem::Date,
             Hint::ShortString if value.len() > MAX_SHORT_LEN => Problem::ShortString,
             Hint::UInt if !is_uint(value) => Problem::UInt,
             Hint::UInt if value.parse::<u64>().is_err() => Problem::TooLarge,
@@ -410,10 +361,10 @@ impl Hint {
         if *self != Hint::DateTime {
             return Ok(());
         }
-        let Some(minutes) = stamp_minutes(value, true) else {
+        let Some(stamp) = Stamp::exact(value) else {
             return Err(BadValue::new(keyword, Problem::DateTime));
         };
-        let at = i128::from(minutes) * 60_000;
+        let at = i128::from(stamp.ms());
         let now = i128::from(now_ms);
         let problem = if at <= now {
             Problem::Passed

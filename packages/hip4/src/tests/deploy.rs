@@ -569,17 +569,6 @@ fn a_date_time_is_after_now_and_within_366_days_of_it() {
 }
 
 #[test]
-fn a_stamp_counts_minutes_from_1970_in_utc() {
-    assert_eq!(stamp_minutes("19700101-0000", true), Some(0));
-    assert_eq!(stamp_minutes("19691231-2359", true), Some(-1));
-    assert_eq!(stamp_minutes("20260930-1200", true), Some(i64::try_from(NOW_MS / 60_000).unwrap()));
-    assert_eq!(stamp_minutes("20260930", false), Some(29_845_440));
-    assert_eq!(stamp_minutes("20000301", false), Some(11_017 * 1440));
-    assert_eq!(stamp_minutes("20260930", true), None);
-    assert_eq!(stamp_minutes("20260930-1200", false), None);
-}
-
-#[test]
 fn a_template_instance_is_checked_whole() {
     let declared = || {
         [
