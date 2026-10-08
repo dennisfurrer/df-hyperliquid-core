@@ -731,8 +731,9 @@ impl OutcomeDeploy {
     }
 
     /// Any fraction for a standalone outcome. A question's outcome takes only
-    /// 0 or 1, which this cannot tell, so the caller keeps to that. Pays out
-    /// at once and cannot be undone.
+    /// 0 or 1, which this cannot tell, so the caller keeps to that;
+    /// [`crate::flow::settle_outcome`] tells from `outcomeMeta`. Pays out at
+    /// once and cannot be undone.
     #[must_use]
     pub fn settle_outcome(venue: Venue, settlement: Settlement) -> Self {
         OutcomeDeploy { venue, operation: Operation::SettleOutcome(settlement) }

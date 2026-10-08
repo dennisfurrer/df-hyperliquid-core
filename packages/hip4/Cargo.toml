@@ -1,6 +1,6 @@
 [package]
 name = "hl-hip4"
-description = "HIP-4 outcome markets: outcome meta, outcome asset ids, outcome actions, settlement."
+description = "HIP-4 outcome markets: outcome coins and asset ids, the price grid, outcome meta and templates read in words, the complete-set scan, holdings, fills and fees, outcome actions, deployer checks, settlement."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
