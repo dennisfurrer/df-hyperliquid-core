@@ -13,6 +13,7 @@ hl-trade.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
+hl-core = { workspace = true, features = ["sign"] }
 serde_json.workspace = true
 
 [lints]

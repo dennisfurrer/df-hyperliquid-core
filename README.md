@@ -41,4 +41,10 @@ flowchart BT
 - **Targets:** every crate builds native and `wasm32-unknown-unknown`. No tokio, no OS keychain in the family; transports plug in from outside.
 - **Money:** `Dec`, never floats (`clippy::float_arithmetic` denied in every crate).
 - **Signing:** golden vectors before any new action (`vectors/`, each file naming the implementation that made it). A crate never holds the user's wallet key.
+- **Features:** the curve is `hl-core`'s `sign` feature. Every crate takes `hl-core` without it, so an app that only reads never compiles `k256`; one that signs asks for it.
+- **Rate limit:** every request goes through `hl_core::Api`, one network's endpoints behind one gate: reads hold back near the IP's 1,200 a minute, and a 429 closes the gate for everything.
 - **Network:** mainnet or testnet, and every signature names one: an action signed for one network is never valid on the other, so nothing assumes it. `/exchange` is never retried.
+
+## Check
+
+`just check` is the gate before any commit: fmt, clippy native and wasm, every test, and the feature check.

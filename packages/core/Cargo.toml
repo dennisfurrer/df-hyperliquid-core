@@ -12,13 +12,19 @@ serde.workspace = true
 # raw_value: a float the venue writes (a vault's `apr`) is read as its digits, never through an f64.
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true
-k256.workspace = true
 keccak.workspace = true
-zeroize.workspace = true
+k256 = { workspace = true, optional = true }
+zeroize = { workspace = true, optional = true }
 
 # k256 reaches getrandom 0.2 through rand_core's std feature; wasm32 needs its js backend.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom02.workspace = true
+getrandom02 = { workspace = true, optional = true }
+
+[features]
+default = ["sign"]
+# The curve: recovering and checking signatures, reading a wallet's, and a key held in memory.
+# Without it everything still hashes and builds what would be signed; nothing can sign or check.
+sign = ["dep:k256", "dep:zeroize", "dep:getrandom02"]
 
 [lints]
 workspace = true

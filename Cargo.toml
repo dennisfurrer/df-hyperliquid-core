@@ -24,7 +24,8 @@ license = "BUSL-1.1"
 
 # Pins follow coreserve (verified in atlas on 2026-09-28). Crates take only what they use.
 [workspace.dependencies]
-hl-core = { path = "packages/core" }
+# Without `sign`: a crate that signs, or a test that does, asks for it.
+hl-core = { path = "packages/core", default-features = false }
 hl-account = { path = "packages/account" }
 hl-transfer = { path = "packages/transfer" }
 hl-trade = { path = "packages/trade" }

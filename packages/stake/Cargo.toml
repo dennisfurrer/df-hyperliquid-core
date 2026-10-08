@@ -12,5 +12,8 @@ hl-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+[dev-dependencies]
+hl-core = { workspace = true, features = ["sign"] }
+
 [lints]
 workspace = true

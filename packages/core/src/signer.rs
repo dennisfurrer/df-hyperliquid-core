@@ -1,19 +1,25 @@
 //! secp256k1 signatures as the venue reads them, recovery, and the signer
 //! abstraction: a browser wallet through its typed-data JSON, or a local key.
+//! The curve itself is the `sign` feature: without it a [`Signature`] is still
+//! a value that can be posted, and nothing can make or check one.
 
-use std::{fmt, future::Future};
+#[cfg(feature = "sign")]
+use std::fmt;
+use std::future::Future;
 
+#[cfg(feature = "sign")]
 use k256::ecdsa::{RecoveryId, Signature as CurveSignature, SigningKey, VerifyingKey};
 use serde::{Serialize, Serializer, ser::SerializeStruct};
+#[cfg(feature = "sign")]
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     address::Address,
     eip712::{Domain, TypedStruct},
-    hex,
     json::Json,
-    keccak::keccak256,
 };
+#[cfg(feature = "sign")]
+use crate::{hex, keccak::keccak256};
 
 const V_OFFSET: u8 = 27;
 
@@ -53,6 +59,7 @@ impl Signature {
     /// `r || s || v`. `v` may be 0/1 or 27/28 and comes out 27/28; a high `s`
     /// is folded to its low twin, which is the same signature to the curve and
     /// the only form recovery here and the venue take.
+    #[cfg(feature = "sign")]
     pub fn from_hex(text: &str) -> Result<Signature, SignError> {
         let bytes: [u8; 65] = hex::decode_array(text).map_err(|_| SignError::NotASignature)?;
         let mut r = [0u8; 32];
@@ -98,12 +105,12 @@ impl Signature {
 
     #[must_use]
     pub fn r_hex(&self) -> String {
-        hex::encode_prefixed(&self.r)
+        crate::hex::encode_prefixed(&self.r)
     }
 
     #[must_use]
     pub fn s_hex(&self) -> String {
-        hex::encode_prefixed(&self.s)
+        crate::hex::encode_prefixed(&self.s)
     }
 
     #[must_use]
@@ -141,6 +148,7 @@ impl Serialize for Signature {
 }
 
 /// The address that signed `digest`.
+#[cfg(feature = "sign")]
 pub fn recover(digest: &[u8; 32], signature: &Signature) -> Result<Address, SignError> {
     let recovery_id = signature.recovery_id().and_then(RecoveryId::from_byte).ok_or(SignError::BadV(signature.v))?;
     let curve_signature = CurveSignature::from_slice(&signature.to_compact()).map_err(|_| SignError::Malformed)?;
@@ -151,6 +159,7 @@ pub fn recover(digest: &[u8; 32], signature: &Signature) -> Result<Address, Sign
 
 /// Recovers `signature` and requires `expected`: what every wallet signature
 /// passes before it is posted, since a wallet can sign as another account.
+#[cfg(feature = "sign")]
 pub fn verify(digest: &[u8; 32], signature: &Signature, expected: Address) -> Result<(), SignError> {
     let recovered = recover(digest, signature)?;
     match recovered == expected {
@@ -160,6 +169,7 @@ pub fn verify(digest: &[u8; 32], signature: &Signature, expected: Address) -> Re
 }
 
 /// `keccak256(uncompressed public key without its 0x04 tag)`, last twenty bytes.
+#[cfg(feature = "sign")]
 #[must_use]
 pub fn address_of_public_key(key: &VerifyingKey) -> Address {
     let point = key.to_encoded_point(false);
@@ -181,6 +191,7 @@ pub trait Signer {
 }
 
 /// If `k256` ever stops wiping its key on drop, this stops compiling.
+#[cfg(feature = "sign")]
 const _: fn() = || {
     fn wiped_on_drop<T: ZeroizeOnDrop>() {}
     wiped_on_drop::<SigningKey>();
@@ -188,11 +199,13 @@ const _: fn() = || {
 
 /// A private key held in memory, for tests and native tools. The browser
 /// never holds one: its wallet signs.
+#[cfg(feature = "sign")]
 pub struct LocalKey {
     key: SigningKey,
     address: Address,
 }
 
+#[cfg(feature = "sign")]
 impl LocalKey {
     pub fn from_bytes(secret: &[u8; 32]) -> Result<Self, SignError> {
         let key = SigningKey::from_bytes(secret.into()).map_err(|_| SignError::NotAKey)?;
@@ -225,6 +238,7 @@ impl LocalKey {
     }
 }
 
+#[cfg(feature = "sign")]
 impl Signer for LocalKey {
     fn address(&self) -> Address {
         self.address
@@ -239,6 +253,7 @@ impl Signer for LocalKey {
     }
 }
 
+#[cfg(feature = "sign")]
 impl fmt::Debug for LocalKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("LocalKey").field("address", &self.address.to_hex()).finish_non_exhaustive()
@@ -246,8 +261,10 @@ impl fmt::Debug for LocalKey {
 }
 
 /// Holds because `SigningKey` wipes itself; the assertion above checks that.
+#[cfg(feature = "sign")]
 impl ZeroizeOnDrop for LocalKey {}
 
 #[cfg(test)]
+#[cfg(feature = "sign")]
 #[path = "tests/signer.rs"]
 mod tests;

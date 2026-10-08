@@ -11,5 +11,8 @@ license.workspace = true
 hl-core.workspace = true
 thiserror.workspace = true
 
+[dev-dependencies]
+hl-core = { workspace = true, features = ["sign"] }
+
 [lints]
 workspace = true

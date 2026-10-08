@@ -53,6 +53,8 @@ pub use limit::Spent;
 pub use msgpack::{Map, Value};
 pub use network::{L1_CHAIN_ID, MAINNET_USDC, Network, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork};
 pub use nonce::NonceClock;
-pub use signer::{LocalKey, SignError, Signature, Signer, recover, verify};
+#[cfg(feature = "sign")]
+pub use signer::{LocalKey, recover, verify};
+pub use signer::{SignError, Signature, Signer};
 pub use units::{BadUnits, cut_units, exact_units};
 pub use user_signed::{NonceKey, UserAction, UserSigned};
