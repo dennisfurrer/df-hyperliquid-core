@@ -18,6 +18,7 @@ pub mod error;
 pub mod fee;
 pub mod fields;
 pub mod fill;
+pub mod flow;
 pub mod market;
 pub mod meta;
 pub mod px;
