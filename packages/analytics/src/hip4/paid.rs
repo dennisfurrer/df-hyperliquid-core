@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use hl_core::{Dec, Round};
-use hl_hip4::{Catalog, Fill, multiplier};
+use hl_hip4::{Catalog, Fill, deployer_share};
 
 use crate::{
     estimate::{Basis, Estimate},
@@ -90,7 +90,7 @@ impl Paid {
     /// places toward zero.
     #[must_use]
     pub fn deployer(&self, scale: Dec) -> Option<Estimate> {
-        let amount = self.venue().checked_mul(scale)?.checked_div(multiplier(scale)?, 8, Round::Down)?;
+        let amount = deployer_share(self.venue(), scale)?;
         Some(Estimate { amount, basis: Basis::Fills { fills: self.fills } })
     }
 

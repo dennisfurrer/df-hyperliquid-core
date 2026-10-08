@@ -48,11 +48,13 @@ pub fn multiplier(scale: Dec) -> Option<Dec> {
     scale.checked_add(scale.max(Dec::ONE))
 }
 
-/// The deployer's part of an outcome's fee, `scale / (scale + max(scale,
-/// 1))`, to eight places toward zero. An estimate: the venue reports none.
+/// The deployer's part of `fee` on an outcome of fee scale `scale`, `fee *
+/// scale / (scale + max(scale, 1))`: multiplied out before the one division,
+/// then cut to eight places toward zero, so it rounds once. An estimate: the
+/// venue reports none.
 #[must_use]
-pub fn deployer_share(scale: Dec) -> Option<Dec> {
-    scale.checked_div(multiplier(scale)?, 8, Round::Down)
+pub fn deployer_share(fee: Dec, scale: Dec) -> Option<Dec> {
+    fee.checked_mul(scale)?.checked_div(multiplier(scale)?, 8, Round::Down)
 }
 
 impl UserFees {

@@ -30,10 +30,21 @@ fn the_deployer_s_scale_multiplies_by_itself_plus_at_least_one() {
     assert_eq!(multiplier(Dec::ZERO), Some(Dec::ONE));
     assert_eq!(multiplier(dec("0.5")), Some(dec("1.5")));
     assert_eq!(multiplier(dec("3")), Some(dec("6")));
-    assert_eq!(deployer_share(Dec::ONE), Some(dec("0.5")));
-    assert_eq!(deployer_share(Dec::ZERO), Some(Dec::ZERO));
-    assert_eq!(deployer_share(dec("3")), Some(dec("0.5")));
-    assert_eq!(deployer_share(dec("0.5")), Some(dec("0.33333333")), "to eight places, toward zero");
+    assert_eq!(deployer_share(Dec::ONE, Dec::ONE), Some(dec("0.5")));
+    assert_eq!(deployer_share(Dec::ONE, Dec::ZERO), Some(Dec::ZERO));
+    assert_eq!(deployer_share(Dec::ONE, dec("3")), Some(dec("0.5")));
+    assert_eq!(deployer_share(Dec::ONE, dec("0.5")), Some(dec("0.33333333")), "to eight places, toward zero");
+}
+
+/// The deployer's part is multiplied out before the one division. A third cut to 0.33333333
+/// first and then multiplied rounds twice: on the measured maker fee of 100 of notional
+/// (0.0768) at scale 0.5 it gives 0.02559999, where Python's `decimal` says 0.0768 * 0.5 / 1.5
+/// is 0.0256 exactly; on 1234.56789012 it gives 411.52262592 for 411.52263004.
+#[test]
+fn the_deployer_s_part_is_rounded_once_not_twice() {
+    assert_eq!(deployer_share(dec("0.0768"), dec("0.5")), Some(dec("0.0256")));
+    assert_eq!(deployer_share(dec("1234.56789012"), dec("0.5")), Some(dec("411.52263004")));
+    assert_eq!(deployer_share(dec("7.25866"), dec("0.3")), Some(dec("1.67507538")), "1.675075384615..., cut");
 }
 
 #[test]
