@@ -15,7 +15,7 @@ const NONCE: u64 = 1_790_412_105_001;
 
 /// Live, mainnet, 2026-10-06: HLP asked about one follower, trimmed to one
 /// follower, one portfolio row and two children.
-const HLP_DETAILS: &str = r#"{"name":"Hyperliquidity Provider (HLP)","vaultAddress":"0xdfc24b077bc1425ad1dea75bcb6f8158e10df303","leader":"0x677d831aef5328190852e24f13c46cac05f984e7","description":"This community-owned vault provides liqu","portfolio":[["day",{"accountValueHistory":[[1791216735605,"181550588.8688080013"]],"pnlHistory":[[1791216735605,"0.0"]],"vlm":"0.0"}]],"apr":0.037569521048262375,"followerState":{"user":"0x03e161499870b0a37549b16a5d33e0582fe1255e","vaultEquity":"604934.1646616657","pnl":"80799.3608496657","allTimePnl":"156824.7213636657","daysFollowing":655,"vaultEntryTime":1734650428028,"lockupUntil":1770680880422},"leaderFraction":0.002002618331064799,"leaderCommission":0.0,"followers":[{"user":"0x03e161499870b0a37549b16a5d33e0582fe1255e","vaultEquity":"604934.1646616657","pnl":"80799.3608496657","allTimePnl":"156824.7213636657","daysFollowing":655,"vaultEntryTime":1734650428028,"lockupUntil":1770680880422}],"maxDistributable":41085359.552966,"maxWithdrawable":604934.164661,"isClosed":false,"relationship":{"type":"parent","data":{"childAddresses":["0x010461c14e146ac35fe42271bdc1134ee31c703a","0x2e3d94f0562703b25c83308a05046ddaf9a8dd14"]}},"allowDeposits":true,"alwaysCloseOnWithdraw":false}"#;
+const HLP_DETAILS: &str = r#"{"name":"Hyperliquidity Provider (HLP)","vaultAddress":"0xdfc24b077bc1425ad1dea75bcb6f8158e10df303","leader":"0x677d831aef5328190852e24f13c46cac05f984e7","description":"This community-owned vault provides liqu","portfolio":[["day",{"accountValueHistory":[[1791216735605,"181550588.8688080013"]],"pnlHistory":[[1791216735605,"0.0"]],"vlm":"0.0"}]],"apr":0.037569521048262375,"followerState":{"user":"0x03e161499870b0a37549b16a5d33e0582fe1255e","vaultEquity":"604934.1646616657","pnl":"80799.3608496657","allTimePnl":"156824.7213636657","daysFollowing":655,"vaultEntryTime":1734650428028,"lockupUntil":1770680880422},"leaderFraction":0.002002618331064799,"leaderCommission":0.0,"followers":[{"user":"Leader","vaultEquity":"361964.4018696983","pnl":"273234.2946016983","allTimePnl":"273238.1857936983","daysFollowing":1252,"vaultEntryTime":1683243596849,"lockupUntil":1687702696528},{"user":"0x03e161499870b0a37549b16a5d33e0582fe1255e","vaultEquity":"604934.1646616657","pnl":"80799.3608496657","allTimePnl":"156824.7213636657","daysFollowing":655,"vaultEntryTime":1734650428028,"lockupUntil":1770680880422}],"maxDistributable":41085359.552966,"maxWithdrawable":604934.164661,"isClosed":false,"relationship":{"type":"parent","data":{"childAddresses":["0x010461c14e146ac35fe42271bdc1134ee31c703a","0x2e3d94f0562703b25c83308a05046ddaf9a8dd14"]}},"allowDeposits":true,"alwaysCloseOnWithdraw":false}"#;
 /// Live, the same follower.
 const EQUITIES: &str = r#"[{"vaultAddress":"0xdfc24b077bc1425ad1dea75bcb6f8158e10df303","equity":"604931.6453119999","lockedUntilTimestamp":1770680880422}]"#;
 /// Live, HLP's leader.
@@ -80,7 +80,9 @@ fn vault_details_read_with_their_floats_kept_as_written() {
     assert_eq!(hlp.leader_commission.as_ref().and_then(Figure::to_dec), Some(Dec::ZERO));
     let mine = hlp.follower_state.as_ref().unwrap();
     assert_eq!((mine.vault_equity, mine.lockup_until), (dec("604934.1646616657"), Some(1_770_680_880_422)));
-    assert_eq!(hlp.followers.len(), 1);
+    // the leader's own row names no address (as answered live on 2026-10-08)
+    let users: Vec<Option<Address>> = hlp.followers.iter().map(|f| f.user).collect();
+    assert_eq!(users, [None, Some(Address::parse_const("0x03e161499870b0a37549b16a5d33e0582fe1255e").unwrap())]);
     assert!(hlp.takes_deposits());
     assert_eq!(serde_json::from_str::<Option<VaultDetails>>("null").unwrap(), None, "no vault at that address");
 }

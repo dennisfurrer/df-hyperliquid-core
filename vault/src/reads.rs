@@ -95,7 +95,10 @@ impl VaultDetails {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Follower {
-    pub user: Address,
+    /// None for the leader's own row, which the venue writes as `"user":"Leader"` (seen in HLP's
+    /// followers on 2026-10-08).
+    #[serde(deserialize_with = "follower_user")]
+    pub user: Option<Address>,
     pub vault_equity: Dec,
     #[serde(default)]
     pub pnl: Option<Dec>,
@@ -108,6 +111,15 @@ pub struct Follower {
     /// Milliseconds; a withdrawal before it is refused.
     #[serde(default)]
     pub lockup_until: Option<u64>,
+}
+
+/// A follower's `user`: an address, or `Leader` for the leader's own stake.
+fn follower_user<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Option<Address>, D::Error> {
+    let text = String::deserialize(deserializer)?;
+    if text == "Leader" {
+        return Ok(None);
+    }
+    text.parse().map(Some).map_err(serde::de::Error::custom)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
