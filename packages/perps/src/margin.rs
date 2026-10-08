@@ -3,21 +3,11 @@
 //! anything is signed.
 
 use hl_core::{Asset, BadUnits, Dec};
-use hl_trade::{MarginMode, Side, TradeError, UpdateIsolatedMargin, UpdateLeverage};
+/// Leverage refusals are hl-trade's, shared with hl-hip3.
+pub use hl_trade::LeverageError;
+use hl_trade::{MarginMode, Side, TradeError, UpdateIsolatedMargin, UpdateLeverage, checked_leverage};
 
 use crate::{meta::PerpAsset, table::MarginTable};
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum LeverageError {
-    #[error("{name} allows at most {max}x, not {asked}x")]
-    TooHigh { name: String, max: u32, asked: u32 },
-    #[error("{name} allows at most {max}x at a notional of {notional}, not {asked}x")]
-    OverTier { name: String, notional: Dec, max: u32, asked: u32 },
-    #[error("{0} is isolated only")]
-    NoCross(String),
-    #[error(transparent)]
-    Trade(#[from] TradeError),
-}
 
 /// [`update_leverage`], and held to the tier of `table` (the perp's, from
 /// [`crate::Meta::table_of`]) that a position of `notional` reaches: BTC
@@ -31,12 +21,8 @@ pub fn update_leverage_for(
     notional: Dec,
 ) -> Result<UpdateLeverage, LeverageError> {
     let set = update_leverage(asset, perp, mode, leverage)?;
-    match table.max_leverage_at(notional) {
-        Some(max) if leverage > max => {
-            Err(LeverageError::OverTier { name: perp.name.clone(), notional: notional.abs(), max, asked: leverage })
-        }
-        _ => Ok(set),
-    }
+    table.check(&perp.name, leverage, notional)?;
+    Ok(set)
 }
 
 /// `updateLeverage` for `perp` at `asset`: refused over its `maxLeverage`,
@@ -47,13 +33,7 @@ pub fn update_leverage(
     mode: MarginMode,
     leverage: u32,
 ) -> Result<UpdateLeverage, LeverageError> {
-    if leverage > perp.max_leverage {
-        return Err(LeverageError::TooHigh { name: perp.name.clone(), max: perp.max_leverage, asked: leverage });
-    }
-    if mode == MarginMode::Cross && !perp.allows_cross() {
-        return Err(LeverageError::NoCross(perp.name.clone()));
-    }
-    Ok(UpdateLeverage::new(asset, mode, leverage)?)
+    checked_leverage(asset, &perp.name, perp.max_leverage, perp.allows_cross(), mode, leverage)
 }
 
 /// More USDC into an isolated position, long (`Side::Buy`) or short.

@@ -1,4 +1,4 @@
-//! Hyperliquid trading shared by every market kind: order, cancel, modify, scheduleCancel, noop, TWAP, leverage and margin; tick and lot rounding; the ticket from intent to action (market orders are FrontendMarket, never Gtc); builder fees as a setting and their approval; what /exchange answers; order, fill and market reads.
+//! Hyperliquid trading shared by every market kind: order, cancel, modify, scheduleCancel, noop, TWAP, leverage and margin; margin tables and the leverage a perp allows; tick and lot rounding; the ticket from intent to action (market orders are FrontendMarket, never Gtc); builder fees as a setting and their approval; what /exchange answers; order, fill and market reads.
 //!
 //! Every action here is an L1 action ([`L1Action`]): an approved agent key may
 //! sign it for its master. A market order is [`Order::market`], which is always
@@ -27,6 +27,7 @@ pub mod error;
 pub mod fills;
 pub mod grid;
 pub mod leverage;
+pub mod margin;
 pub mod market;
 pub mod modify;
 pub mod order;
@@ -47,6 +48,7 @@ pub use fills::{
 pub use grid::{Grid, MAX_SLIPPAGE, MINIMUM_ORDER_VALUE, PERP_PRICE_PLACES, SIGNIFICANT_FIGURES, SPOT_PRICE_PLACES};
 pub use hl_core::{Asset, AssetKind, BuilderFee, L1Action};
 pub use leverage::{MarginMode, UpdateIsolatedMargin, UpdateLeverage};
+pub use margin::{FLAT_TABLES_BELOW, LeverageError, MarginTable, MarginTier, checked_leverage};
 pub use market::{Candle, Interval, L2Book, Level, MarketTrade, Mids, Precision, UnknownInterval};
 pub use modify::{BatchModify, Modify, OrderRef};
 pub use order::{Builder, Cloid, Grouping, Order, OrderType, OverCap, PlaceOrder, Side, Tif, Tpsl};
