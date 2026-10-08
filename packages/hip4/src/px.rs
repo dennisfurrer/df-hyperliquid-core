@@ -239,6 +239,15 @@ impl Mid {
         self.0
     }
 
+    /// `None` past one.
+    #[must_use]
+    pub const fn from_units(units: u32) -> Option<Mid> {
+        match units <= OBSERVED_PER_UNIT {
+            true => Some(Mid(units)),
+            false => None,
+        }
+    }
+
     #[must_use]
     pub const fn complement(self) -> Mid {
         Mid(OBSERVED_PER_UNIT - self.0)

@@ -11,6 +11,7 @@
 //! cannot be undone.
 #![deny(clippy::float_arithmetic)]
 
+pub mod book;
 pub mod coin;
 pub mod deploy;
 pub mod error;
@@ -18,6 +19,8 @@ pub mod fields;
 pub mod market;
 pub mod meta;
 pub mod px;
+pub mod quote;
+pub mod scan;
 pub mod template;
 pub mod time;
 pub mod user;
