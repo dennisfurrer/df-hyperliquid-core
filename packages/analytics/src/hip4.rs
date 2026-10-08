@@ -7,6 +7,6 @@ pub mod earned;
 pub mod paid;
 pub mod venues;
 
-pub use earned::{Earned, LedgerDelta, LedgerRow, explained};
+pub use earned::{Earned, LedgerDelta, LedgerRow, Moved, explained};
 pub use paid::{Paid, Take, Takes, by_venue};
 pub use venues::{First, Uses, Venue, templates_of, venues};

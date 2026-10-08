@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use hl_core::{Address, Dec};
+use hl_core::{Address, Dec, ledger::Delta};
 use serde::{Deserialize, Serialize};
 
 use super::money;
@@ -483,18 +483,16 @@ pub struct Transfer {
 pub fn transfers(rows: &[LedgerRow], from: Address) -> Vec<Transfer> {
     rows.iter()
         .filter_map(|row| {
-            let delta = &row.delta;
-            if !matches!(delta.kind.as_str(), "spotTransfer" | "send") || !delta.token.as_deref()?.starts_with("USDC") {
+            let (Delta::Send { token, user, destination, amount, .. }
+            | Delta::SpotTransfer { token, user, destination, amount, .. }) = &row.delta
+            else {
                 return None;
-            }
-            if delta.user.as_deref()?.parse::<Address>().ok()? != from {
-                return None;
-            }
-            Some(Transfer {
+            };
+            (token.starts_with("USDC") && *user == from).then(|| Transfer {
                 hash: row.hash.clone(),
                 time: row.time,
-                destination: delta.destination.as_deref()?.parse().ok()?,
-                amount: Dec::parse(delta.amount.as_deref()?).ok()?,
+                destination: *destination,
+                amount: *amount,
             })
         })
         .collect()

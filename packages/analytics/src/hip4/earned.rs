@@ -4,12 +4,13 @@
 //! row this build cannot read makes it unknown rather than wrong. Beside it, what `referral`
 //! says its builder code was paid (hl-account's `Referral`, read as [`Rewards`]).
 //!
-//! The rows are read here as the venue sends them, every type by its fields, rather than as
-//! hl-transfer's `LedgerUpdate`, which keeps the types it does not model (`rewardsClaim`,
-//! `subAccountTransfer`, `vaultCreate`) without their amounts.
+//! The rows are hl-core's `LedgerUpdate`, every type read by its fields; what each moved is
+//! worked out here, by hip4-tui's rules.
 
-use hl_core::{Address, Dec};
-use serde::Deserialize;
+use hl_core::{
+    Address, Dec,
+    ledger::{Delta, LedgerUpdate},
+};
 
 use crate::{
     builders::Rewards,
@@ -17,76 +18,43 @@ use crate::{
     math::add,
 };
 
-/// One row of `userNonFundingLedgerUpdates`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct LedgerRow {
-    /// Milliseconds.
-    #[serde(default)]
-    pub time: u64,
-    #[serde(default)]
-    pub hash: String,
-    pub delta: LedgerDelta,
-}
+/// One row of `userNonFundingLedgerUpdates`: hl-core's.
+pub type LedgerRow = LedgerUpdate;
 
-/// The fields of a row's `delta` that move USDC, as written: a figure that does not read makes
-/// its row unread rather than zero.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct LedgerDelta {
-    #[serde(rename = "type")]
-    pub kind: String,
-    #[serde(default)]
-    pub token: Option<String>,
-    #[serde(default)]
-    pub amount: Option<String>,
-    #[serde(default)]
-    pub usdc: Option<String>,
-    #[serde(default)]
-    pub user: Option<String>,
-    #[serde(default)]
-    pub destination: Option<String>,
-    #[serde(default)]
-    pub fee: Option<String>,
-    #[serde(default)]
-    pub fee_token: Option<String>,
-    #[serde(default)]
-    pub to_perp: Option<bool>,
-}
+/// What a row did: hl-core's.
+pub type LedgerDelta = Delta;
 
-impl LedgerRow {
+/// What a ledger row moved for one account.
+pub trait Moved {
     /// The USDC this row moved into `me`'s account (out, below zero), less any USDC fee it
     /// charged `me`; `None` for a row this build does not read.
-    #[must_use]
-    pub fn moved(&self, me: Address) -> Option<Dec> {
-        let delta = &self.delta;
-        let figure = |said: &Option<String>| Dec::parse(said.as_deref()?).ok();
-        let named =
-            |said: &Option<String>| said.as_deref().is_some_and(|said| said.parse::<Address>().ok() == Some(me));
-        let charged = match delta.fee_token.as_deref() == Some(QUOTE) && named(&delta.user) {
-            true => delta.fee.as_deref().map_or(Some(Dec::ZERO), |fee| Dec::parse(fee).ok())?,
-            false => Dec::ZERO,
-        };
-        let kind = delta.kind.as_str();
-        let moved = if SIDED.contains(&kind) {
-            let amount = match delta.token.as_deref() {
-                Some(token) if token != QUOTE => Dec::ZERO,
-                Some(_) => figure(&delta.amount)?,
-                None => figure(&delta.usdc)?,
-            };
-            if named(&delta.destination) { amount } else { amount.negate() }
-        } else if INWARD.contains(&kind) {
-            figure(&delta.usdc)?
-        } else if OUTWARD.contains(&kind) {
-            figure(&delta.usdc)?.negate()
-        } else if kind == "accountClassTransfer" {
-            let amount = figure(&delta.usdc)?;
-            if delta.to_perp == Some(true) { amount.negate() } else { amount }
-        } else if STAKING.contains(&kind) {
-            Dec::ZERO
-        } else {
-            return None;
-        };
-        moved.checked_sub(charged)
+    fn moved(&self, me: Address) -> Option<Dec>;
+}
+
+impl Moved for LedgerUpdate {
+    fn moved(&self, me: Address) -> Option<Dec> {
+        let to_me = |amount: Dec, destination: Address| if destination == me { amount } else { amount.negate() };
+        let quote = |token: &str, amount: Dec| if token == QUOTE { amount } else { Dec::ZERO };
+        match &self.delta {
+            Delta::Send { user, destination, token, amount, fee, fee_token, .. }
+            | Delta::SpotTransfer { user, destination, token, amount, fee, fee_token, .. } => {
+                let charged = if fee_token == QUOTE && *user == me { *fee } else { Dec::ZERO };
+                to_me(quote(token, *amount), *destination).checked_sub(charged)
+            }
+            Delta::InternalTransfer { usdc, destination, .. } | Delta::SubAccountTransfer { usdc, destination, .. } => {
+                Some(to_me(*usdc, *destination))
+            }
+            Delta::Deposit { usdc } => Some(*usdc),
+            Delta::RewardsClaim { amount, token } => Some(quote(token, *amount)),
+            Delta::Withdraw { usdc, .. } | Delta::VaultDeposit { usdc, .. } => Some(usdc.negate()),
+            Delta::VaultCreate { usdc, fee, .. } => usdc.checked_add(*fee).map(Dec::negate),
+            Delta::AccountClassTransfer { usdc, to_perp } => Some(if *to_perp { usdc.negate() } else { *usdc }),
+            Delta::CStakingTransfer { .. } | Delta::SpotGenesis { .. } => Some(Dec::ZERO),
+            Delta::VaultWithdraw { .. }
+            | Delta::AccountActivationGas { .. }
+            | Delta::DeployGasAuction { .. }
+            | Delta::Other { .. } => None,
+        }
     }
 }
 
@@ -101,16 +69,6 @@ pub fn explained(rows: &[LedgerRow], me: Address) -> (Dec, bool) {
 
 /// The quote every figure here is counted in.
 const QUOTE: &str = "USDC";
-
-/// Rows with two ends: in for the end that is the address, out for the other.
-const SIDED: [&str; 4] = ["send", "spotTransfer", "internalTransfer", "subAccountTransfer"];
-
-const INWARD: [&str; 3] = ["deposit", "vaultWithdraw", "rewardsClaim"];
-
-const OUTWARD: [&str; 3] = ["withdraw", "vaultDeposit", "vaultCreate"];
-
-/// Rows that move no USDC but may charge a USDC fee.
-const STAKING: [&str; 4] = ["cStakingTransfer", "delegate", "undelegate", "spotGenesis"];
 
 /// A deployer's address: what it holds, what its ledger explains, what `referral` says.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
