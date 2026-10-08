@@ -33,6 +33,7 @@ pub mod order;
 pub mod orders;
 mod request;
 pub mod schedule;
+pub mod ticket;
 pub mod twap;
 
 pub use action::TradeAction;
@@ -51,6 +52,10 @@ pub use modify::{BatchModify, Modify, OrderRef};
 pub use order::{Builder, Cloid, Grouping, Order, OrderType, OverCap, PlaceOrder, Side, Tif, Tpsl};
 pub use orders::{FrontendOrder, OpenOrder, OrderKind, OrderLookup, OrderRecord, OrderState};
 pub use schedule::{Noop, ScheduleCancel, TooSoon};
+pub use ticket::{
+    Amount, Change, Close, Covers, Exit, ExitPrice, Market, OrderIntent, Price, Refusal, Scale, TriggerIntent,
+    TwapIntent,
+};
 pub use twap::{Twap, TwapCancel};
 
 #[cfg(test)]
