@@ -18,6 +18,36 @@
 //! - **Accounts**: up to the venue's ten users; a subaccount is read at its own address, with its
 //!   own mode.
 //! - **Network**: one store is one network, never mixed (hip4-tui's D13).
+//!
+//! A BTC page, from the socket's side:
+//!
+//! ```
+//! use hl_core::{Dec, Network};
+//! use hl_store::{Interest, Store};
+//! use hl_ws::Session;
+//!
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let mut store = Store::new(Network::Mainnet);
+//! let mut session = Session::new(Network::Mainnet);
+//! let book = store.register(Interest::Book { coin: "BTC".to_owned() })?;
+//! store.sync(&mut session)?;
+//! // The socket opens: the session subscribes to everything the store asked for.
+//! let to_send = session.opened(0);
+//! assert_eq!(to_send.len(), 1);
+//!
+//! let text = r#"{"channel":"l2Book","data":{"coin":"BTC","time":1,"levels":[[{"px":"100","sz":"1","n":1}],[{"px":"101","sz":"2","n":1}]]}}"#;
+//! let frame = session.received(1_000, text)?;
+//! store.apply(1_000, &frame);
+//! assert_eq!(store.mid("BTC"), Some(Dec::parse("100.5")?));
+//! assert_eq!(store.book("BTC").map(|book| book.age(4_000)), Some(3_000));
+//!
+//! // The page goes: its book goes, and the next sync unsubscribes it.
+//! drop(book);
+//! assert_eq!(store.sync(&mut session)?.frames.len(), 1);
+//! assert!(store.book("BTC").is_none());
+//! # Ok(())
+//! # }
+//! ```
 #![deny(clippy::float_arithmetic)]
 
 pub mod account;
