@@ -42,6 +42,7 @@ pub mod side;
 pub mod signer;
 pub mod signers;
 pub mod system;
+pub mod trade;
 pub mod units;
 pub mod user_signed;
 

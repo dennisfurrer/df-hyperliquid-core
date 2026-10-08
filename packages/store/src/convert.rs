@@ -2,7 +2,7 @@
 //! things in the types of different crates; each piece is kept in the one every source reads
 //! into without losing what it said:
 //!
-//! - prints, candles, fills, fundings and ledger rows as hl-ws reads them;
+//! - candles, fills, fundings and ledger rows as hl-ws reads them;
 //! - perp contexts as hl-perps reads them (hl-hip3's are the same fields), spot contexts as
 //!   hl-spot does (its supplies may be absent, the socket's never are);
 //! - a dex's clearinghouse as hl-perps reads it, and from it hl-account's, which usable
@@ -18,24 +18,9 @@ use hl_perps::{
     AssetPosition, ClearinghouseState, CumFunding, Leverage, MarginSummary, PerpCtx, Position, UserFunding,
 };
 use hl_spot::SpotCtx;
-use hl_trade::{FrontendOrder, MarketTrade, OrderKind};
-use hl_ws::{Candle, Fill, Funding, Interval, Margin, Trade};
+use hl_trade::{FrontendOrder, OrderKind};
+use hl_ws::{Candle, Fill, Funding, Interval, Margin};
 use serde::{Deserialize, de::IntoDeserializer};
-
-pub(crate) fn trade(read: &MarketTrade) -> Trade {
-    let [buyer, seller] = read.users;
-    Trade {
-        coin: read.coin.clone(),
-        side: read.side,
-        px: read.px,
-        sz: read.sz,
-        time: read.time,
-        hash: read.hash.clone(),
-        tid: read.tid,
-        buyer,
-        seller,
-    }
-}
 
 /// `None` only for an interval the socket has no spelling for, which there is none of.
 pub(crate) fn candle(read: &hl_trade::Candle) -> Option<Candle> {

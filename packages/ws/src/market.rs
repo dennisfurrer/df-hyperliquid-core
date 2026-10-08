@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use hl_core::{Address, Dec};
+use hl_core::Dec;
 use serde::{Deserialize, Deserializer, de};
 
 use crate::subscription::Interval;
@@ -43,53 +43,9 @@ impl From<RawBbo> for Bbo {
 /// own, on an order the side it rests on. hl-core's, the one an order is placed with.
 pub use hl_core::Side;
 
-/// One print on `trades`, oldest first within a frame.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "RawTrade")]
-pub struct Trade {
-    pub coin: String,
-    /// The aggressor's side.
-    pub side: Side,
-    pub px: Dec,
-    pub sz: Dec,
-    /// Milliseconds.
-    pub time: u64,
-    /// The L1 transaction hash; all zeros for a TWAP slice.
-    pub hash: String,
-    /// A hash of the two order ids, not unique alone: with `time` and `coin` it is.
-    pub tid: u64,
-    pub buyer: Address,
-    pub seller: Address,
-}
-
-#[derive(Deserialize)]
-struct RawTrade {
-    coin: String,
-    side: Side,
-    px: Dec,
-    sz: Dec,
-    time: u64,
-    hash: String,
-    tid: u64,
-    users: [Address; 2],
-}
-
-impl From<RawTrade> for Trade {
-    fn from(raw: RawTrade) -> Self {
-        let [buyer, seller] = raw.users;
-        Trade {
-            coin: raw.coin,
-            side: raw.side,
-            px: raw.px,
-            sz: raw.sz,
-            time: raw.time,
-            hash: raw.hash,
-            tid: raw.tid,
-            buyer,
-            seller,
-        }
-    }
-}
+/// One print on `trades`, oldest first within a frame: hl-core's, the shape `recentTrades`
+/// answers too.
+pub use hl_core::trade::Trade;
 
 /// `candle`: the bar of an interval as it stands, sent as it forms and then again for the next.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

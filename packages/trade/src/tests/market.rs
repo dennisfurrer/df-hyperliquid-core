@@ -94,7 +94,7 @@ fn a_print_names_the_aggressor_and_both_sides() {
         (first.side, first.px, first.sz, first.tid),
         (Side::Buy, dec("80839"), dec("0.03885"), 739_564_670_599_029)
     );
-    assert_eq!(first.users[0], "0xc861d75087be18a9f46c1dee457bb0e29e31ddbd".parse().unwrap());
+    assert_eq!(first.users()[0], "0xc861d75087be18a9f46c1dee457bb0e29e31ddbd".parse().unwrap());
     assert_eq!(trades[1].side, Side::Sell);
 }
 

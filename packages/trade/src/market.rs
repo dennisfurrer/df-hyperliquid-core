@@ -4,13 +4,10 @@
 
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use hl_core::{Address, ApiError, Dec, Transport, info};
+use hl_core::{ApiError, Dec, Transport, info};
 use serde::{Deserialize, Deserializer, de};
 
-use crate::{
-    order::Side,
-    request::{body, dex, number, text},
-};
+use crate::request::{body, dex, number, text};
 
 /// How finely a book's levels are bucketed: full precision, or 2 to 5
 /// significant figures, and at 5 figures a step of 1, 2 or 5 in the last.
@@ -185,18 +182,8 @@ pub struct Candle {
     pub trades: u64,
 }
 
-/// A print: `side` is the aggressor's, `users` the buyer then the seller.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct MarketTrade {
-    pub coin: String,
-    pub side: Side,
-    pub px: Dec,
-    pub sz: Dec,
-    pub time: u64,
-    pub hash: String,
-    pub tid: u64,
-    pub users: [Address; 2],
-}
+/// A print: `side` is the aggressor's. hl-core's, the shape the socket sends.
+pub type MarketTrade = hl_core::trade::Trade;
 
 /// `allMids`: every coin's mid on one dex. Where a book is empty the venue
 /// prints its last trade instead. A mid can sit between two ticks.

@@ -244,7 +244,7 @@ impl Store {
         self.settle();
         match read {
             Read::Book(book) => self.fold_book(now, (*book).clone()),
-            Read::Trades(prints) => self.fold_prints(now, prints.iter().map(convert::trade)),
+            Read::Trades(prints) => self.fold_prints(now, prints.iter().cloned()),
             Read::Candles(candles) => self.fold_history(now, candles.iter().filter_map(convert::candle).collect()),
             Read::Mids { dex, mids } => {
                 self.fold_mids(now, dex, mids.iter().map(|(coin, mid)| (coin.to_owned(), mid)).collect())
