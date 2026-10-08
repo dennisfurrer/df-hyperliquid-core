@@ -17,6 +17,7 @@
 pub mod address;
 pub mod api;
 pub mod asset;
+pub mod auction;
 pub mod body;
 pub mod builder_fee;
 pub mod client;
@@ -42,6 +43,7 @@ pub mod user_signed;
 pub use address::{Address, BadAddress};
 pub use api::{Api, Clock};
 pub use asset::{Asset, AssetKind, HIP3_ASSET_BASE, HIP3_DEX_SPAN, OUTCOME_ASSET_BASE, OutcomeSide, SPOT_ASSET_BASE};
+pub use auction::GasAuction;
 pub use builder_fee::{BuilderFee, OUTCOME_BUILDER_CAP, PERP_BUILDER_CAP, SPOT_BUILDER_CAP};
 pub use client::{
     Accepted, ApiError, ExchangeResponse, Http, Method, Request, Response, Status, Transport, TransportError, exchange,

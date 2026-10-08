@@ -40,35 +40,9 @@ pub struct SpotDeployState {
     pub gas_auction: GasAuction,
 }
 
-/// A Dutch auction for a deploy slot. Seconds, not milliseconds.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GasAuction {
-    pub start_time_seconds: u64,
-    pub duration_seconds: u64,
-    /// HYPE.
-    pub start_gas: Dec,
-    /// What a slot costs now, in HYPE; `null` once the auction has ended.
-    #[serde(default)]
-    pub current_gas: Option<Dec>,
-    /// What the slot sold at, once it sold.
-    #[serde(default)]
-    pub end_gas: Option<Dec>,
-}
-
-impl GasAuction {
-    /// When it ends, Unix seconds.
-    #[must_use]
-    pub const fn ends_at(&self) -> u64 {
-        self.start_time_seconds.saturating_add(self.duration_seconds)
-    }
-
-    /// Whether it runs at `now_seconds`: from its start, until its end.
-    #[must_use]
-    pub const fn is_running(&self, now_seconds: u64) -> bool {
-        now_seconds >= self.start_time_seconds && now_seconds < self.ends_at()
-    }
-}
+/// A Dutch auction for a deploy slot: hl-core's, the shape hl-hip3's perp
+/// auction answers too.
+pub use hl_core::GasAuction;
 
 /// One token being deployed.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
