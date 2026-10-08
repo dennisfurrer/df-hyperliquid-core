@@ -175,6 +175,20 @@ impl Asset {
         }
     }
 
+    /// A HIP-3 perp's dex place in `perpDexs` and its index in that dex's
+    /// `meta`: [`Asset::hip3`] taken apart. `None` for any other kind of id.
+    #[must_use]
+    pub const fn hip3_parts(self) -> Option<(u32, u32)> {
+        if !matches!(self.kind(), AssetKind::Hip3Perp) {
+            return None;
+        }
+        let offset = self.0 - HIP3_ASSET_BASE;
+        match offset / HIP3_DEX_SPAN {
+            0 => None,
+            place => Some((place, offset % HIP3_DEX_SPAN)),
+        }
+    }
+
     /// A perp by its dex's place in `perpDexs`: the main dex at 0, else HIP-3.
     #[must_use]
     pub const fn perp_on(dex: u32, index: u32) -> Option<Asset> {

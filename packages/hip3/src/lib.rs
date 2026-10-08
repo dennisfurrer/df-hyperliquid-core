@@ -29,7 +29,7 @@ pub use dex::{
     dex_meta_and_asset_ctxs_request, dex_meta_request, perp_dexs, perp_dexs_request,
 };
 pub use hl_trade::{Grid, MarginMode};
-pub use ids::{asset_parts, coin, split_coin};
+pub use ids::{Dex, asset_parts, coin, split_coin};
 pub use limits::{
     DexLimits, DexStatus, perp_dex_limits, perp_dex_limits_request, perp_dex_status, perp_dex_status_request,
 };

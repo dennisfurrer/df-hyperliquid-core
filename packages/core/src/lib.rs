@@ -21,6 +21,7 @@ pub mod body;
 pub mod builder_fee;
 pub mod client;
 pub mod dec;
+pub mod dex;
 pub mod eip712;
 pub mod figure;
 pub mod hex;
@@ -47,6 +48,7 @@ pub use client::{
     info, info_request, user_request,
 };
 pub use dec::{BadDec, Dec, Round};
+pub use dex::{Dex, split_coin};
 pub use eip712::{Domain, Field, TypedStruct, digest, digest_of_wallet_json};
 pub use figure::Figure;
 pub use hex::BadHex;
