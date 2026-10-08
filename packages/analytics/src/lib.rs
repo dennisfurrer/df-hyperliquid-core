@@ -15,6 +15,9 @@
 //!   deployer's own ledger ([`Earned`]) or from fills by the fee model ([`Paid`], [`Takes`]).
 //! - [`projection`]: the revenue projection, period by period ([`Projection`], [`Period`]), and
 //!   the assumptions it is made of.
+//! - [`payout`]: a payout file read and written as text ([`Sheet`]), its batch in the append-only
+//!   ledger ([`Event`], [`State`]), the guards ([`Config`]) and the plan made before anything
+//!   moves ([`Plan`]). The files, the signing and the sends are the caller's.
 #![deny(clippy::float_arithmetic)]
 
 pub mod builders;
@@ -22,6 +25,7 @@ pub mod date;
 pub mod estimate;
 pub mod hip3;
 pub mod hip4;
+pub mod payout;
 pub mod projection;
 
 pub use builders::{
@@ -32,4 +36,5 @@ pub use date::{At, DAY_MS};
 pub use estimate::{Basis, Estimate};
 pub use hip3::{Activity, Routing, Setup};
 pub use hip4::{Earned, First, LedgerRow, Paid, Take, Takes, Uses, Venue};
+pub use payout::{Config, Event, Plan, Sheet, State};
 pub use projection::{Period, Projection, Totals};
