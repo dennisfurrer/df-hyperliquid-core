@@ -1,6 +1,6 @@
 [package]
 name = "hl-core"
-description = "Hyperliquid backbone: vocabulary, exact decimals, asset ids, msgpack wire, L1 and user-signed signing, nonces, the info and exchange client behind a transport trait, rate-limit weights."
+description = "Hyperliquid backbone: vocabulary, exact decimals, asset ids, who may sign what, msgpack wire, L1 and user-signed signing, nonces, the info and exchange client behind a transport trait, rate-limit weights."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -1,25 +1,29 @@
 [workspace]
 resolver = "3"
 members = [
-  # hl-core is the backbone; every other crate builds on it.
+  # backbone: hl-core; every other crate builds on it.
   "packages/core",
-  "packages/account",
-  "packages/transfer",
+  # shared trading: the actions, rounding and reads every market kind shares.
   "packages/trade",
+  # markets: hl-core and hl-trade.
   "packages/perps",
   "packages/spot",
   "packages/hip3",
   "packages/hip4",
+  # account and money: hl-core only.
+  "packages/account",
+  "packages/transfer",
   "packages/lend",
   "packages/stake",
   "packages/vault",
-  # transports: the wire an app plugs into hl-core, one per platform
-  "packages/native",
-  "packages/web",
+  # data and chains: hl-core only.
   "packages/hydromancer",
   "packages/ws",
   "packages/evm",
-  # the family behind one dependency
+  # transports: the wire an app plugs into hl-core, one per platform.
+  "packages/native",
+  "packages/web",
+  # umbrella: the family behind one dependency.
   "packages/hl",
 ]
 

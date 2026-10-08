@@ -1,15 +1,19 @@
 //! Hyperliquid backbone. Every other `hl-*` crate builds on this one and on nothing else in the family
-//! (except the product crates, which may also use `hl-trade`).
+//! (except the market crates, which may also use `hl-trade`).
 //!
 //! Owns:
-//! - vocabulary: addresses, exact decimals (never floats), spot tokens, asset ids, builder fees,
-//!   integer amounts, and the few floats the venue writes, kept as their digits;
+//! - vocabulary: addresses, exact decimals (never floats), the side of an order or a book
+//!   ([`Side`]), spot tokens (USDC and HYPE on each network), asset ids, the perp dex and HIP-3
+//!   coins ([`dex`]), builder fees, integer amounts, system addresses ([`system`]), the deploy
+//!   auction ([`GasAuction`]), and the few floats the venue writes, kept as their digits;
+//! - who may sign what: every action kind and whether an agent may sign it ([`signers`]);
 //! - wire: msgpack in insertion order for L1 actions, and JSON that keeps the same order;
 //! - signing: L1 actions (phantom agent) and user-signed EIP-712 actions, the typed data a browser
 //!   wallet signs, recovery, behind a `Signer` trait;
 //! - nonces: one monotonic millisecond clock per account;
 //! - [`Api`]: one network's info and exchange endpoints over an [`Http`] wire, behind the rate-limit
-//!   gate and meter ([`limit`]), so it runs native, in the browser and in Workers.
+//!   gate and meter ([`limit`]), so it runs native, in the browser and in Workers; `/info` bodies
+//!   ([`info_request`]) and what `/exchange` accepts ([`Accepted`]).
 //!
 //! Mainnet or testnet, named on every signature. `/exchange` is never retried.
 #![deny(clippy::float_arithmetic)]
