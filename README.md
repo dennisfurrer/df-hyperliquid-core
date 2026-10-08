@@ -56,6 +56,32 @@ flowchart BT
 | `hl-analytics` | who builds and deploys, computed from what the caller read (sans-IO, no clock): the builder board (every builder ranked by outcome volume over 24h, 7d, 30d and all, the fills no builder routed beside them holding no place, shares in hundredths of a percent), the curated builder labels with their provenance, a builder fee as numbers (each kind's cap, a share of it, what it pays on a notional), what a builder code has been paid (`referral`); every HIP-3 dex as its deployer set it up (delegates, live and delisted assets, fee scale range, funding settings) and what its assets are doing, the deployers of more than one dex, and the builders that routed perps on a day from Hyperliquid's day files (ranked, with who was quiet and whose read failed); who lists what on HIP-4 (each venue's markets, questions, open markets, live rows its cap counts, deployer, sub-deployers, first market) and the templates each lists from; a deployer's fees, which no endpoint reports, as an `Estimate` that says its basis: from its own ledger (the USDC no row explains) or from fills by the outcome fee model, split by venue at each market's scale; the revenue projection (traders, growth, volume, the outcome fee model's deployer, builder and referral parts, period by period in integer cents, totals, a year at the last period's rate, a trendline) and the assumptions it is made of; payouts without their files or sends: a payout CSV read and written as text (any of the usual column spellings, refused whole on a bad row or a wallet named twice unless merged), its batch id (SHA-256 over the rows and the paying account, as hip4-tui's payout tool computes it), the append-only JSON-lines ledger and the state it folds to, the guards, the plan (dust, oversized rows, repeats across budgets, slices a balance check each, every blocker) and a reconcile against the treasury's own ledger |
 | `hl` | the umbrella: every crate behind a feature (`markets` and `money` by default, the data crates, `store`, `analytics` and a wire by name, `full`, `sign`), and `Client`, one network: every crate's reads through its rate-limit gate and, with `sign`, actions signed for that network alone, each signature checked against the signer before it is posted and sent once |
 
+## Use
+
+Take the whole family through `hl`, or any crate on its own. `markets` and `money` come by default; ask for the rest by name, and for a wire:
+
+```toml
+hl = { path = "../hl-rust/packages/hl", features = ["native", "sign", "store", "ws"] }
+```
+
+Read through one network's client. Every crate's reads take it, and each passes the rate-limit gate:
+
+```rust
+let client = hl::Client::reader(hl::native::Native::new(), hl::Network::Mainnet, hl::native::clock);
+let meta = hl::perps::meta_and_asset_ctxs(&client).await?;
+let book = hl::trade::market::l2_book(&client, "BTC", hl::trade::Precision::FULL).await?;
+```
+
+Build an order from what a person typed, then send it. With `sign`, the client signs for its own network, checks the signature recovers to the signer, and posts once:
+
+```rust
+let order = hl::trade::ticket::order(&market, &intent, None)?;
+let client = hl::Client::new(hl::native::Native::new(), hl::Network::Testnet, hl::native::clock, key);
+let answer = client.send(&order).await?;
+```
+
+Keep the websocket open with a `Feed` (`hl::native` or `hl::web`, the same API), and fold what it hands back into an `hl::store::Store` that pages register their interests with. `cargo run -p hl --example perps_page --features native` reads a BTC ticket's market from mainnet and prints the order a $20 market buy would send, without signing anything.
+
 ## Rules
 
 - **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. A composite (`hl-store`, `hl-analytics`) may depend on any crate below it, never on the umbrella or a wire. Nothing else crosses.
