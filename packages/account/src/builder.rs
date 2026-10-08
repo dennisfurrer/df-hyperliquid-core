@@ -25,6 +25,17 @@ impl ApproveBuilderFee {
     pub fn max_fee_rate(&self) -> &str {
         &self.max_fee_rate
     }
+
+    /// `maxFeeRate` back in tenths of a basis point.
+    #[must_use]
+    pub fn max_fee(&self) -> Option<BuilderFee> {
+        BuilderFee::from_percent(&self.max_fee_rate)
+    }
+
+    #[must_use]
+    pub const fn builder(&self) -> Address {
+        self.builder
+    }
 }
 
 impl UserAction for ApproveBuilderFee {

@@ -10,13 +10,80 @@
 //! agent; approving a new unnamed one replaces the unnamed one.
 //!
 //! **Never approve an address that was an agent before:** actions it signed
-//! then can be replayed once it is approved again.
+//! then can be replayed once it is approved again. [`fresh_agent`] says
+//! whether an address is one the venue has never seen.
+//!
+//! A named agent may lapse: `<name> valid_until <ms>` approves it until then,
+//! at most 180 days ahead (the exchange endpoint's docs, "Approve an API
+//! wallet"). The unnamed agent never lapses.
 
-use hl_core::{Address, ApiError, Field, NonceKey, Transport, UserAction, UserSigned, info, user_request};
+use std::fmt;
+
+use hl_core::{
+    Address, ApiError, Field, Map, Network, NonceKey, Signature, Transport, UserAction, UserSigned, Value, body, info,
+    user_request,
+};
 use serde::Deserialize;
 
-/// `approveAgent`, signed by the account's own wallet. `name` empty approves
-/// the unnamed agent, signed and posted as the empty string as the SDK does.
+/// The longest an approval may run: 180 days ahead.
+pub const MAX_AGENT_VALIDITY_MS: u64 = 180 * 86_400_000;
+
+/// The longest name, in characters (atlas's `AgentName`; hip4-tui's live
+/// agent `Outcome-3712f660` is that long).
+pub const LONGEST_AGENT_NAME: usize = 16;
+
+/// What sets an expiry inside a name.
+const VALID_UNTIL: &str = " valid_until ";
+
+/// A named agent's name: 1 to 16 characters, not blank, and never the
+/// `valid_until` form, which the venue reads as an expiry.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct AgentName(String);
+
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("an agent's name is 1 to {LONGEST_AGENT_NAME} characters and not a valid_until form, which `{0}` is not")]
+pub struct BadAgentName(pub String);
+
+impl AgentName {
+    pub fn new(name: &str) -> Result<AgentName, BadAgentName> {
+        let fits = !name.trim().is_empty() && name.chars().count() <= LONGEST_AGENT_NAME;
+        match fits && !name.contains("valid_until") {
+            true => Ok(AgentName(name.to_owned())),
+            false => Err(BadAgentName(name.to_owned())),
+        }
+    }
+
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+impl fmt::Display for AgentName {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+/// An expiry that does not lie ahead of `now`, or lies more than 180 days ahead.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("an agent's approval ends ahead of now ({now}) and within 180 days, which {until} does not")]
+pub struct BadExpiry {
+    pub until: u64,
+    pub now: u64,
+}
+
+/// `<name> valid_until <ms>` back into the name and the expiry. A name
+/// without the form is itself, with none.
+#[must_use]
+pub fn split_valid_until(name: &str) -> (&str, Option<u64>) {
+    match name.rsplit_once(VALID_UNTIL) {
+        Some((base, ms)) if !ms.is_empty() && ms.bytes().all(|b| b.is_ascii_digit()) => (base, ms.parse().ok()),
+        _ => (name, None),
+    }
+}
+
+/// `approveAgent`, signed by the account's own wallet.
 ///
 /// There is no revoke: re-approving a name replaces that agent. Never
 /// approve an address that was an agent before, since what it signed then
@@ -25,18 +92,58 @@ use serde::Deserialize;
 pub struct ApproveAgent {
     agent: Address,
     name: String,
+    /// The unnamed agent, posted with `agentName` null.
+    null: bool,
     nonce: u64,
 }
 
 impl ApproveAgent {
+    /// Under `name` as given. Empty approves the unnamed agent, signed and
+    /// posted as the empty string as `@nktkas/hyperliquid` 0.33.2 does.
     #[must_use]
     pub fn new(agent: Address, name: &str, nonce: u64) -> ApproveAgent {
-        ApproveAgent { agent, name: name.to_owned(), nonce }
+        ApproveAgent { agent, name: name.to_owned(), null: false, nonce }
+    }
+
+    /// The unnamed agent as atlas and `@nktkas/hyperliquid` 0.24.3 post it:
+    /// `agentName` null, signed as the empty string. The digest is the empty
+    /// name's; only the posted JSON differs.
+    #[must_use]
+    pub const fn unnamed(agent: Address, nonce: u64) -> ApproveAgent {
+        ApproveAgent { agent, name: String::new(), null: true, nonce }
+    }
+
+    /// A named agent that never lapses.
+    #[must_use]
+    pub fn named(agent: Address, name: &AgentName, nonce: u64) -> ApproveAgent {
+        ApproveAgent::new(agent, name.as_str(), nonce)
+    }
+
+    /// A named agent until `until` milliseconds: `<name> valid_until <until>`,
+    /// refused unless it lies ahead of `now` and at most 180 days ahead.
+    pub fn expiring(
+        agent: Address,
+        name: &AgentName,
+        until: u64,
+        now: u64,
+        nonce: u64,
+    ) -> Result<ApproveAgent, BadExpiry> {
+        let ahead = until.checked_sub(now).filter(|ahead| *ahead > 0 && *ahead <= MAX_AGENT_VALIDITY_MS);
+        match ahead {
+            Some(_) => Ok(ApproveAgent::new(agent, &format!("{name}{VALID_UNTIL}{until}"), nonce)),
+            None => Err(BadExpiry { until, now }),
+        }
     }
 
     #[must_use]
     pub const fn agent(&self) -> Address {
         self.agent
+    }
+
+    /// `agentName` as signed; `None` for the unnamed agent.
+    #[must_use]
+    pub fn name(&self) -> Option<&str> {
+        Some(self.name.as_str()).filter(|name| !name.is_empty())
     }
 }
 
@@ -45,6 +152,53 @@ impl UserAction for ApproveAgent {
         UserSigned::new("approveAgent", "HyperliquidTransaction:ApproveAgent", NonceKey::Nonce, self.nonce)
             .field("agentAddress", Field::Address(self.agent))
             .field("agentName", Field::String(&self.name))
+    }
+
+    fn action(&self, network: Network) -> Map {
+        let action = self.user_signed().action(network);
+        if !self.null {
+            return action;
+        }
+        action.into_pairs().fold(Map::new(), |map, (key, value)| match key == "agentName" {
+            true => map.put(key, Value::Nil),
+            false => map.put(key, value),
+        })
+    }
+
+    fn wire(&self, network: Network) -> String {
+        self.action(network).to_json().compact()
+    }
+
+    fn body(&self, signature: &Signature, network: Network) -> String {
+        body::user_signed(&self.action(network), self.nonce, signature)
+    }
+}
+
+/// Why an address may not be approved as an agent.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum Reused {
+    #[error("this address is one of the account's agents already")]
+    Listed,
+    #[error("this address was an agent before, and what it signed then could be replayed")]
+    Retired,
+    /// The venue knows the address already, as this.
+    #[error("the venue knows this address already, as {0:?}; an agent is a fresh address")]
+    Known(Role),
+}
+
+/// Whether `candidate` may be approved as an agent: an address the venue has
+/// never seen (`userRole` answers `missing`), not among the account's agents
+/// (`extraAgents`) and not one it retired, which only the caller remembers.
+pub fn fresh_agent(candidate: Address, role: &Role, listed: &[Agent], retired: &[Address]) -> Result<(), Reused> {
+    if listed.iter().any(|agent| agent.address == candidate) {
+        return Err(Reused::Listed);
+    }
+    if retired.contains(&candidate) {
+        return Err(Reused::Retired);
+    }
+    match role {
+        Role::Missing => Ok(()),
+        known => Err(Reused::Known(known.clone())),
     }
 }
 
@@ -67,9 +221,17 @@ pub struct Agent {
     #[serde(default)]
     pub name: String,
     pub address: Address,
-    /// Milliseconds; after it the agent signs nothing.
+    /// Milliseconds; from it on the agent signs nothing.
     #[serde(default)]
     pub valid_until: Option<u64>,
+}
+
+impl Agent {
+    /// Whether it still signs at `now` milliseconds.
+    #[must_use]
+    pub fn is_live(&self, now: u64) -> bool {
+        self.valid_until.is_none_or(|until| until > now)
+    }
 }
 
 /// `{"type":"userRole","user":..}`.
@@ -101,6 +263,26 @@ pub enum Role {
     /// A role this build does not know, or a known one whose data did not
     /// read, kept as spelled.
     Other(String),
+}
+
+impl Role {
+    /// The account an agent signs for.
+    #[must_use]
+    pub const fn agent_of(&self) -> Option<Address> {
+        match self {
+            Role::Agent { user } => Some(*user),
+            _ => None,
+        }
+    }
+
+    /// A subaccount's master.
+    #[must_use]
+    pub const fn master(&self) -> Option<Address> {
+        match self {
+            Role::SubAccount { master } => Some(*master),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -137,3 +319,7 @@ impl From<RawRole> for Role {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/agent.rs"]
+mod tests;

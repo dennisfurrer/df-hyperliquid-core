@@ -1,9 +1,9 @@
-//! What an account holds: spot balances, the perp margin summary, and the
-//! mode that decides whether the two are one balance or two.
+//! What an account holds: spot balances, each perp dex's clearinghouse, and
+//! the mode that decides whether they are one balance or several.
 
 use std::fmt;
 
-use hl_core::{Address, Dec, USDC_INDEX, user_request};
+use hl_core::{Address, Dec, Json, USDC_INDEX, user_request};
 use serde::{Deserialize, Deserializer, de};
 
 /// `{"type":"spotClearinghouseState","user":..}`.
@@ -18,25 +18,52 @@ pub fn perp_state_request(user: Address) -> String {
     user_request("clearinghouseState", user)
 }
 
+/// `{"type":"clearinghouseState","user":..,"dex":..}`: one HIP-3 dex, or the
+/// main dex for `""`, which is asked for with no `dex` at all.
+#[must_use]
+pub fn perp_state_on_request(user: Address, dex: &str) -> String {
+    if dex.is_empty() {
+        return perp_state_request(user);
+    }
+    Json::Object(vec![
+        ("type".to_owned(), Json::String("clearinghouseState".to_owned())),
+        ("user".to_owned(), Json::String(user.to_hex())),
+        ("dex".to_owned(), Json::String(dex.to_owned())),
+    ])
+    .compact()
+}
+
 /// `{"type":"userAbstraction","user":..}`.
 #[must_use]
 pub fn abstraction_request(user: Address) -> String {
     user_request("userAbstraction", user)
 }
 
-/// `spotClearinghouseState`: the authoritative holdings.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+/// `spotClearinghouseState`: the authoritative holdings. On a unified or
+/// portfolio-margin account every balance and hold of every dex is here.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SpotState {
     pub balances: Vec<SpotBalance>,
+    /// Portfolio margin: said on the answer itself, whatever the mode read.
+    #[serde(default)]
+    pub portfolio_margin_enabled: bool,
+    /// Portfolio margin: the maintenance requirement over the liquidation
+    /// value. Past 0.95 the account is liquidated.
+    #[serde(default)]
+    pub portfolio_margin_ratio: Option<Dec>,
+    /// Pooled accounts: what each token, by index, has free above maintenance.
+    #[serde(default)]
+    pub token_to_available_after_maintenance: Vec<(u32, Dec)>,
 }
 
 /// One token's row. `total` already includes `hold`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotBalance {
     pub coin: String,
     /// The token's index, a number here, not the `NAME:0x..` a transfer names.
-    /// HIP-4 outcome rows (`coin` `+92260`) carry none.
+    /// HIP-4 rows (`+92260`, `o458`) carry none.
     #[serde(default)]
     pub token: Option<u32>,
     pub total: Dec,
@@ -52,7 +79,7 @@ pub struct SpotBalance {
     /// Portfolio margin: owed on this token.
     #[serde(default)]
     pub borrowed: Option<Dec>,
-    /// Portfolio margin: supplied as collateral or to lending.
+    /// Portfolio margin: supplied as collateral or to lending. Part of `total`.
     #[serde(default)]
     pub supplied: Option<Dec>,
     /// Portfolio margin: the loan-to-value this token counts at.
@@ -70,12 +97,21 @@ impl SpotBalance {
         let free = self.total.checked_sub(held.unwrap_or(Dec::ZERO))?;
         Some(free.max(Dec::ZERO).min(self.total.max(Dec::ZERO)))
     }
+
+    /// A HIP-4 row: a side (`+92260`, `#92260`) or a question (`o458`). Never
+    /// collateral, and never a token a transfer names.
+    #[must_use]
+    pub fn is_outcome(&self) -> bool {
+        let coin = self.coin.as_str();
+        coin.starts_with(['+', '#'])
+            || coin.strip_prefix('o').is_some_and(|id| !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()))
+    }
 }
 
 impl SpotState {
     #[must_use]
     pub fn balance(&self, token: u32) -> Option<&SpotBalance> {
-        self.balances.iter().find(|balance| balance.token == Some(token))
+        self.balances.iter().find(|balance| balance.token == Some(token) && !balance.is_outcome())
     }
 
     /// Spot USDC, by index rather than name. An account that never held any
@@ -84,33 +120,169 @@ impl SpotState {
     pub fn usdc(&self) -> Option<&SpotBalance> {
         self.balance(USDC_INDEX)
     }
+
+    /// Every row with something in it, tokens and outcome sides alike, the
+    /// largest total first: what the venue says is held, which is the
+    /// authoritative answer (hip4-tui's D9).
+    pub fn held(&self) -> impl Iterator<Item = &SpotBalance> {
+        let mut held: Vec<&SpotBalance> = self.balances.iter().filter(|row| !row.total.is_zero()).collect();
+        held.sort_by(|a, b| b.total.cmp(&a.total).then_with(|| a.coin.cmp(&b.coin)));
+        held.into_iter()
+    }
+
+    /// [`SpotBalance::available`] of a token: nothing for a token never held,
+    /// and nothing, never more, past what a `Dec` counts.
+    #[must_use]
+    pub fn free(&self, token: u32) -> Dec {
+        self.balance(token).and_then(SpotBalance::available).unwrap_or(Dec::ZERO)
+    }
+
+    /// What a pooled account's token has free above maintenance, where the
+    /// venue says.
+    #[must_use]
+    pub fn available_after_maintenance(&self, token: u32) -> Option<Dec> {
+        self.token_to_available_after_maintenance.iter().find(|(held, _)| *held == token).map(|(_, free)| *free)
+    }
+
+    /// How near liquidation a portfolio-margin account stands.
+    #[must_use]
+    pub fn risk(&self) -> Risk {
+        Risk::of(self.portfolio_margin_ratio)
+    }
 }
 
-/// `clearinghouseState`, the part a dollar balance needs. Positions, cross
-/// margin and the rest are left unread.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+/// How near liquidation a portfolio-margin account stands, by its ratio
+/// (atlas, from Hyperliquid's portfolio margin page: liquidatable "when
+/// portfolio_margin_ratio > 0.95").
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+pub enum Risk {
+    #[default]
+    Safe,
+    /// From 0.85: worth a warning.
+    Near,
+    /// Past 0.95.
+    Liquidatable,
+}
+
+impl Risk {
+    #[must_use]
+    pub fn of(ratio: Option<Dec>) -> Risk {
+        let (near, liquidatable) = (Dec::new(85, 2), Dec::new(95, 2));
+        match ratio {
+            Some(ratio) if liquidatable.is_some_and(|line| ratio > line) => Risk::Liquidatable,
+            Some(ratio) if near.is_some_and(|line| ratio >= line) => Risk::Near,
+            _ => Risk::Safe,
+        }
+    }
+}
+
+/// `clearinghouseState`: one perp dex's margin and positions. On a unified
+/// or portfolio-margin account the figures are not a balance of their own:
+/// the money is in spot.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PerpState {
     pub margin_summary: MarginSummary,
+    #[serde(default)]
+    pub cross_margin_summary: Option<MarginSummary>,
+    #[serde(default)]
+    pub cross_maintenance_margin_used: Dec,
     /// What can leave the perp balance now.
     pub withdrawable: Dec,
+    #[serde(default)]
+    pub asset_positions: Vec<AssetPosition>,
+    /// Milliseconds.
+    #[serde(default)]
+    pub time: Option<u64>,
+}
+
+impl PerpState {
+    /// The positions held, a flat leg left out.
+    pub fn positions(&self) -> impl Iterator<Item = &Position> {
+        self.asset_positions.iter().map(|one| &one.position).filter(|position| !position.szi.is_zero())
+    }
+
+    /// Whether anything is on this dex: value or a position.
+    #[must_use]
+    pub fn is_used(&self) -> bool {
+        !self.margin_summary.account_value.is_zero() || self.positions().next().is_some()
+    }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarginSummary {
+    pub account_value: Dec,
+    #[serde(default)]
+    pub total_ntl_pos: Dec,
+    #[serde(default)]
+    pub total_raw_usd: Dec,
+    #[serde(default)]
+    pub total_margin_used: Dec,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct AssetPosition {
+    pub position: Position,
+}
+
+/// One position as the venue states it. Funding and return on equity are
+/// left unread.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Position {
+    /// `BTC` on the main dex, `xyz:XYZ100` on a HIP-3 one.
+    pub coin: String,
+    /// Signed: negative is short.
+    pub szi: Dec,
+    #[serde(default)]
+    pub entry_px: Option<Dec>,
+    #[serde(default)]
+    pub position_value: Dec,
+    #[serde(default)]
+    pub unrealized_pnl: Dec,
+    #[serde(default)]
+    pub margin_used: Dec,
+    #[serde(default)]
+    pub liquidation_px: Option<Dec>,
+    pub leverage: Leverage,
+    #[serde(default)]
+    pub max_leverage: Option<u32>,
+}
+
+impl Position {
+    #[must_use]
+    pub const fn is_short(&self) -> bool {
+        self.szi.is_negative()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct MarginSummary {
-    pub account_value: Dec,
+pub struct Leverage {
+    /// `cross` or `isolated`.
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub value: u32,
+    /// Isolated: the margin put up.
+    #[serde(default)]
+    pub raw_usd: Option<Dec>,
 }
 
 /// How an account's balances are kept, as `userAbstraction` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Abstraction {
-    /// What a new account answers. Standard: perp and spot apart.
+    /// What a new account answers, never set. Standard: perp and spot apart.
     Default,
+    /// Standard, set: each perp dex and spot keep their own.
     Disabled,
-    /// Pooled: one balance, in spot.
+    /// One balance per asset, in spot.
     UnifiedAccount,
+    /// Unified, and an order may borrow against HYPE and BTC.
     PortfolioMargin,
+    /// Discontinued: USDC sits with the main dex's perps, and every USDC dex
+    /// draws on it; everything else as standard.
+    DexAbstraction,
     /// A mode this build does not know, kept as spelled. Treated as standard.
     Unknown(String),
 }
@@ -123,6 +295,7 @@ impl Abstraction {
             "disabled" => Abstraction::Disabled,
             "unifiedAccount" => Abstraction::UnifiedAccount,
             "portfolioMargin" => Abstraction::PortfolioMargin,
+            "dexAbstraction" => Abstraction::DexAbstraction,
             other => Abstraction::Unknown(other.to_owned()),
         }
     }
@@ -134,6 +307,7 @@ impl Abstraction {
             Abstraction::Disabled => "disabled",
             Abstraction::UnifiedAccount => "unifiedAccount",
             Abstraction::PortfolioMargin => "portfolioMargin",
+            Abstraction::DexAbstraction => "dexAbstraction",
             Abstraction::Unknown(other) => other,
         }
     }
@@ -143,6 +317,12 @@ impl Abstraction {
     #[must_use]
     pub const fn is_pooled(&self) -> bool {
         matches!(self, Abstraction::UnifiedAccount | Abstraction::PortfolioMargin)
+    }
+
+    /// Separate ledgers: each perp dex and spot keep their own.
+    #[must_use]
+    pub const fn is_standard(&self) -> bool {
+        !self.is_pooled()
     }
 }
 
@@ -172,3 +352,7 @@ impl<'de> Deserialize<'de> for Abstraction {
         deserializer.deserialize_str(Visitor)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/state.rs"]
+mod tests;

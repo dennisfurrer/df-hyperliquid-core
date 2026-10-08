@@ -42,6 +42,19 @@ impl AbstractionMode {
         }
     }
 
+    /// From `userSetAbstraction`'s spelling. `default`, a mode never set, is
+    /// none an account can be set to.
+    #[must_use]
+    pub fn from_wire(text: &str) -> Option<AbstractionMode> {
+        AbstractionMode::ALL.into_iter().find(|mode| mode.wire() == text)
+    }
+
+    /// From `agentSetAbstraction`'s one letter.
+    #[must_use]
+    pub fn from_code(text: &str) -> Option<AbstractionMode> {
+        AbstractionMode::ALL.into_iter().find(|mode| mode.code() == text)
+    }
+
     /// Whether the venue refuses moving an account in `current` to this
     /// mode: a unified account back to standard.
     #[must_use]

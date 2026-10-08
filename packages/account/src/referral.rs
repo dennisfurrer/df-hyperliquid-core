@@ -81,6 +81,25 @@ pub struct ReferrerData {
     pub required: Option<Dec>,
     #[serde(default)]
     pub n_referrals: Option<u64>,
+    /// The accounts referred under the code.
+    #[serde(default)]
+    pub referral_states: Vec<ReferralState>,
+}
+
+/// One account referred under the code. Per-token figures are left unread.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReferralState {
+    pub user: Address,
+    #[serde(default)]
+    pub cum_vlm: Dec,
+    #[serde(default)]
+    pub cum_rewarded_fees_since_referred: Dec,
+    #[serde(default)]
+    pub cum_fees_rewarded_to_referrer: Dec,
+    /// Milliseconds.
+    #[serde(default)]
+    pub time_joined: u64,
 }
 
 impl Referral {
@@ -95,4 +114,21 @@ impl Referral {
     pub fn referred_code(&self) -> Option<&str> {
         self.referred_by.as_ref().map(|by| by.code.as_str())
     }
+
+    /// Who owns the code the account trades under.
+    #[must_use]
+    pub fn referrer(&self) -> Option<Address> {
+        self.referred_by.as_ref().map(|by| by.referrer)
+    }
+
+    /// Whether the account owns `code`, and so cannot be referred under it.
+    /// Codes are compared without case.
+    #[must_use]
+    pub fn owns(&self, code: &str) -> bool {
+        self.own_code().is_some_and(|own| own.eq_ignore_ascii_case(code))
+    }
 }
+
+#[cfg(test)]
+#[path = "tests/referral.rs"]
+mod tests;

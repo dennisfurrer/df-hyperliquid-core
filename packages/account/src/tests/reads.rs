@@ -129,3 +129,41 @@ fn none_reads_as_empty_and_a_builder_fee_as_tenths() {
         r#"{"type":"extraAgents","user":"0x0d1d9635d0640821d15e323ac8adadfa9c111414"}"#
     );
 }
+
+/// A live unified account, read as a standing: its mode, spot, and each dex
+/// asked for, in that order, at its own address.
+#[test]
+fn a_standing_reads_the_mode_spot_and_each_dex_asked_for() {
+    use crate::{
+        fixtures::{self, PERP_UNIFIED, PERP_UNIFIED_XYZ, SPOT_UNIFIED, UNIFIED},
+        state::Abstraction,
+    };
+    let at = |kind: &str, rest: &str| format!(r#"{{"type":"{kind}","user":"{UNIFIED}"{rest}}}"#);
+    let asked = [
+        at("userAbstraction", ""),
+        at("spotClearinghouseState", ""),
+        at("clearinghouseState", ""),
+        at("clearinghouseState", r#","dex":"xyz""#),
+    ];
+    let transport = fixtures::Recorded::new(&[
+        (&asked[0], "\"unifiedAccount\""),
+        (&asked[1], SPOT_UNIFIED),
+        (&asked[2], PERP_UNIFIED),
+        (&asked[3], PERP_UNIFIED_XYZ),
+    ]);
+    let standing = fixtures::block_on(crate::standing(&transport, address(UNIFIED), &["", "xyz"])).unwrap();
+    assert_eq!(standing.mode, Some(Abstraction::UnifiedAccount));
+    assert_eq!(standing.dexes.iter().map(|dex| dex.dex.as_str()).collect::<Vec<_>>(), ["", "xyz"]);
+    assert_eq!(standing.dex("").map(|perp| perp.withdrawable), Some(Dec::parse("7046.148664").unwrap()));
+    assert_eq!(standing.spot.as_ref().map(|spot| spot.balances.len()), Some(7));
+    assert_eq!(transport.asked(), asked);
+}
+
+#[test]
+fn a_role_is_read_at_the_address() {
+    use crate::fixtures::{self, ROLE_AGENT, UNIFIED};
+    let agent = address("0xac325205a75ad9695c1499bff980c74539f7515a");
+    let body = r#"{"type":"userRole","user":"0xac325205a75ad9695c1499bff980c74539f7515a"}"#;
+    let transport = fixtures::Recorded::new(&[(body, ROLE_AGENT)]);
+    assert_eq!(fixtures::block_on(crate::role(&transport, agent)), Ok(Role::Agent { user: address(UNIFIED) }));
+}

@@ -38,11 +38,16 @@ fn spot(usdc_total: &str, usdc_hold: &str) -> SpotState {
             supplied: None,
             ltv: None,
         }],
+        ..SpotState::default()
     }
 }
 
 fn perp(withdrawable: &str) -> PerpState {
-    PerpState { margin_summary: MarginSummary { account_value: dec(withdrawable) }, withdrawable: dec(withdrawable) }
+    PerpState {
+        margin_summary: MarginSummary { account_value: dec(withdrawable), ..MarginSummary::default() },
+        withdrawable: dec(withdrawable),
+        ..PerpState::default()
+    }
 }
 
 #[test]
@@ -112,7 +117,8 @@ fn every_mode_reads_from_a_bare_string_and_only_two_pool() {
         ("\"disabled\"", Abstraction::Disabled, false),
         ("\"unifiedAccount\"", Abstraction::UnifiedAccount, true),
         ("\"portfolioMargin\"", Abstraction::PortfolioMargin, true),
-        ("\"dexAbstraction\"", Abstraction::Unknown("dexAbstraction".to_owned()), false),
+        ("\"dexAbstraction\"", Abstraction::DexAbstraction, false),
+        ("\"someNewMode\"", Abstraction::Unknown("someNewMode".to_owned()), false),
     ] {
         let read: Abstraction = serde_json::from_str(said).unwrap();
         assert_eq!(read, mode, "{said}");
@@ -148,7 +154,7 @@ fn a_pooled_account_counts_spot_alone() {
 
 #[test]
 fn an_account_without_spot_usdc_has_its_perp_balance_or_nothing() {
-    let none = SpotState { balances: Vec::new() };
+    let none = SpotState::default();
     let standard = Dollars::new(&Abstraction::Disabled, &none, &perp("7")).unwrap();
     assert_eq!((standard.spot_total, standard.total, standard.available), (Dec::ZERO, dec("7"), dec("7")));
     let pooled = Dollars::new(&Abstraction::UnifiedAccount, &none, &perp("7")).unwrap();

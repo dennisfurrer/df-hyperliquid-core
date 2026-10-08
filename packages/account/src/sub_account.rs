@@ -2,11 +2,135 @@
 //! `subAccountSpotTransfer` (any spot token), and the `subAccounts` read.
 //! All three actions are L1; hip4-tui signs them with the master key only,
 //! since an agent's would open or drain the wrong account.
+//!
+//! A subaccount is a user in its own right, with no key of its own
+//! ([`AccountRef`]):
+//! - it is read at its own address, with its own account mode;
+//! - its perps are traded by the master's agent (or key) with the subaccount
+//!   as `vaultAddress`, in the hash and the body;
+//! - its spot and HIP-4 orders, moves between its ledgers, approvals and a
+//!   scheduled cancel are refused rather than done as the master
+//!   ([`SubRefusal`], after atlas);
+//! - its figures are never added to its master's, and the venue counts its
+//!   requests apart.
 
-use hl_core::{Address, ApiError, BadUnits, Dec, L1Action, Map, Transport, exact_units, info, user_request};
+use std::fmt;
+
+use hl_core::{Address, ApiError, AssetKind, BadUnits, Dec, L1Action, Map, Transport, exact_units, info, user_request};
 use serde::Deserialize;
 
-use crate::state::{PerpState, SpotState};
+use crate::{
+    signers::ActionKind,
+    state::{PerpState, SpotState},
+};
+
+/// Whose account an action or a read is about: the master's own, or one of
+/// its subaccounts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AccountRef {
+    /// The account whose key, or whose agent, signs.
+    pub owner: Address,
+    /// The subaccount acted for, if any.
+    pub sub: Option<Address>,
+}
+
+/// What a subaccount does not do, and why.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, thiserror::Error)]
+pub enum SubRefusal {
+    #[error("a subaccount places no spot orders here")]
+    Spot,
+    #[error("a subaccount places no HIP-4 orders and splits or merges nothing here")]
+    Outcome,
+    /// An order-like action that names no market cannot be told apart.
+    #[error("a subaccount's order names its market, since its spot and HIP-4 orders are refused")]
+    MarketUnknown,
+    #[error("a subaccount moves nothing between its own ledgers here")]
+    LedgerMove,
+    #[error("a subaccount approves nothing: its master's agent signs for it")]
+    Approval,
+    #[error("a subaccount schedules no cancel here")]
+    ScheduleCancel,
+    /// Opening a subaccount, and moving money in and out of one, is the
+    /// master's own business.
+    #[error("only the master opens subaccounts and moves money in and out of them")]
+    MastersOwn,
+    /// User-signed: it would need the subaccount's own key, which there is not.
+    #[error("a subaccount has no key of its own to sign this")]
+    NoKey,
+}
+
+impl AccountRef {
+    #[must_use]
+    pub const fn own(owner: Address) -> AccountRef {
+        AccountRef { owner, sub: None }
+    }
+
+    #[must_use]
+    pub const fn sub(owner: Address, sub: Address) -> AccountRef {
+        AccountRef { owner, sub: Some(sub) }
+    }
+
+    #[must_use]
+    pub const fn is_sub(&self) -> bool {
+        self.sub.is_some()
+    }
+
+    /// Where its states, mode, fees and limits are read: the subaccount's
+    /// own address for one.
+    #[must_use]
+    pub fn read_at(&self) -> Address {
+        self.sub.unwrap_or(self.owner)
+    }
+
+    /// The `vaultAddress` an L1 action names: the subaccount it acts for.
+    #[must_use]
+    pub const fn vault_address(&self) -> Option<Address> {
+        self.sub
+    }
+
+    /// The account whose key, or whose agent, signs.
+    #[must_use]
+    pub const fn signs_for(&self) -> Address {
+        self.owner
+    }
+
+    /// Why this account does not do `kind`, or `None` when it may. An
+    /// order-like action (`order`, `modify`, `batchModify`, `twapOrder`) names
+    /// its `market`. The master's own account refuses nothing here.
+    #[must_use]
+    pub fn refuses(&self, kind: ActionKind, market: Option<AssetKind>) -> Option<SubRefusal> {
+        // The master's own account refuses nothing here.
+        self.sub?;
+        match kind {
+            ActionKind::Order | ActionKind::Modify | ActionKind::BatchModify | ActionKind::TwapOrder => match market {
+                Some(AssetKind::Perp | AssetKind::Hip3Perp) => None,
+                Some(AssetKind::Spot) => Some(SubRefusal::Spot),
+                Some(AssetKind::Outcome) => Some(SubRefusal::Outcome),
+                None => Some(SubRefusal::MarketUnknown),
+            },
+            ActionKind::UserOutcome => Some(SubRefusal::Outcome),
+            ActionKind::UsdClassTransfer | ActionKind::AgentSendAsset => Some(SubRefusal::LedgerMove),
+            ActionKind::ApproveAgent | ActionKind::ApproveBuilderFee => Some(SubRefusal::Approval),
+            ActionKind::ScheduleCancel => Some(SubRefusal::ScheduleCancel),
+            ActionKind::CreateSubAccount | ActionKind::SubAccountTransfer | ActionKind::SubAccountSpotTransfer => {
+                Some(SubRefusal::MastersOwn)
+            }
+            // The docs: `userSetAbstraction`'s user "can be a sub-account of the user".
+            ActionKind::UserSetAbstraction => None,
+            user_signed if user_signed.is_user_signed() => Some(SubRefusal::NoKey),
+            _ => None,
+        }
+    }
+}
+
+impl fmt::Display for AccountRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.sub {
+            Some(sub) => write!(f, "{sub} (a subaccount of {})", self.owner),
+            None => write!(f, "{}", self.owner),
+        }
+    }
+}
 
 /// `createSubAccount`: `{type, name}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,3 +251,43 @@ pub struct SubAccount {
     #[serde(default)]
     pub spot_state: Option<SpotState>,
 }
+
+impl SubAccount {
+    /// Acting for it, as its master.
+    #[must_use]
+    pub const fn account(&self) -> AccountRef {
+        AccountRef::sub(self.master, self.sub_account_user)
+    }
+
+    /// Its main dex's account value; nothing when it has no state.
+    #[must_use]
+    pub fn equity(&self) -> Dec {
+        self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.margin_summary.account_value)
+    }
+
+    #[must_use]
+    pub fn notional(&self) -> Dec {
+        self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.margin_summary.total_ntl_pos)
+    }
+
+    #[must_use]
+    pub fn withdrawable(&self) -> Dec {
+        self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.withdrawable)
+    }
+
+    /// Positions held on its main dex, a flat leg left out.
+    #[must_use]
+    pub fn positions(&self) -> usize {
+        self.clearinghouse_state.as_ref().map_or(0, |state| state.positions().count())
+    }
+
+    /// Spot USDC's total.
+    #[must_use]
+    pub fn spot_usdc(&self) -> Dec {
+        self.spot_state.as_ref().and_then(SpotState::usdc).map_or(Dec::ZERO, |usdc| usdc.total)
+    }
+}
+
+#[cfg(test)]
+#[path = "tests/sub_account.rs"]
+mod tests;
