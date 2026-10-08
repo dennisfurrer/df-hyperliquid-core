@@ -11,10 +11,21 @@ use crate::{address::Address, json::Json};
 pub const INFO: &str = "/info";
 pub const EXCHANGE: &str = "/exchange";
 
-/// Posts a JSON body to its network's [`crate::Network::api_url`] plus `path`
-/// and gives back the answer's text. No `Send` bound: the browser is single-threaded.
+/// Posts a JSON body to `path` (`/info` or `/exchange`) on one network and
+/// gives back the answer's text. [`crate::Api`] is the one to use: it names
+/// the network and keeps the rate limit. A test may answer from a recording.
+/// No `Send` bound: the browser is single-threaded.
 pub trait Transport {
     fn post(&self, path: &str, body: String) -> impl Future<Output = Result<String, TransportError>>;
+}
+
+/// The wire: posts a JSON body to a whole URL and gives back the answer's
+/// text. It knows nothing of networks or limits; `fetch` in the browser and
+/// in Workers, an HTTP client natively. A 429 comes back as
+/// [`TransportError::RateLimited`] with its `Retry-After`, or as a plain
+/// [`TransportError::Status`].
+pub trait Http {
+    fn post(&self, url: &str, body: String) -> impl Future<Output = Result<String, TransportError>>;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -25,6 +36,10 @@ pub enum TransportError {
     Unreachable(String),
     #[error("the venue answered HTTP {status}: {body}")]
     Status { status: u16, body: String },
+    /// Refused for the rate limit, by the venue (a 429) or by the gate
+    /// before it went out. Nothing was done; try again after the wait.
+    #[error("rate limited; try again in {} ms", retry_after_ms.unwrap_or(0))]
+    RateLimited { retry_after_ms: Option<u64> },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
