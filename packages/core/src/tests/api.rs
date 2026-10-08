@@ -9,7 +9,7 @@ use std::{
 use super::*;
 use crate::{
     address::Address,
-    client::{EXCHANGE, user_request},
+    client::{EXCHANGE, Method, Request, Response, user_request},
     limit::LIMIT,
 };
 
@@ -26,15 +26,15 @@ fn at(ms: u64) {
     NOW.with(|now| now.set(ms));
 }
 
-/// Answers from a queue, `[]` once it runs dry, and keeps every post.
+/// Answers from a queue, `200 []` once it runs dry, and keeps every request.
 #[derive(Default)]
 struct Wire {
-    answers: RefCell<VecDeque<Result<String, TransportError>>>,
-    sent: RefCell<Vec<(String, String)>>,
+    answers: RefCell<VecDeque<Result<Response, TransportError>>>,
+    sent: RefCell<Vec<Request>>,
 }
 
 impl Wire {
-    fn answering(answers: impl IntoIterator<Item = Result<String, TransportError>>) -> Self {
+    fn answering(answers: impl IntoIterator<Item = Result<Response, TransportError>>) -> Self {
         Wire { answers: RefCell::new(answers.into_iter().collect()), sent: RefCell::default() }
     }
 
@@ -44,10 +44,19 @@ impl Wire {
 }
 
 impl Http for Wire {
-    fn post(&self, url: &str, body: String) -> impl Future<Output = Result<String, TransportError>> {
-        self.sent.borrow_mut().push((url.to_owned(), body));
-        ready(self.answers.borrow_mut().pop_front().unwrap_or_else(|| Ok("[]".to_owned())))
+    fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>> {
+        self.sent.borrow_mut().push(request);
+        ready(self.answers.borrow_mut().pop_front().unwrap_or_else(|| Ok(ok("[]"))))
     }
+}
+
+fn ok(text: &str) -> Response {
+    Response { status: 200, headers: Vec::new(), body: text.as_bytes().to_vec() }
+}
+
+fn refused(retry_after: Option<&str>) -> Result<Response, TransportError> {
+    let headers = retry_after.map(|seconds| vec![("Retry-After".to_owned(), seconds.to_owned())]).unwrap_or_default();
+    Ok(Response { status: 429, headers, body: b"null".to_vec() })
 }
 
 fn block_on<F: Future>(future: F) -> F::Output {
@@ -64,10 +73,6 @@ fn read(kind: &str) -> String {
     format!(r#"{{"type":"{kind}"}}"#)
 }
 
-fn too_many() -> Result<String, TransportError> {
-    Err(TransportError::Status { status: 429, body: "null".to_owned() })
-}
-
 fn limited(ms: u64) -> Result<String, TransportError> {
     Err(TransportError::RateLimited { retry_after_ms: Some(ms) })
 }
@@ -81,7 +86,10 @@ fn every_post_goes_to_the_api_s_own_network() {
     ] {
         let api = Api::new(Wire::default(), network, clock);
         block_on(api.post(INFO, read("meta"))).unwrap();
-        assert_eq!(api.http().sent.borrow()[0].0, url);
+        let sent = &api.http().sent.borrow()[0];
+        assert_eq!((sent.method, sent.url.as_str()), (Method::Post, url));
+        assert_eq!(sent.header("content-type"), Some("application/json"));
+        assert_eq!(sent.body, read("meta").into_bytes());
         assert_eq!(api.network(), network);
     }
 }
@@ -89,7 +97,7 @@ fn every_post_goes_to_the_api_s_own_network() {
 #[test]
 fn a_429_closes_the_gate_for_every_request_until_it_ends() {
     at(0);
-    let api = Api::new(Wire::answering([too_many()]), Network::Mainnet, clock);
+    let api = Api::new(Wire::answering([refused(None)]), Network::Mainnet, clock);
     assert_eq!(block_on(api.post(INFO, read("perpDexs"))), limited(2_000));
     assert_eq!(block_on(api.post(INFO, read("spotMeta"))), limited(2_000), "another read");
     assert_eq!(block_on(api.post(EXCHANGE, "{}".to_owned())), limited(2_000), "an action too");
@@ -100,12 +108,34 @@ fn a_429_closes_the_gate_for_every_request_until_it_ends() {
 }
 
 #[test]
-fn a_longer_retry_after_from_the_wire_wins() {
+fn a_longer_retry_after_from_the_venue_wins() {
     at(0);
-    let api = Api::new(Wire::answering([limited(10_000)]), Network::Mainnet, clock);
+    let api = Api::new(Wire::answering([refused(Some("10"))]), Network::Mainnet, clock);
     assert_eq!(block_on(api.post(INFO, read("meta"))), limited(10_000));
     assert_eq!(api.spent().cooldown_ms, 10_000);
     assert_eq!(api.spent().refused, 1);
+}
+
+#[test]
+fn any_other_status_is_the_venue_s_answer_and_is_still_counted() {
+    at(0);
+    let teapot = Response { status: 500, headers: Vec::new(), body: b"busy".to_vec() };
+    let api = Api::new(Wire::answering([Ok(teapot)]), Network::Mainnet, clock);
+    assert_eq!(
+        block_on(api.post(INFO, read("meta"))),
+        Err(TransportError::Status { status: 500, body: "busy".to_owned() })
+    );
+    assert_eq!(api.spent().minute, 20);
+    assert_eq!(api.spent().cooldown_ms, 0, "only a 429 closes the gate");
+}
+
+#[test]
+fn no_answer_is_neither_counted_nor_struck() {
+    at(0);
+    let api =
+        Api::new(Wire::answering([Err(TransportError::Unreachable("reset".to_owned()))]), Network::Mainnet, clock);
+    assert_eq!(block_on(api.post(EXCHANGE, "{}".to_owned())), Err(TransportError::Unreachable("reset".to_owned())));
+    assert_eq!((api.spent().minute, api.spent().cooldown_ms), (0, 0));
 }
 
 #[test]
@@ -127,7 +157,7 @@ fn what_went_out_is_weighed_by_kind() {
     at(0);
     let fills = format!("[{}]", vec!["{}"; 45].join(","));
     let orders = format!(r#"{{"action":{{"type":"order","orders":[{}]}},"nonce":1}}"#, vec!["{}"; 45].join(","));
-    let api = Api::new(Wire::answering([Ok("{}".to_owned()), Ok(fills), Ok("{}".to_owned())]), Network::Mainnet, clock);
+    let api = Api::new(Wire::answering([Ok(ok("{}")), Ok(ok(&fills)), Ok(ok("{}"))]), Network::Mainnet, clock);
     block_on(api.post(INFO, read("l2Book"))).unwrap();
     block_on(api.post(INFO, read("userFills"))).unwrap();
     block_on(api.post(EXCHANGE, orders)).unwrap();
@@ -142,7 +172,7 @@ fn what_went_out_is_weighed_by_kind() {
 fn a_crate_s_read_goes_through_the_gate_unchanged() {
     at(0);
     let user: Address = "0x0D1d9635D0640821d15e323ac8AdADfA9c111414".parse().unwrap();
-    let api = Api::new(Wire::answering([Ok(r#"{"role":"user"}"#.to_owned())]), Network::Testnet, clock);
+    let api = Api::new(Wire::answering([Ok(ok(r#"{"role":"user"}"#))]), Network::Testnet, clock);
     let answer: serde_json::Value = block_on(crate::client::info(&api, user_request("userRole", user))).unwrap();
     assert_eq!(answer["role"], "user");
     assert_eq!(api.spent().minute, 60);

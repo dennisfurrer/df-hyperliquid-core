@@ -35,6 +35,33 @@ impl Network {
         }
     }
 
+    /// The public websocket.
+    #[must_use]
+    pub const fn ws_url(self) -> &'static str {
+        match self {
+            Network::Mainnet => "wss://api.hyperliquid.xyz/ws",
+            Network::Testnet => "wss://api.hyperliquid-testnet.xyz/ws",
+        }
+    }
+
+    /// HyperEVM's JSON-RPC.
+    #[must_use]
+    pub const fn evm_rpc_url(self) -> &'static str {
+        match self {
+            Network::Mainnet => "https://rpc.hyperliquid.xyz/evm",
+            Network::Testnet => "https://rpc.hyperliquid-testnet.xyz/evm",
+        }
+    }
+
+    /// HyperEVM's chain id.
+    #[must_use]
+    pub const fn evm_chain_id(self) -> u64 {
+        match self {
+            Network::Mainnet => 999,
+            Network::Testnet => 998,
+        }
+    }
+
     /// Arbitrum One on mainnet, Arbitrum Sepolia on testnet. Every
     /// user-signed action is signed under this chain and names it as its
     /// `signatureChainId`. The venue accepts any chain a signature names and

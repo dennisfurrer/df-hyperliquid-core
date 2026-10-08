@@ -115,3 +115,25 @@ fn an_exchange_post_is_made_once_even_when_no_answer_comes() {
     assert_eq!(error, ApiError::Transport(TransportError::Unreachable("timed out".to_owned())));
     assert_eq!(transport.sent.borrow().len(), 1, "never retried");
 }
+
+#[test]
+fn a_request_carries_its_method_headers_and_body() {
+    let post =
+        Request::post_json("https://example.test/info", r#"{"type":"meta"}"#.to_owned()).with_header("X-Key", "k");
+    assert_eq!(post.method, Method::Post);
+    assert_eq!(post.header("Content-Type"), Some("application/json"));
+    assert_eq!(post.header("x-key"), Some("k"), "a header is found whatever its case");
+    assert_eq!(post.body, br#"{"type":"meta"}"#.to_vec());
+    let get = Request::get("https://example.test/stats");
+    assert_eq!((get.method, get.body.len(), get.headers.len()), (Method::Get, 0, 0));
+}
+
+#[test]
+fn a_response_reads_its_headers_and_text() {
+    let answer =
+        Response { status: 429, headers: vec![("retry-after".to_owned(), "3".to_owned())], body: b"null".to_vec() };
+    assert_eq!(answer.header("Retry-After"), Some("3"));
+    assert!(!answer.is_success());
+    assert_eq!(answer.text(), "null");
+    assert!(Response { status: 204, headers: Vec::new(), body: Vec::new() }.is_success());
+}

@@ -6,7 +6,7 @@
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use crate::{
-    client::{Http, INFO, Transport, TransportError},
+    client::{Http, INFO, Request, Transport, TransportError},
     json::Json,
     limit::{Gate, Meter, Spent, action_weight, base_weight, per_items, read_weight},
     network::Network,
@@ -86,37 +86,30 @@ impl<H: Http> Transport for Api<H> {
             }
             ticket
         };
-        let url = format!("{}{path}", self.network.api_url());
-        let answer = self.http.post(&url, body).await;
+        let request = Request::post_json(format!("{}{path}", self.network.api_url()), body);
+        let answer = self.http.send(request).await;
         let now = (self.clock)();
         let mut limiter = self.limiter();
-        match answer {
-            Ok(text) => {
+        let response = answer?;
+        if response.status == 429 {
+            limiter.meter.refuse(now);
+            let retry_after_ms = response.header("retry-after").and_then(|seconds| seconds.trim().parse::<u64>().ok());
+            let wait = limiter.gate.struck(ticket, now, retry_after_ms.map(|seconds| seconds.saturating_mul(1_000)));
+            return Err(rate_limited(Some(wait)));
+        }
+        let text = response.text();
+        let weight = match (is_read, response.is_success()) {
+            (true, true) => read_weight(&kind, per_items(&kind).map_or(0, |_| items(&text))),
+            (true, false) => base_weight(&kind),
+            (false, _) => action_weight(batched),
+        };
+        limiter.meter.record(now, &kind, weight);
+        match response.is_success() {
+            true => {
                 limiter.gate.passed(ticket);
-                let weight = match is_read {
-                    true => read_weight(&kind, per_items(&kind).map_or(0, |_| items(&text))),
-                    false => action_weight(batched),
-                };
-                limiter.meter.record(now, &kind, weight);
                 Ok(text)
             }
-            Err(TransportError::Status { status: 429, .. }) => {
-                limiter.meter.refuse(now);
-                Err(rate_limited(Some(limiter.gate.struck(ticket, now, None))))
-            }
-            Err(TransportError::RateLimited { retry_after_ms }) => {
-                limiter.meter.refuse(now);
-                Err(rate_limited(Some(limiter.gate.struck(ticket, now, retry_after_ms))))
-            }
-            Err(error @ TransportError::Status { .. }) => {
-                let weight = match is_read {
-                    true => base_weight(&kind),
-                    false => action_weight(batched),
-                };
-                limiter.meter.record(now, &kind, weight);
-                Err(error)
-            }
-            Err(error) => Err(error),
+            false => Err(TransportError::Status { status: response.status, body: text }),
         }
     }
 }

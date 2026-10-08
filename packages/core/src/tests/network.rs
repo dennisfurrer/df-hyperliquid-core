@@ -69,3 +69,13 @@ fn a_network_reads_and_writes_its_name() {
 fn mainnet_is_the_default() {
     assert_eq!(Network::default(), Network::Mainnet);
 }
+
+#[test]
+fn each_network_has_its_socket_and_its_hyperevm() {
+    assert_eq!(Network::Mainnet.ws_url(), "wss://api.hyperliquid.xyz/ws");
+    assert_eq!(Network::Testnet.ws_url(), "wss://api.hyperliquid-testnet.xyz/ws");
+    assert_eq!(Network::Mainnet.evm_rpc_url(), "https://rpc.hyperliquid.xyz/evm");
+    assert_eq!(Network::Testnet.evm_rpc_url(), "https://rpc.hyperliquid-testnet.xyz/evm");
+    assert_eq!(Network::Mainnet.evm_chain_id(), 999);
+    assert_eq!(Network::Testnet.evm_chain_id(), 998);
+}
