@@ -14,7 +14,7 @@ use crate::{
     account::{Account, Keep},
     convert,
     interest::{Changes, Handle, Interest, Interests},
-    market::{BARS, Context, Markets, fold_bar, fold_prints, halfway},
+    market::{BARS, Context, Markets, fold_bar, fold_prints},
     stamp::Stamped,
 };
 
@@ -243,7 +243,7 @@ impl Store {
     pub fn read(&mut self, now: u64, read: Read<'_>) -> Folded {
         self.settle();
         match read {
-            Read::Book(book) => self.fold_book(now, convert::book(book)),
+            Read::Book(book) => self.fold_book(now, (*book).clone()),
             Read::Trades(prints) => self.fold_prints(now, prints.iter().map(convert::trade)),
             Read::Candles(candles) => self.fold_history(now, candles.iter().filter_map(convert::candle).collect()),
             Read::Mids { dex, mids } => {
@@ -518,9 +518,7 @@ impl Store {
     /// a page watches, sent on every change), else what `allMids` said, else the context's.
     #[must_use]
     pub fn mid(&self, coin: &str) -> Option<Dec> {
-        if let (Some(bid), Some(ask)) = self.best(coin)
-            && let Some(mid) = halfway(bid.px, ask.px)
-        {
+        if let Some(mid) = self.book(coin).and_then(|book| book.mid()) {
             return Some(mid);
         }
         let dex = split_coin(coin).map_or("", |(dex, _)| dex);

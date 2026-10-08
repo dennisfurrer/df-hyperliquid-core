@@ -8,7 +8,7 @@ use std::{
 };
 
 use hl_account::Collateral;
-use hl_core::{Dec, Round};
+use hl_core::Dec;
 use hl_perps::PerpCtx;
 use hl_spot::{SpotCtx, SpotMeta};
 use hl_ws::{Book, Candle, Interval, Trade};
@@ -102,10 +102,4 @@ pub(crate) fn fold_prints(tape: &mut Vec<Trade>, prints: impl IntoIterator<Item 
     fresh.truncate(TAPE);
     *tape = fresh;
     true
-}
-
-/// Exactly halfway, a place finer than either price (hl-trade's `L2Book::mid`).
-pub(crate) fn halfway(bid: Dec, ask: Dec) -> Option<Dec> {
-    let places = bid.places().max(ask.places()).saturating_add(1);
-    bid.checked_add(ask)?.checked_div(Dec::from_int(2), places, Round::Down)
 }

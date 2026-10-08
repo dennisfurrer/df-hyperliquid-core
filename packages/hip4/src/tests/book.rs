@@ -43,6 +43,12 @@ fn a_book_off_the_grid_or_of_no_outcome_is_refused() {
 }
 
 #[test]
+fn a_book_without_its_time_is_refused_not_read_as_1970() {
+    let timeless = r##"{"coin":"#14730","levels":[[],[]]}"##;
+    assert!(serde_json::from_str::<Book>(timeless).is_err());
+}
+
+#[test]
 fn the_read_names_its_coin_with_a_hash() {
     assert_eq!(book_request(Coin::new(1473, OutcomeSide::Yes)), r##"{"type":"l2Book","coin":"#14730"}"##);
 }

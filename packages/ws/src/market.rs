@@ -9,44 +9,9 @@ use serde::{Deserialize, Deserializer, de};
 
 use crate::subscription::Interval;
 
-/// One price level: its price, the size resting there, and how many orders make it up.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-pub struct Level {
-    pub px: Dec,
-    pub sz: Dec,
-    /// Orders at this price: a count, not an amount.
-    pub n: u32,
-}
-
-/// `l2Book`: the whole visible book each time, best level first on both sides. There is no
-/// sequence number; each frame replaces the last.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "RawBook")]
-pub struct Book {
-    pub coin: String,
-    /// Milliseconds.
-    pub time: u64,
-    pub bids: Vec<Level>,
-    pub asks: Vec<Level>,
-    /// Sent with a grouped book (`nSigFigs`), the gap between the best levels.
-    pub spread: Option<Dec>,
-}
-
-#[derive(Deserialize)]
-struct RawBook {
-    coin: String,
-    time: u64,
-    levels: (Vec<Level>, Vec<Level>),
-    #[serde(default)]
-    spread: Option<Dec>,
-}
-
-impl From<RawBook> for Book {
-    fn from(raw: RawBook) -> Self {
-        let (bids, asks) = raw.levels;
-        Book { coin: raw.coin, time: raw.time, bids, asks, spread: raw.spread }
-    }
-}
+/// One price level and `l2Book`, the whole visible book each frame: hl-core's, the shape the
+/// `/info` read answers too.
+pub use hl_core::book::{Book, Level};
 
 /// `bbo`: the best bid and offer, sent only when one of them moves. A side with nothing
 /// resting is `None`.

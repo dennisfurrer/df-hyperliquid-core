@@ -39,7 +39,7 @@ pub mod template;
 pub mod time;
 pub mod user;
 
-pub use book::{Book, Level, book_request};
+pub use book::{BadBook, Book, Level, book_request};
 pub use coin::{Coin, MAX_PRICE, MIN_PRICE, PRICE_PLACES, outcome_price, outcome_size};
 pub use deploy::{
     ActivateOutcomeDeployer, BadValue, DeployError, FeeScale, Fraction, Grant, HORIZON_MS, Hint, Instance, Keywords,

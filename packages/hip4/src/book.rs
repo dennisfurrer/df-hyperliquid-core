@@ -1,14 +1,15 @@
-//! `l2Book` for one side of an outcome: its resting levels, best first. Every
-//! level of an outcome book sits on the 0.00001 grid, so a level off it, or a
-//! coin that is no outcome side, refuses the whole book rather than reading
-//! as something it is not.
+//! `l2Book` for one side of an outcome: its resting levels, best first. The
+//! venue's book is hl-core's, read here onto the outcome grid: every level of
+//! an outcome book sits on the 0.00001 grid, so a level off it, or a coin that
+//! is no outcome side, refuses the whole book rather than reading as something
+//! it is not.
 
 use hl_core::{ApiError, Json, Transport, info, info_request};
-use serde::{Deserialize, Deserializer, de};
+use serde::Deserialize;
 
 use crate::{
     coin::Coin,
-    px::{Px, Qty},
+    px::{BadPx, BadQty, Px, Qty},
 };
 
 /// `{"type":"l2Book","coin":"#14730"}`.
@@ -29,8 +30,17 @@ pub struct Level {
     pub n: u32,
 }
 
+impl TryFrom<hl_core::book::Level> for Level {
+    type Error = BadBook;
+
+    fn try_from(level: hl_core::book::Level) -> Result<Self, Self::Error> {
+        Ok(Level { px: Px::from_dec(level.px)?, sz: Qty::from_dec(level.sz)?, n: level.n })
+    }
+}
+
 /// One side's book at one moment.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(try_from = "hl_core::book::Book")]
 pub struct Book {
     pub coin: Coin,
     /// Milliseconds since 1970, the venue's own.
@@ -49,21 +59,27 @@ impl Book {
     }
 }
 
-impl<'de> Deserialize<'de> for Book {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        #[derive(Deserialize)]
-        struct Raw {
-            coin: String,
-            #[serde(default)]
-            time: u64,
-            levels: (Vec<Level>, Vec<Level>),
-        }
+/// Why a book is no outcome book.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum BadBook {
+    #[error("`{0}` is not an outcome side")]
+    Coin(String),
+    #[error(transparent)]
+    Px(#[from] BadPx),
+    #[error(transparent)]
+    Qty(#[from] BadQty),
+}
 
-        let raw = Raw::deserialize(deserializer)?;
-        let coin = Coin::parse(&raw.coin)
-            .ok_or_else(|| de::Error::custom(format!("`{}` is not an outcome side", raw.coin)))?;
-        let (bids, asks) = raw.levels;
-        Ok(Book { coin, time: raw.time, bids, asks })
+/// The venue's book, onto the outcome grid.
+impl TryFrom<hl_core::book::Book> for Book {
+    type Error = BadBook;
+
+    fn try_from(book: hl_core::book::Book) -> Result<Self, Self::Error> {
+        let coin = Coin::parse(&book.coin).ok_or(BadBook::Coin(book.coin))?;
+        let levels = |levels: Vec<hl_core::book::Level>| -> Result<Vec<Level>, BadBook> {
+            levels.into_iter().map(Level::try_from).collect()
+        };
+        Ok(Book { coin, time: book.time, bids: levels(book.bids)?, asks: levels(book.asks)? })
     }
 }
 

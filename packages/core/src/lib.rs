@@ -23,6 +23,7 @@ pub mod api;
 pub mod asset;
 pub mod auction;
 pub mod body;
+pub mod book;
 pub mod builder_fee;
 pub mod client;
 pub mod dec;

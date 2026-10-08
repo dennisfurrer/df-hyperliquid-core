@@ -4,7 +4,7 @@
 
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use hl_core::{Address, ApiError, Dec, Round, Transport, info};
+use hl_core::{Address, ApiError, Dec, Transport, info};
 use serde::{Deserialize, Deserializer, de};
 
 use crate::{
@@ -42,52 +42,11 @@ impl Precision {
     }
 }
 
-/// One price level: `n` orders resting at `px` for `sz` in all.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-pub struct Level {
-    pub px: Dec,
-    pub sz: Dec,
-    pub n: u32,
-}
+/// One price level, the socket's and the read's alike.
+pub use hl_core::book::Level;
 
-/// `l2Book`: at most twenty levels a side, best first.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct L2Book {
-    pub coin: String,
-    pub time: u64,
-    /// Bids, then asks.
-    pub levels: (Vec<Level>, Vec<Level>),
-    /// What a bucketed book also says.
-    #[serde(default)]
-    pub spread: Option<Dec>,
-}
-
-impl L2Book {
-    #[must_use]
-    pub fn bids(&self) -> &[Level] {
-        &self.levels.0
-    }
-
-    #[must_use]
-    pub fn asks(&self) -> &[Level] {
-        &self.levels.1
-    }
-
-    /// The best bid and the best ask.
-    #[must_use]
-    pub fn touch(&self) -> (Option<Dec>, Option<Dec>) {
-        (self.bids().first().map(|level| level.px), self.asks().first().map(|level| level.px))
-    }
-
-    /// Halfway between the touch, exactly: what a market order is bounded
-    /// from. `None` with a side empty.
-    #[must_use]
-    pub fn mid(&self) -> Option<Dec> {
-        let (Some(bid), Some(ask)) = self.touch() else { return None };
-        let places = bid.places().max(ask.places()) + 1;
-        bid.checked_add(ask)?.checked_div(Dec::from_int(2), places, Round::Down)
-    }
-}
+/// `l2Book`: at most twenty levels a side, best first. hl-core's, the shape the socket sends.
+pub type L2Book = hl_core::book::Book;
 
 /// A candle's width, as `candleSnapshot` names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
