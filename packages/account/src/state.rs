@@ -162,10 +162,10 @@ pub enum Risk {
 impl Risk {
     #[must_use]
     pub fn of(ratio: Option<Dec>) -> Risk {
-        let (near, liquidatable) = (Dec::new(85, 2), Dec::new(95, 2));
+        let (near, liquidatable) = (Dec::lit::<2>(85), Dec::lit::<2>(95));
         match ratio {
-            Some(ratio) if liquidatable.is_some_and(|line| ratio > line) => Risk::Liquidatable,
-            Some(ratio) if near.is_some_and(|line| ratio >= line) => Risk::Near,
+            Some(ratio) if ratio > liquidatable => Risk::Liquidatable,
+            Some(ratio) if ratio >= near => Risk::Near,
             _ => Risk::Safe,
         }
     }

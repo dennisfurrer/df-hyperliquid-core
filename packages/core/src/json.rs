@@ -71,6 +71,15 @@ impl Json {
         }
     }
 
+    /// `true` or `false`; `None` for anything else, a `"true"` string too.
+    #[must_use]
+    pub const fn as_bool(&self) -> Option<bool> {
+        match self {
+            Json::Bool(value) => Some(*value),
+            _ => None,
+        }
+    }
+
     /// A whole non-negative number, as the venue writes counts and ids.
     #[must_use]
     pub fn as_u64(&self) -> Option<u64> {

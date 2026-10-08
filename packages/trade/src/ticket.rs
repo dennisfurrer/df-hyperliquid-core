@@ -30,10 +30,7 @@ use crate::{
 
 /// The slippage a market take profit or stop loss takes past its trigger:
 /// the venue's TP/SL page gives market TP/SL orders a tolerance of 10%.
-pub const TRIGGER_SLIPPAGE: Dec = match Dec::new(1, 1) {
-    Some(tenth) => tenth,
-    None => Dec::ZERO,
-};
+pub const TRIGGER_SLIPPAGE: Dec = Dec::lit::<1>(1);
 
 /// The least a TWAP may total, in the quote: the venue's order types page.
 pub const MINIMUM_TWAP_VALUE: Dec = Dec::from_int(100);

@@ -127,7 +127,7 @@ impl Approved {
 
 /// Tenths of a basis point as basis points: 88 is 8.8.
 fn bps(fee: BuilderFee) -> String {
-    Dec::new(i128::from(fee.tenths()), 1).map_or_else(|| fee.tenths().to_string(), Dec::to_wire)
+    Dec::lit::<1>(i128::from(fee.tenths())).to_wire()
 }
 
 /// What an order paying a builder needs before it is sent.

@@ -390,7 +390,7 @@ impl Standing {
             .filter(|row| row.token != Some(USDC))
             .filter_map(|row| {
                 let ltv = row.ltv.or_else(|| {
-                    LTV.iter().find(|(coin, _)| *coin == row.coin).and_then(|(_, hundredths)| Dec::new(*hundredths, 2))
+                    LTV.iter().find(|(coin, _)| *coin == row.coin).map(|(_, hundredths)| Dec::lit::<2>(*hundredths))
                 })?;
                 row.total.checked_mul(price(&row.coin)?)?.checked_mul(ltv).filter(|lent| lent.is_positive())
             })

@@ -86,9 +86,7 @@ impl Fees {
     /// counts.
     #[must_use]
     pub fn volume(&self) -> Option<Dec> {
-        self.daily_user_vlm
-            .iter()
-            .try_fold(Dec::ZERO, |sum, day| sum.checked_add(day.user_cross)?.checked_add(day.user_add))
+        Dec::checked_sum(self.daily_user_vlm.iter().flat_map(|day| [day.user_cross, day.user_add]))
     }
 }
 

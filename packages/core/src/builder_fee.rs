@@ -40,7 +40,7 @@ impl BuilderFee {
     /// `^[0-9]+(\.[0-9]+)?%$`, which this always matches.
     #[must_use]
     pub fn percent(self) -> String {
-        let figure = Dec::new(i128::from(self.0), 3).map_or_else(|| self.0.to_string(), Dec::to_wire);
+        let figure = Dec::lit::<3>(i128::from(self.0)).to_wire();
         format!("{figure}%")
     }
 

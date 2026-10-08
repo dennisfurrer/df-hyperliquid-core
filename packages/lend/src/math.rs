@@ -17,29 +17,17 @@ pub const RATE_PLACES: u32 = 10;
 
 /// The share of borrowers' interest the protocol keeps "as a buffer for
 /// future liquidations": a tenth.
-pub const PROTOCOL_SHARE: Dec = match Dec::new(1, 1) {
-    Some(share) => share,
-    None => Dec::ZERO,
-};
+pub const PROTOCOL_SHARE: Dec = Dec::lit::<1>(1);
 
 /// The most USDC one account may borrow: the docs' user borrow cap.
 pub const USER_BORROW_CAP: Dec = Dec::from_int(50_000_000);
 
 /// The borrow rate's floor, 5% a year.
-const BASE_RATE: Dec = match Dec::new(5, 2) {
-    Some(rate) => rate,
-    None => Dec::ZERO,
-};
+const BASE_RATE: Dec = Dec::lit::<2>(5);
 /// Where the rate turns up: 80% utilization.
-const KINK: Dec = match Dec::new(8, 1) {
-    Some(kink) => kink,
-    None => Dec::ZERO,
-};
+const KINK: Dec = Dec::lit::<1>(8);
 /// How steeply past the kink: 4.75 a unit of utilization.
-const SLOPE: Dec = match Dec::new(475, 2) {
-    Some(slope) => slope,
-    None => Dec::ZERO,
-};
+const SLOPE: Dec = Dec::lit::<2>(475);
 
 /// The yearly borrow rate at `utilization`: `0.05 + 4.75 * max(0, u - 0.8)`,
 /// the docs' rule for stablecoins. Every reserve on file, each under 80%,

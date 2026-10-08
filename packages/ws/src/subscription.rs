@@ -546,8 +546,7 @@ impl Fields<'_> {
     fn flag(&self, field: &'static str) -> Result<bool, BadSubscription> {
         match self.present(field) {
             None => Ok(false),
-            Some(Json::Bool(value)) => Ok(*value),
-            Some(_) => Err(self.wrong(field, "true or false")),
+            Some(value) => value.as_bool().ok_or_else(|| self.wrong(field, "true or false")),
         }
     }
 

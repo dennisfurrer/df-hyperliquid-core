@@ -25,10 +25,7 @@ pub const SPOT_PRICE_PLACES: u32 = 8;
 pub const MINIMUM_ORDER_VALUE: Dec = Dec::from_int(10);
 
 /// The most slippage a market order is let take: half the price.
-pub const MAX_SLIPPAGE: Dec = match Dec::new(5, 1) {
-    Some(half) => half,
-    None => Dec::ZERO,
-};
+pub const MAX_SLIPPAGE: Dec = Dec::lit::<1>(5);
 
 /// One asset's grid: its size decimals, and whether its prices take the perp
 /// or the spot ceiling.

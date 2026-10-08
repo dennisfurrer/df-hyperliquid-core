@@ -98,3 +98,29 @@ fn the_venue_s_strings_read_and_floats_do_not() {
     assert!(serde_json::from_str::<Dec>(r#""1e5""#).is_err());
     assert_eq!(serde_json::to_string(&dec("12.50")).unwrap(), r#""12.5""#);
 }
+
+/// What the crates' constants were written as: `Dec::new` matched to a
+/// fallback that could never be reached.
+#[test]
+fn a_literal_is_its_units_at_its_scale() {
+    const TENTH: Dec = Dec::lit::<1>(1);
+    const TICK: Dec = Dec::lit::<5>(1);
+    const FINEST: Dec = Dec::lit::<MAX_SCALE>(-1);
+    assert_eq!(TENTH, dec("0.1"));
+    assert_eq!(TICK, dec("0.00001"));
+    assert_eq!(FINEST, dec("-0.000000000000000001"));
+    assert_eq!(Dec::lit::<2>(475), dec("4.75"));
+    assert_eq!(Dec::lit::<2>(1000).to_wire(), "10", "kept as it reads, written without trailing zeros");
+    assert_eq!(Dec::lit::<0>(42), Dec::from_int(42));
+    assert_eq!(Some(Dec::lit::<4>(5)), Dec::new(5, 4));
+}
+
+#[test]
+fn a_sum_is_exact_and_none_past_what_a_dec_holds() {
+    assert_eq!(Dec::checked_sum([dec("0.1"), dec("0.2"), dec("-0.05")]), Some(dec("0.25")));
+    assert_eq!(Dec::checked_sum([]), Some(Dec::ZERO), "nothing sums to zero");
+    assert_eq!(Dec::checked_sum(vec![dec("1.5")].into_iter()), Some(dec("1.5")));
+    let huge = Dec::new(i128::MAX, 0).unwrap();
+    assert_eq!(Dec::checked_sum([huge, Dec::ONE]), None);
+    assert_eq!(Dec::checked_sum([huge, Dec::ONE, Dec::ONE.negate()]), None, "an overflow on the way is not undone");
+}

@@ -49,6 +49,19 @@ impl Dec {
         Some(Dec { units, scale })
     }
 
+    /// `units / 10^SCALE` for a figure written into the code: `Dec::lit::<2>(475)`
+    /// is 4.75. The scale is checked when the program is built, so a constant
+    /// needs no fallback; one past [`MAX_SCALE`] does not compile.
+    ///
+    /// ```compile_fail,E0080
+    /// const TOO_FINE: hl_core::Dec = hl_core::Dec::lit::<19>(1);
+    /// ```
+    #[must_use]
+    pub const fn lit<const SCALE: u32>(units: i128) -> Dec {
+        const { assert!(SCALE <= MAX_SCALE, "a Dec keeps at most eighteen places") };
+        Dec { units, scale: SCALE }
+    }
+
     #[must_use]
     pub const fn from_int(whole: i64) -> Dec {
         Dec { units: whole as i128, scale: 0 }
@@ -200,6 +213,13 @@ impl Dec {
     #[must_use]
     pub fn checked_sub(self, other: Dec) -> Option<Dec> {
         self.checked_add(other.negate())
+    }
+
+    /// Every figure added exactly, in order; zero for none. `None` once a
+    /// running total passes what a `Dec` holds.
+    #[must_use]
+    pub fn checked_sum(figures: impl IntoIterator<Item = Dec>) -> Option<Dec> {
+        figures.into_iter().try_fold(Dec::ZERO, Dec::checked_add)
     }
 
     /// Exact while the product fits eighteen places; past that, the nearest.

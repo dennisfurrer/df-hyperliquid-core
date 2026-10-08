@@ -102,13 +102,13 @@ impl RateLimit {
 /// The USDC to trade to earn `requests` more.
 #[must_use]
 pub fn volume_for(requests: u64) -> Dec {
-    Dec::new(i128::from(requests), 0).unwrap_or(Dec::ZERO)
+    Dec::lit::<0>(i128::from(requests))
 }
 
 /// What `reserveRequestWeight` charges for `requests` more, in USDC.
 #[must_use]
 pub fn surplus_cost(requests: u64) -> Option<Dec> {
-    Dec::new(i128::from(requests), 0)?.checked_mul(Dec::new(5, 4)?)
+    Dec::lit::<0>(i128::from(requests)).checked_mul(Dec::lit::<4>(5))
 }
 
 /// What an action costs the address: one, or one for every order or cancel

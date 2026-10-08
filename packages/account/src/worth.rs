@@ -165,9 +165,7 @@ impl Worth {
     /// Everything but `margin`. `None` only past what a `Dec` counts.
     #[must_use]
     pub fn total(&self) -> Option<Dec> {
-        [self.spot, self.lending, self.outcomes, self.staking, self.vaults]
-            .into_iter()
-            .try_fold(self.perps, Dec::checked_add)
+        Dec::checked_sum([self.perps, self.spot, self.lending, self.outcomes, self.staking, self.vaults])
     }
 
     #[must_use]
@@ -216,7 +214,7 @@ impl Standing {
             true => Dec::ZERO,
             false => beside.staked.checked_mul(prices.price(STAKED).unwrap_or(Dec::ZERO))?,
         };
-        worth.vaults = beside.vaults.iter().try_fold(Dec::ZERO, |sum, share| sum.checked_add(share.equity))?;
+        worth.vaults = Dec::checked_sum(beside.vaults.iter().map(|share| share.equity))?;
         Some(worth)
     }
 }

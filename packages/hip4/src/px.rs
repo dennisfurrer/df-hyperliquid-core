@@ -32,16 +32,10 @@ pub const OBSERVED_PER_UNIT: u32 = 100_000_000;
 /// quote token, each share valued at its short side ([`min_shares`]). The
 /// venue publishes no figure; hip4-sdk says its floor is 1 and keeps half
 /// of one as headroom.
-pub const MIN_NOTIONAL: Dec = match Dec::new(15, 1) {
-    Some(least) => least,
-    None => Dec::ZERO,
-};
+pub const MIN_NOTIONAL: Dec = Dec::lit::<1>(15);
 
 /// A share is never valued under a cent for [`min_shares`].
-const SHORT_SIDE_FLOOR: Dec = match Dec::new(1, 2) {
-    Some(cent) => cent,
-    None => Dec::ZERO,
-};
+const SHORT_SIDE_FLOOR: Dec = Dec::lit::<2>(1);
 
 /// Why a figure is not a price.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -178,10 +172,7 @@ impl Px {
 
     #[must_use]
     pub const fn to_dec(self) -> Dec {
-        match Dec::new(self.0 as i128, PRICE_PLACES) {
-            Some(value) => value,
-            None => Dec::ZERO,
-        }
+        Dec::lit::<PRICE_PLACES>(self.0 as i128)
     }
 
     /// No trailing zeros: `0.27`, `1`.
@@ -306,10 +297,7 @@ impl Mid {
 
     #[must_use]
     pub const fn to_dec(self) -> Dec {
-        match Dec::new(self.0 as i128, OBSERVED_PLACES) {
-            Some(value) => value,
-            None => Dec::ZERO,
-        }
+        Dec::lit::<OBSERVED_PLACES>(self.0 as i128)
     }
 
     #[must_use]
@@ -410,10 +398,7 @@ impl Qty {
 
     #[must_use]
     pub const fn to_dec(self) -> Dec {
-        match Dec::new(self.0 as i128, 0) {
-            Some(value) => value,
-            None => Dec::ZERO,
-        }
+        Dec::lit::<0>(self.0 as i128)
     }
 
     #[must_use]
@@ -424,10 +409,7 @@ impl Qty {
     /// What these contracts cost at `price`, in the quote token, exactly.
     #[must_use]
     pub const fn notional(self, price: Px) -> Dec {
-        match Dec::new(self.0 as i128 * price.0 as i128, PRICE_PLACES) {
-            Some(value) => value,
-            None => Dec::ZERO,
-        }
+        Dec::lit::<PRICE_PLACES>(self.0 as i128 * price.0 as i128)
     }
 
     /// hip4-tui's minimum: whether these are worth the spot minimum of 10 of

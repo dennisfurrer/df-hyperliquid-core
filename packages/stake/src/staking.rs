@@ -42,10 +42,7 @@ pub fn pending_withdrawals(network: Network, history: &[StakeEvent], now_ms: u64
 /// what a [`Dec`] holds.
 #[must_use]
 pub fn rewards_since(rewards: &[Reward], since_ms: u64) -> Option<Dec> {
-    rewards
-        .iter()
-        .filter(|reward| reward.time >= since_ms)
-        .try_fold(Dec::ZERO, |sum, reward| sum.checked_add(reward.total_amount))
+    Dec::checked_sum(rewards.iter().filter(|reward| reward.time >= since_ms).map(|reward| reward.total_amount))
 }
 
 /// One account's stake.

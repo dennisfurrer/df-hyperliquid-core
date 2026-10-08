@@ -15,16 +15,10 @@ use crate::{
 pub const PRICE_PLACES: u32 = 5;
 
 /// The lowest price an outcome order may name; a market sell goes at it.
-pub const MIN_PRICE: Dec = match Dec::new(1, PRICE_PLACES) {
-    Some(price) => price,
-    None => Dec::ZERO,
-};
+pub const MIN_PRICE: Dec = Dec::lit::<PRICE_PLACES>(1);
 
 /// The highest price an outcome order may name; a market buy goes at it.
-pub const MAX_PRICE: Dec = match Dec::new(99_999, PRICE_PLACES) {
-    Some(price) => price,
-    None => Dec::ZERO,
-};
+pub const MAX_PRICE: Dec = Dec::lit::<PRICE_PLACES>(99_999);
 
 /// One side of an outcome: `10 * outcome + side`, spelled `#<encoding>` in
 /// info and on the websocket and `+<encoding>` in spot balances.
