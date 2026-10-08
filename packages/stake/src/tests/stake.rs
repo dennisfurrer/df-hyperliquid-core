@@ -1,7 +1,7 @@
 //! The action vectors were made by `@nktkas/hyperliquid` 0.33.2 itself, as
 //! hip4-tui recorded them: its own action functions, the key below, nonce
 //! 1790412105001. Digests are viem's `hashTypedData` over the SDK's own
-//! EIP-712 types. Mainnet.
+//! EIP-712 types. Mainnet here; `tests/vectors.rs` runs both networks.
 
 use hl_core::Network;
 use hl_core::{LocalKey, UserAction, digest_of_wallet_json, hex};
@@ -128,9 +128,9 @@ fn history_rows_read_by_kind_and_an_initiated_withdrawal_lands_after_the_queue()
             is_undelegate: true,
         }
     );
-    let landed = history[1].unstaked_at().unwrap();
+    let landed = history[1].unstaked_at(Network::Mainnet).unwrap();
     assert!(landed <= history[0].time && history[0].time - landed < 1_000, "finalized a breath after seven days");
-    assert_eq!(history[0].unstaked_at(), None);
+    assert_eq!(history[0].unstaked_at(Network::Mainnet), None);
     let unknown: Vec<StakeEvent> =
         serde_json::from_str(r#"[{"time":1,"hash":"0x01","delta":{"slash":{"amount":"1.0"}}}]"#).unwrap();
     assert_eq!(unknown[0].delta, StakeDelta::Other { kind: "slash".to_owned() });
@@ -144,5 +144,5 @@ fn the_reads_name_their_type_and_user() {
         r#"{"type":"delegatorHistory","user":"0x88806a71d74ad0a510b350545c9ae490912f0888"}"#
     );
     assert_eq!(validator_summaries_request(), r#"{"type":"validatorSummaries"}"#);
-    assert_eq!((DELEGATION_LOCK_MS, UNSTAKING_MS), (86_400_000, 604_800_000));
+    assert_eq!((delegation_lock_ms(Network::Mainnet), unstaking_ms(Network::Mainnet)), (86_400_000, 604_800_000));
 }

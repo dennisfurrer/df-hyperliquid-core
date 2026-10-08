@@ -3,6 +3,8 @@
 
 use hl_core::{Address, BadUnits, Dec, Field, NonceKey, UserAction, UserSigned, exact_units};
 
+use crate::plan::Key;
+
 /// HYPE on Core counts in 1e8: what `wei` means in staking.
 pub const HYPE_DECIMALS: u32 = 8;
 
@@ -20,6 +22,9 @@ pub struct CDeposit {
 }
 
 impl CDeposit {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     pub fn new(hype: Dec, nonce: u64) -> Result<CDeposit, BadUnits> {
         Ok(CDeposit { wei: hype_wei(hype)?, nonce })
     }
@@ -46,6 +51,9 @@ pub struct CWithdraw {
 }
 
 impl CWithdraw {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     pub fn new(hype: Dec, nonce: u64) -> Result<CWithdraw, BadUnits> {
         Ok(CWithdraw { wei: hype_wei(hype)?, nonce })
     }
@@ -74,6 +82,9 @@ pub struct TokenDelegate {
 }
 
 impl TokenDelegate {
+    /// User-signed: only the account's own key.
+    pub const KEY: Key = Key::Main;
+
     pub fn delegate(validator: Address, hype: Dec, nonce: u64) -> Result<TokenDelegate, BadUnits> {
         Ok(TokenDelegate { validator, wei: hype_wei(hype)?, is_undelegate: false, nonce })
     }

@@ -2,18 +2,56 @@
 //! `delegatorRewards`, `delegatorHistory`. HYPE figures are decimal strings,
 //! except a validator's `stake`, which is wei.
 
-use hl_core::{Address, ApiError, Dec, Json, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Json, Network, Transport, info, user_request};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
 use crate::actions::HYPE_DECIMALS;
 
-/// A delegation is locked this long before it can be undelegated: a day.
-pub const DELEGATION_LOCK_MS: u64 = 86_400_000;
+/// A delegation on mainnet is locked a day before it can be undelegated (the
+/// venue's staking docs); each live lock ends a day after its delegation.
+pub const MAINNET_DELEGATION_LOCK_MS: u64 = 86_400_000;
 
-/// A withdrawal from staking to spot waits this long in the queue: seven
-/// days. A live history read 604800145 ms from `initiated` to `finalized`.
-pub const UNSTAKING_MS: u64 = 7 * 86_400_000;
+/// Testnet's lock: two minutes, as every live testnet delegation read on
+/// 2026-10-08 shows.
+pub const TESTNET_DELEGATION_LOCK_MS: u64 = 120_000;
+
+/// A withdrawal from staking to spot on mainnet waits seven days in the queue
+/// (the venue's staking docs). A live history read 604800145 ms from
+/// `initiated` to `finalized`.
+pub const MAINNET_UNSTAKING_MS: u64 = 7 * 86_400_000;
+
+/// Testnet's queue: five minutes. Live testnet histories read 300133 to
+/// 300996 ms from `initiated` to `finalized`.
+pub const TESTNET_UNSTAKING_MS: u64 = 300_000;
+
+/// At most this many withdrawals wait in the queue at once (the venue's
+/// staking docs).
+pub const MAX_PENDING_WITHDRAWALS: u64 = 5;
+
+/// How long a new delegation on `network` is locked.
+#[must_use]
+pub const fn delegation_lock_ms(network: Network) -> u64 {
+    match network {
+        Network::Mainnet => MAINNET_DELEGATION_LOCK_MS,
+        Network::Testnet => TESTNET_DELEGATION_LOCK_MS,
+    }
+}
+
+/// How long a withdrawal on `network` waits before it reaches spot.
+#[must_use]
+pub const fn unstaking_ms(network: Network) -> u64 {
+    match network {
+        Network::Mainnet => MAINNET_UNSTAKING_MS,
+        Network::Testnet => TESTNET_UNSTAKING_MS,
+    }
+}
+
+/// When a delegation made at `now_ms` may first be undelegated.
+#[must_use]
+pub const fn locked_until(network: Network, now_ms: u64) -> u64 {
+    now_ms.saturating_add(delegation_lock_ms(network))
+}
 
 /// `{"type":"validatorSummaries"}`.
 #[must_use]
@@ -163,7 +201,7 @@ pub enum StakeDelta {
     #[serde(rename_all = "camelCase")]
     Delegate { validator: Address, amount: Dec, is_undelegate: bool },
     /// From staking toward spot: `initiated`, then `finalized` once queued
-    /// [`UNSTAKING_MS`].
+    /// [`unstaking_ms`].
     Withdrawal { amount: Dec, phase: String },
     /// Spot into staking.
     CDeposit { amount: Dec },
@@ -173,12 +211,12 @@ pub enum StakeDelta {
 }
 
 impl StakeEvent {
-    /// When an initiated withdrawal reaches spot.
+    /// When an initiated withdrawal reaches spot on `network`.
     #[must_use]
-    pub fn unstaked_at(&self) -> Option<u64> {
+    pub fn unstaked_at(&self, network: Network) -> Option<u64> {
         match &self.delta {
             StakeDelta::Withdrawal { phase, .. } if phase == "initiated" => {
-                Some(self.time.saturating_add(UNSTAKING_MS))
+                Some(self.time.saturating_add(unstaking_ms(network)))
             }
             _ => None,
         }
