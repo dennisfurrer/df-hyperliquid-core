@@ -5,6 +5,7 @@
 //! are the SDK's `createL1ActionHash`. Mainnet rows only. The last two hashes
 //! are hip4-tui's, cross-checked against `hip4-ts`.
 
+use hl_core::Network;
 use hl_core::{Address, BuilderFee, Dec, L1Action, LocalKey, UserAction, digest_of_wallet_json, hex, recover};
 
 use crate::{
@@ -85,14 +86,18 @@ fn every_user_signed_approval_is_the_sdk_s_byte_for_byte() {
         ),
     ];
     for (action, json, digest, r, s, v) in cases {
-        assert_eq!(action.wire(), json, "the posted action");
-        assert_eq!(hex::encode_prefixed(&action.digest()), digest, "{json}: the digest");
-        assert_eq!(digest_of_wallet_json(&action.wallet_json()), Ok(action.digest()), "{json}: wallet json");
-        let signature = key.sign_digest(&action.digest()).unwrap();
-        assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
-        assert_eq!(recover(&action.digest(), &signature), Ok(key.address()));
+        assert_eq!(action.wire(Network::Mainnet), json, "the posted action");
+        assert_eq!(hex::encode_prefixed(&action.digest(Network::Mainnet)), digest, "{json}: the digest");
         assert_eq!(
-            action.body(&signature),
+            digest_of_wallet_json(&action.wallet_json(Network::Mainnet)),
+            Ok(action.digest(Network::Mainnet)),
+            "{json}: wallet json"
+        );
+        let signature = key.sign_digest(&action.digest(Network::Mainnet)).unwrap();
+        assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
+        assert_eq!(recover(&action.digest(Network::Mainnet), &signature), Ok(key.address()));
+        assert_eq!(
+            action.body(&signature, Network::Mainnet),
             format!(r#"{{"action":{json},"nonce":{NONCE},"signature":{{"r":"{r}","s":"{s}","v":{v}}}}}"#)
         );
     }
@@ -149,7 +154,7 @@ fn every_l1_account_action_hashes_and_signs_as_the_sdk_does() {
     for (action, json, id, r, s, v) in cases {
         assert_eq!(action.wire(), json, "the posted action");
         assert_eq!(hex::encode_prefixed(&action.connection_id(NONCE, None)), id, "{json}: the connection id");
-        let signature = key.sign_digest(&action.digest(NONCE, None)).unwrap();
+        let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
         assert_eq!(
             action.body(NONCE, &signature, None),
@@ -189,7 +194,7 @@ fn what_would_be_refused_is_refused_before_signing() {
     assert_eq!(SetReferrer::new(&long), Err(BadCode(long.clone())));
     assert!(SetReferrer::new(&"x".repeat(20)).is_ok());
     let unnamed = ApproveAgent::new(address(FRIEND), "", NONCE);
-    assert!(unnamed.wire().contains(r#""agentName":"","#), "the unnamed agent is the empty name, sent");
+    assert!(unnamed.wire(Network::Mainnet).contains(r#""agentName":"","#), "the unnamed agent is the empty name, sent");
     assert_eq!(ApproveBuilderFee::new(address(FRIEND), BuilderFee::from_tenths(88), NONCE).max_fee_rate(), "0.088%");
 }
 

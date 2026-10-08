@@ -10,7 +10,7 @@
 //! - nonces: one monotonic millisecond clock per account;
 //! - the info and exchange client over a `Transport` trait, so it runs native, in the browser and in Workers.
 //!
-//! Mainnet only. `/exchange` is never retried.
+//! Mainnet or testnet, named on every signature. `/exchange` is never retried.
 #![deny(clippy::float_arithmetic)]
 
 pub mod address;
@@ -25,8 +25,8 @@ pub mod hex;
 pub mod json;
 pub mod keccak;
 pub mod l1;
-pub mod mainnet;
 pub mod msgpack;
+pub mod network;
 pub mod nonce;
 pub mod signer;
 pub mod units;
@@ -45,10 +45,8 @@ pub use hex::BadHex;
 pub use json::Json;
 pub use keccak::keccak256;
 pub use l1::{L1Action, connection_id, l1_digest, phantom_agent};
-pub use mainnet::{
-    AGENT_SOURCE, API_URL, HYPERLIQUID_CHAIN, L1_CHAIN_ID, SIGNATURE_CHAIN_ID, SIGNATURE_CHAIN_ID_HEX, Token, USDC,
-};
 pub use msgpack::{Map, Value};
+pub use network::{L1_CHAIN_ID, MAINNET_USDC, Network, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork};
 pub use nonce::NonceClock;
 pub use signer::{LocalKey, SignError, Signature, Signer, recover, verify};
 pub use units::{BadUnits, cut_units, exact_units};

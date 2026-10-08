@@ -5,6 +5,7 @@
 //! through viem. Mainnet rows only. The last two are the official Python
 //! SDK's own `signing_test.py` vectors, at nonce 0.
 
+use hl_core::Network;
 use hl_core::{Address, Asset, BuilderFee, Dec, L1Action, LocalKey, digest_of_wallet_json, hex, recover};
 
 use crate::{
@@ -297,11 +298,15 @@ fn every_trading_action_is_the_sdk_s_byte_for_byte() {
         assert_eq!(action.wire(), json, "the posted action");
         assert_eq!(hex::encode(&action.msgpack()), msgpack, "{json}: the msgpack");
         assert_eq!(hex::encode_prefixed(&action.connection_id(NONCE, None)), id, "{json}: the connection id");
-        let digest = action.digest(NONCE, None);
+        let digest = action.digest(NONCE, None, Network::Mainnet);
         let signature = key.sign_digest(&digest).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
         assert_eq!(recover(&digest, &signature), Ok(key.address()));
-        assert_eq!(digest_of_wallet_json(&action.wallet_json(NONCE, None)), Ok(digest), "{json}: wallet json");
+        assert_eq!(
+            digest_of_wallet_json(&action.wallet_json(NONCE, None, Network::Mainnet)),
+            Ok(digest),
+            "{json}: wallet json"
+        );
         assert_eq!(
             action.body(NONCE, &signature, None),
             format!(
@@ -335,7 +340,7 @@ fn the_python_sdk_s_order_vectors_sign_the_same() {
             27,
         ),
     ] {
-        let signature = key.sign_digest(&action.digest(0, None)).unwrap();
+        let signature = key.sign_digest(&action.digest(0, None, Network::Mainnet)).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{action:?}");
     }
 }

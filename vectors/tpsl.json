@@ -1,0 +1,170 @@
+{
+  "source": "vectors/gen/desk.mts: an entry with its take profit, its stop loss, and both, one action grouped normalTpsl, each a session after the two approvals of desk.json (nonces from NOW + 2), sorted and signed by @nktkas/hyperliquid 0.24.3 (actionSorter, signL1Action) with the agent's private key.",
+  "agent": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "cases": {
+    "entry_tp": [
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.00375",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            },
+            {
+              "a": 0,
+              "b": false,
+              "p": "81000",
+              "s": "0.00375",
+              "r": true,
+              "t": {
+                "trigger": {
+                  "isMarket": true,
+                  "triggerPx": "90000",
+                  "tpsl": "tp"
+                }
+              }
+            }
+          ],
+          "grouping": "normalTpsl",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0x6f797f285f00dd0c8ad5040499fd9115d686a178311e01b50b265af228ceebd6",
+          "s": "0x5947fcadd05b96eade336ffcdaf9aa7d4cb4cafea2602355cdf4d13e1a75a7c9",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.00375\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"},{\"a\":0,\"b\":false,\"p\":\"81000\",\"s\":\"0.00375\",\"r\":true,\"t\":{\"trigger\":{\"isMarket\":true,\"triggerPx\":\"90000\",\"tpsl\":\"tp\"}}}],\"grouping\":\"normalTpsl\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000002,\"signature\":{\"r\":\"0x6f797f285f00dd0c8ad5040499fd9115d686a178311e01b50b265af228ceebd6\",\"s\":\"0x5947fcadd05b96eade336ffcdaf9aa7d4cb4cafea2602355cdf4d13e1a75a7c9\",\"v\":27}}"
+      }
+    ],
+    "entry_sl": [
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.00375",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            },
+            {
+              "a": 0,
+              "b": false,
+              "p": "67500",
+              "s": "0.00375",
+              "r": true,
+              "t": {
+                "trigger": {
+                  "isMarket": true,
+                  "triggerPx": "75000",
+                  "tpsl": "sl"
+                }
+              }
+            }
+          ],
+          "grouping": "normalTpsl",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0x6e346e6c5e961377451f4ef1a447faf0d4e72e5ce654826f4579aa83a93430b3",
+          "s": "0x106c7067fde8aeb89931e9be092a78849c222082edc9a6fb62cdcb29ae68426f",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.00375\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"},{\"a\":0,\"b\":false,\"p\":\"67500\",\"s\":\"0.00375\",\"r\":true,\"t\":{\"trigger\":{\"isMarket\":true,\"triggerPx\":\"75000\",\"tpsl\":\"sl\"}}}],\"grouping\":\"normalTpsl\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000002,\"signature\":{\"r\":\"0x6e346e6c5e961377451f4ef1a447faf0d4e72e5ce654826f4579aa83a93430b3\",\"s\":\"0x106c7067fde8aeb89931e9be092a78849c222082edc9a6fb62cdcb29ae68426f\",\"v\":27}}"
+      }
+    ],
+    "entry_tp_sl": [
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.00375",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            },
+            {
+              "a": 0,
+              "b": false,
+              "p": "81000",
+              "s": "0.00375",
+              "r": true,
+              "t": {
+                "trigger": {
+                  "isMarket": true,
+                  "triggerPx": "90000",
+                  "tpsl": "tp"
+                }
+              }
+            },
+            {
+              "a": 0,
+              "b": false,
+              "p": "67500",
+              "s": "0.00375",
+              "r": true,
+              "t": {
+                "trigger": {
+                  "isMarket": true,
+                  "triggerPx": "75000",
+                  "tpsl": "sl"
+                }
+              }
+            }
+          ],
+          "grouping": "normalTpsl",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0xef593bf321bf6c24aaa5717b27085c8a08d7a8ad713308da42a81837347eaf8f",
+          "s": "0x1a5dba2b2b5daf640183c1e5f7872076e280373bdc599145dbadac5e3390ad64",
+          "v": 28
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.00375\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"},{\"a\":0,\"b\":false,\"p\":\"81000\",\"s\":\"0.00375\",\"r\":true,\"t\":{\"trigger\":{\"isMarket\":true,\"triggerPx\":\"90000\",\"tpsl\":\"tp\"}}},{\"a\":0,\"b\":false,\"p\":\"67500\",\"s\":\"0.00375\",\"r\":true,\"t\":{\"trigger\":{\"isMarket\":true,\"triggerPx\":\"75000\",\"tpsl\":\"sl\"}}}],\"grouping\":\"normalTpsl\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000002,\"signature\":{\"r\":\"0xef593bf321bf6c24aaa5717b27085c8a08d7a8ad713308da42a81837347eaf8f\",\"s\":\"0x1a5dba2b2b5daf640183c1e5f7872076e280373bdc599145dbadac5e3390ad64\",\"v\":28}}"
+      }
+    ]
+  }
+}

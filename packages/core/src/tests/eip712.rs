@@ -1,6 +1,6 @@
 use super::*;
 use crate::{
-    hex,
+    Network, hex,
     signer::{LocalKey, recover},
 };
 
@@ -18,11 +18,11 @@ fn the_domain_separators_are_the_published_constants() {
         "d79297fcdf2ffcd4ae223d01edaa2ba214ff8f401d7c9300d995d17c82aa4040"
     );
     assert_eq!(
-        hex::encode(&Domain::USER_SIGNED.separator()),
+        hex::encode(&Domain::user_signed(Network::Mainnet).separator()),
         "2f54e643b38c9c2b65cb731aaf11c54f01705ee0cdf45aea16e2ac0a5ce7531a"
     );
     assert_eq!(Domain::EXCHANGE.chain_id, 1337);
-    assert_eq!(Domain::USER_SIGNED.chain_id, 42_161);
+    assert_eq!(Domain::user_signed(Network::Mainnet).chain_id, 42_161);
 }
 
 /// Type and struct hashes from viem; a renamed, retyped or reordered field
@@ -117,7 +117,7 @@ fn wallet_json_is_the_shape_eth_sign_typed_data_v4_takes() {
         .field("toPerp", Field::Bool(true))
         .field("nonce", Field::Uint64(1_790_412_105_001));
     assert_eq!(
-        data.wallet_json(&Domain::USER_SIGNED),
+        data.wallet_json(&Domain::user_signed(Network::Mainnet)),
         concat!(
             r#"{"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},"#,
             r#"{"name":"chainId","type":"uint256"},{"name":"verifyingContract","type":"address"}],"#,
@@ -129,7 +129,8 @@ fn wallet_json_is_the_shape_eth_sign_typed_data_v4_takes() {
             r#""message":{"hyperliquidChain":"Mainnet","amount":"12.5","toPerp":true,"nonce":1790412105001}}"#,
         )
     );
-    let parsed: serde_json::Value = serde_json::from_str(&data.wallet_json(&Domain::USER_SIGNED)).unwrap();
+    let parsed: serde_json::Value =
+        serde_json::from_str(&data.wallet_json(&Domain::user_signed(Network::Mainnet))).unwrap();
     assert!(parsed["domain"]["chainId"].is_u64(), "the chain id is a number");
     assert!(parsed["message"]["nonce"].is_u64(), "a uint64 is a number");
     assert!(parsed["message"]["toPerp"].is_boolean(), "a bool is a bool, never the string \"false\"");
@@ -137,7 +138,7 @@ fn wallet_json_is_the_shape_eth_sign_typed_data_v4_takes() {
 
 #[test]
 fn wallet_json_hashes_back_to_the_digest_for_every_field_kind() {
-    for domain in [Domain::USER_SIGNED, Domain::EXCHANGE] {
+    for domain in [Domain::user_signed(Network::Mainnet), Domain::EXCHANGE] {
         let data = every_kind();
         let json = data.wallet_json(&domain);
         assert_eq!(digest_of_wallet_json(&json), Ok(data.digest(&domain)), "{json}");
@@ -147,8 +148,8 @@ fn wallet_json_hashes_back_to_the_digest_for_every_field_kind() {
 #[test]
 fn the_json_hasher_notices_a_changed_value_or_order() {
     let data = every_kind();
-    let json = data.wallet_json(&Domain::USER_SIGNED);
-    let right = data.digest(&Domain::USER_SIGNED);
+    let json = data.wallet_json(&Domain::user_signed(Network::Mainnet));
+    let right = data.digest(&Domain::user_signed(Network::Mainnet));
     for (from, to) in [
         (r#""toPerp":false"#, r#""toPerp":true"#),
         (r#""chainId":42161"#, r#""chainId":1"#),
@@ -179,9 +180,9 @@ fn an_approve_agent_signs_as_the_sdk_did_with_the_hardhat_key() {
         .field("agentAddress", Field::Address("0x70997970C51812dc3A010C7d01b50e0d17dc79C8".parse().unwrap()))
         .field("agentName", Field::String("globeli"))
         .field("nonce", Field::Uint64(1_790_000_000_000));
-    let digest = data.digest(&Domain::USER_SIGNED);
+    let digest = data.digest(&Domain::user_signed(Network::Mainnet));
     assert_eq!(hex::encode_prefixed(&digest), "0x47449c3d7573a7bae22b7c7e63ee5dac9eb3d62e26994d1ab5fe336b7176efbb");
-    assert_eq!(digest_of_wallet_json(&data.wallet_json(&Domain::USER_SIGNED)), Ok(digest));
+    assert_eq!(digest_of_wallet_json(&data.wallet_json(&Domain::user_signed(Network::Mainnet))), Ok(digest));
     let signature = key.sign_digest(&digest).unwrap();
     assert_eq!(signature.r_hex(), "0xf8c6a1ca4acd448da6154085b6b273cf3c9539d0ace4431b2edec9ed4bcc2a0e");
     assert_eq!(signature.s_hex(), "0x42b374aecc1c70b44df5106ee801c65fe44bdfa258d68b5c1e7087b15369c4f4");

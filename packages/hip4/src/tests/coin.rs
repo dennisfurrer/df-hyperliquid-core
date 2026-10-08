@@ -3,6 +3,7 @@
 //! implementation), and the whole posted body its exchange signed with the
 //! published key `0x..01` (`net/src/tests/exchange.rs`). Mainnet.
 
+use hl_core::Network;
 use hl_core::{Address, L1Action, LocalKey, hex, recover};
 use hl_trade::{Cancel, Order, PlaceOrder};
 
@@ -56,8 +57,8 @@ fn the_order_s_body_is_the_one_the_venue_is_signed_against() {
     let published: Address = "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf".parse().unwrap();
     assert_eq!(key.address(), published);
     let action = canonical();
-    let signature = key.sign_digest(&action.digest(NONCE, None)).unwrap();
-    assert_eq!(recover(&action.digest(NONCE, None), &signature), Ok(published));
+    let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
+    assert_eq!(recover(&action.digest(NONCE, None, Network::Mainnet), &signature), Ok(published));
     assert_eq!(
         action.body(NONCE, &signature, None),
         concat!(

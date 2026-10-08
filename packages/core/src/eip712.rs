@@ -6,8 +6,8 @@ use crate::{
     hex,
     json::{BadJson, Json},
     keccak::{Keccak256, keccak256},
-    mainnet,
     msgpack::Value,
+    network::{L1_CHAIN_ID, Network},
 };
 
 pub const DOMAIN_TYPE: &str = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
@@ -21,19 +21,23 @@ pub struct Domain {
 }
 
 impl Domain {
-    /// What an L1 action's phantom agent is signed under. The chain id is the
-    /// literal 1337, whatever chain the wallet is on.
+    /// What an L1 action's phantom agent is signed under, on both networks.
+    /// The chain id is the literal 1337, whatever chain the wallet is on; the
+    /// network is in the phantom agent's `source`.
     pub const EXCHANGE: Domain =
-        Domain { name: "Exchange", version: "1", chain_id: mainnet::L1_CHAIN_ID, verifying_contract: Address::ZERO };
+        Domain { name: "Exchange", version: "1", chain_id: L1_CHAIN_ID, verifying_contract: Address::ZERO };
 
-    /// What a user-signed action is signed under: Arbitrum One, the chain the
-    /// action names as its `signatureChainId`.
-    pub const USER_SIGNED: Domain = Domain {
-        name: "HyperliquidSignTransaction",
-        version: "1",
-        chain_id: mainnet::SIGNATURE_CHAIN_ID,
-        verifying_contract: Address::ZERO,
-    };
+    /// What a user-signed action is signed under: the chain the action names
+    /// as its `signatureChainId`.
+    #[must_use]
+    pub const fn user_signed(network: Network) -> Domain {
+        Domain {
+            name: "HyperliquidSignTransaction",
+            version: "1",
+            chain_id: network.signature_chain_id(),
+            verifying_contract: Address::ZERO,
+        }
+    }
 
     #[must_use]
     pub fn separator(&self) -> [u8; 32] {

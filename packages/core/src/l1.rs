@@ -1,13 +1,14 @@
 //! L1 actions: msgpack, hashed into a connection id, signed as a phantom
-//! agent `Agent{source "a", connectionId}` under `Exchange/1/1337/0x0`.
+//! agent `Agent{source, connectionId}` under `Exchange/1/1337/0x0`. The
+//! source is `"a"` on mainnet and `"b"` on testnet; the hash has no network.
 
 use crate::{
     address::Address,
     body,
     eip712::{Domain, Field, TypedStruct},
     keccak::Keccak256,
-    mainnet,
     msgpack::Map,
+    network::Network,
     signer::Signature,
 };
 
@@ -25,16 +26,16 @@ pub fn connection_id(msgpack: &[u8], nonce: u64, vault: Option<Address>) -> [u8;
 
 /// The struct an L1 signature is really over.
 #[must_use]
-pub fn phantom_agent(connection_id: [u8; 32]) -> TypedStruct<'static> {
+pub fn phantom_agent(connection_id: [u8; 32], network: Network) -> TypedStruct<'static> {
     TypedStruct::new("Agent")
-        .field("source", Field::String(mainnet::AGENT_SOURCE))
+        .field("source", Field::String(network.agent_source()))
         .field("connectionId", Field::Bytes32(connection_id))
 }
 
-/// What the key signs for an L1 action.
+/// What the key signs for an L1 action on `network`.
 #[must_use]
-pub fn l1_digest(msgpack: &[u8], nonce: u64, vault: Option<Address>) -> [u8; 32] {
-    phantom_agent(connection_id(msgpack, nonce, vault)).digest(&Domain::EXCHANGE)
+pub fn l1_digest(msgpack: &[u8], nonce: u64, vault: Option<Address>, network: Network) -> [u8; 32] {
+    phantom_agent(connection_id(msgpack, nonce, vault), network).digest(&Domain::EXCHANGE)
 }
 
 /// An action signed through the phantom agent. A product crate writes
@@ -61,19 +62,19 @@ pub trait L1Action {
     }
 
     #[must_use]
-    fn typed(&self, nonce: u64, vault: Option<Address>) -> TypedStruct<'static> {
-        phantom_agent(self.connection_id(nonce, vault))
+    fn typed(&self, nonce: u64, vault: Option<Address>, network: Network) -> TypedStruct<'static> {
+        phantom_agent(self.connection_id(nonce, vault), network)
     }
 
     #[must_use]
-    fn digest(&self, nonce: u64, vault: Option<Address>) -> [u8; 32] {
-        self.typed(nonce, vault).digest(&Domain::EXCHANGE)
+    fn digest(&self, nonce: u64, vault: Option<Address>, network: Network) -> [u8; 32] {
+        self.typed(nonce, vault, network).digest(&Domain::EXCHANGE)
     }
 
     /// For a master wallet signing in the browser. It needs chain 1337.
     #[must_use]
-    fn wallet_json(&self, nonce: u64, vault: Option<Address>) -> String {
-        self.typed(nonce, vault).wallet_json(&Domain::EXCHANGE)
+    fn wallet_json(&self, nonce: u64, vault: Option<Address>, network: Network) -> String {
+        self.typed(nonce, vault, network).wallet_json(&Domain::EXCHANGE)
     }
 
     #[must_use]

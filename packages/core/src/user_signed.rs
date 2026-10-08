@@ -1,5 +1,7 @@
 //! User-signed actions: EIP-712 typed data signed by the account's own wallet
-//! under `HyperliquidSignTransaction/1/42161/0x0`. Agents are refused these.
+//! under `HyperliquidSignTransaction/1/<chain>/0x0`, the chain being the
+//! network's signature chain (42161 on mainnet, 421614 on testnet). Agents are
+//! refused these.
 //!
 //! One field list drives both the posted action and the typed struct, so the
 //! two cannot drift: `type`, `signatureChainId`, `hyperliquidChain`, the
@@ -9,8 +11,8 @@
 use crate::{
     body,
     eip712::{Domain, Field, TypedStruct},
-    mainnet,
     msgpack::Map,
+    network::Network,
     signer::Signature,
 };
 
@@ -67,13 +69,13 @@ impl<'a> UserSigned<'a> {
         self.nonce
     }
 
-    /// The action as posted, in wire order.
+    /// The action as posted on `network`, in wire order.
     #[must_use]
-    pub fn action(&self) -> Map {
+    pub fn action(&self, network: Network) -> Map {
         let mut map = Map::new()
             .put("type", self.kind)
-            .put("signatureChainId", mainnet::SIGNATURE_CHAIN_ID_HEX)
-            .put("hyperliquidChain", mainnet::HYPERLIQUID_CHAIN);
+            .put("signatureChainId", network.signature_chain_id_hex())
+            .put("hyperliquidChain", network.hyperliquid_chain());
         for (name, value) in &self.fields {
             map = map.put(*name, value.to_wire());
         }
@@ -82,15 +84,15 @@ impl<'a> UserSigned<'a> {
 
     /// [`UserSigned::action`] as JSON.
     #[must_use]
-    pub fn wire(&self) -> String {
-        self.action().to_json().compact()
+    pub fn wire(&self, network: Network) -> String {
+        self.action(network).to_json().compact()
     }
 
     /// `hyperliquidChain`, the action's own keys, then the nonce as `uint64`.
     #[must_use]
-    pub fn typed(&self) -> TypedStruct<'a> {
+    pub fn typed(&self, network: Network) -> TypedStruct<'a> {
         let mut data =
-            TypedStruct::new(self.primary_type).field("hyperliquidChain", Field::String(mainnet::HYPERLIQUID_CHAIN));
+            TypedStruct::new(self.primary_type).field("hyperliquidChain", Field::String(network.hyperliquid_chain()));
         for &(name, value) in &self.fields {
             data = data.field(name, value);
         }
@@ -98,20 +100,21 @@ impl<'a> UserSigned<'a> {
     }
 
     #[must_use]
-    pub fn digest(&self) -> [u8; 32] {
-        self.typed().digest(&Domain::USER_SIGNED)
+    pub fn digest(&self, network: Network) -> [u8; 32] {
+        self.typed(network).digest(&Domain::user_signed(network))
     }
 
-    /// For the wallet. It wants to be on Arbitrum One (42161) to sign this.
+    /// For the wallet. It wants to be on the network's signature chain to
+    /// sign this: Arbitrum One, or Arbitrum Sepolia on testnet.
     #[must_use]
-    pub fn wallet_json(&self) -> String {
-        self.typed().wallet_json(&Domain::USER_SIGNED)
+    pub fn wallet_json(&self, network: Network) -> String {
+        self.typed(network).wallet_json(&Domain::user_signed(network))
     }
 
     /// The `/exchange` body, with no `vaultAddress`.
     #[must_use]
-    pub fn body(&self, signature: &Signature) -> String {
-        body::user_signed(&self.action(), self.nonce, signature)
+    pub fn body(&self, signature: &Signature, network: Network) -> String {
+        body::user_signed(&self.action(network), self.nonce, signature)
     }
 }
 
@@ -126,32 +129,32 @@ pub trait UserAction {
     }
 
     #[must_use]
-    fn action(&self) -> Map {
-        self.user_signed().action()
+    fn action(&self, network: Network) -> Map {
+        self.user_signed().action(network)
     }
 
     #[must_use]
-    fn wire(&self) -> String {
-        self.user_signed().wire()
+    fn wire(&self, network: Network) -> String {
+        self.user_signed().wire(network)
     }
 
     #[must_use]
-    fn typed(&self) -> TypedStruct<'_> {
-        self.user_signed().typed()
+    fn typed(&self, network: Network) -> TypedStruct<'_> {
+        self.user_signed().typed(network)
     }
 
     #[must_use]
-    fn digest(&self) -> [u8; 32] {
-        self.user_signed().digest()
+    fn digest(&self, network: Network) -> [u8; 32] {
+        self.user_signed().digest(network)
     }
 
     #[must_use]
-    fn wallet_json(&self) -> String {
-        self.user_signed().wallet_json()
+    fn wallet_json(&self, network: Network) -> String {
+        self.user_signed().wallet_json(network)
     }
 
     #[must_use]
-    fn body(&self, signature: &Signature) -> String {
-        self.user_signed().body(signature)
+    fn body(&self, signature: &Signature, network: Network) -> String {
+        self.user_signed().body(signature, network)
     }
 }

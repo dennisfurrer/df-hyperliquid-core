@@ -6,6 +6,7 @@
 
 use super::*;
 use crate::{
+    Network,
     eip712::digest_of_wallet_json,
     hex,
     keccak::keccak256,
@@ -97,19 +98,23 @@ fn every_l1_action_hashes_and_signs_as_the_sdk_does() {
     for (action, json, id, r, s, v) in cases {
         assert_eq!(action.wire(), json, "the posted action");
         assert_eq!(hex::encode_prefixed(&action.connection_id(NONCE, None)), id, "{json}: the connection id");
-        let digest = action.digest(NONCE, None);
-        assert_eq!(digest, l1_digest(&action.msgpack(), NONCE, None));
+        let digest = action.digest(NONCE, None, Network::Mainnet);
+        assert_eq!(digest, l1_digest(&action.msgpack(), NONCE, None, Network::Mainnet));
         let signature = key.sign_digest(&digest).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
         assert_eq!(recover(&digest, &signature), Ok(key.address()));
-        assert_eq!(digest_of_wallet_json(&action.wallet_json(NONCE, None)), Ok(digest), "{json}: wallet json");
+        assert_eq!(
+            digest_of_wallet_json(&action.wallet_json(NONCE, None, Network::Mainnet)),
+            Ok(digest),
+            "{json}: wallet json"
+        );
     }
 }
 
 #[test]
 fn an_l1_body_is_action_nonce_signature_and_a_null_vault() {
     let action = hlp();
-    let signature = key().sign_digest(&action.digest(NONCE, None)).unwrap();
+    let signature = key().sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
     assert_eq!(
         action.body(NONCE, &signature, None),
         concat!(
@@ -133,7 +138,7 @@ fn acting_for_a_vault_matches_the_python_sdk_s_own_test() {
         hex::encode_prefixed(&action.connection_id(0, Some(vault))),
         "0xde9e09a7a3da45cc694096d4bfdcd89bc1b892d05497c5ecc1f56c335945184c"
     );
-    let signature = key().sign_digest(&action.digest(0, Some(vault))).unwrap();
+    let signature = key().sign_digest(&action.digest(0, Some(vault), Network::Mainnet)).unwrap();
     assert_eq!(signature.r_hex(), "0x003c548db75e479f8012acf3000ca3a6b05606bc2ec0c29c50c515066a326239");
     assert_eq!(signature.s_hex(), "0x4d402be7396ce74fbba3795769cda45aec00dc3125a984f2a9f23177b190da2c");
     assert_eq!(signature.v(), 28);
@@ -166,8 +171,19 @@ fn every_part_of_the_envelope_reaches_the_hash() {
 }
 
 #[test]
-fn the_phantom_agent_is_mainnet_s() {
-    let agent = phantom_agent([9; 32]);
-    assert_eq!(agent.type_signature(), "Agent(string source,bytes32 connectionId)");
-    assert_eq!(agent.fields()[0].1, Field::String("a"));
+fn the_phantom_agent_names_its_network_as_a_or_b() {
+    for (network, source) in [(Network::Mainnet, "a"), (Network::Testnet, "b")] {
+        let agent = phantom_agent([9; 32], network);
+        assert_eq!(agent.type_signature(), "Agent(string source,bytes32 connectionId)");
+        assert_eq!(agent.fields()[0].1, Field::String(source), "{network}");
+    }
+}
+
+#[test]
+fn the_same_action_signs_apart_on_the_two_networks() {
+    let action = hlp();
+    let mainnet = action.digest(NONCE, None, Network::Mainnet);
+    let testnet = action.digest(NONCE, None, Network::Testnet);
+    assert_ne!(mainnet, testnet, "a testnet signature must never be a mainnet one");
+    assert_eq!(action.connection_id(NONCE, None), action.connection_id(NONCE, None), "the hash itself has no network");
 }

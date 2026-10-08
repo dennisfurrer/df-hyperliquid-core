@@ -11,8 +11,8 @@ use crate::{address::Address, json::Json};
 pub const INFO: &str = "/info";
 pub const EXCHANGE: &str = "/exchange";
 
-/// Posts a JSON body to [`crate::API_URL`] plus `path` and gives back the
-/// answer's text. No `Send` bound: the browser is single-threaded.
+/// Posts a JSON body to its network's [`crate::Network::api_url`] plus `path`
+/// and gives back the answer's text. No `Send` bound: the browser is single-threaded.
 pub trait Transport {
     fn post(&self, path: &str, body: String) -> impl Future<Output = Result<String, TransportError>>;
 }

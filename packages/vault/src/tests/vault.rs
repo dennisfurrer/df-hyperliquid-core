@@ -1,3 +1,4 @@
+use hl_core::Network;
 use std::{
     cell::RefCell,
     future::{Future, ready},
@@ -38,7 +39,7 @@ fn a_vault_deposit_is_the_sdk_s_byte_for_byte() {
         hex::encode_prefixed(&action.connection_id(NONCE, None)),
         "0x58a49fb2e400641875c0df3c98fd48f61210198012623c24f1ce8cc748c6e57a"
     );
-    let signature = key.sign_digest(&action.digest(NONCE, None)).unwrap();
+    let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
     let (r, s) = (
         "0xd7b57bb7650ca10752a733ed62df2a5a8931e1c4f7290e0a143bcf96b22ad1fb",
         "0x63045ef3dfa4f14c26ac85dc03a76b4c332bbca837fb52ea4f9cf84bfcabe450",

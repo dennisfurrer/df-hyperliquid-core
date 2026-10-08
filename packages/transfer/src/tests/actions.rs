@@ -120,16 +120,16 @@ fn every_transfer_is_the_sdk_s_byte_for_byte() {
     let key = key();
     assert_eq!(key.address(), address(OWN));
     for (action, json, digest, r, s, v) in vectors() {
-        assert_eq!(action.wire(), json, "the posted action");
+        assert_eq!(action.wire(Network::Mainnet), json, "the posted action");
         assert_eq!(action.nonce(), NONCE);
         if !digest.is_empty() {
-            assert_eq!(hex::encode_prefixed(&action.digest()), digest, "{json}: the digest");
+            assert_eq!(hex::encode_prefixed(&action.digest(Network::Mainnet)), digest, "{json}: the digest");
         }
-        let signature = key.sign_digest(&action.digest()).unwrap();
+        let signature = key.sign_digest(&action.digest(Network::Mainnet)).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
-        assert_eq!(recover(&action.digest(), &signature), Ok(key.address()), "{json}");
+        assert_eq!(recover(&action.digest(Network::Mainnet), &signature), Ok(key.address()), "{json}");
         assert_eq!(
-            action.body(&signature),
+            action.body(&signature, Network::Mainnet),
             format!(r#"{{"action":{json},"nonce":{NONCE},"signature":{{"r":"{r}","s":"{s}","v":{v}}}}}"#),
             "{json}: the body"
         );
@@ -142,19 +142,19 @@ fn every_transfer_is_the_sdk_s_byte_for_byte() {
 #[test]
 fn every_transfer_s_wallet_json_is_the_digest_and_the_posted_action() {
     for (action, json, _, _, _, _) in vectors() {
-        let wallet = action.wallet_json();
-        assert_eq!(digest_of_wallet_json(&wallet), Ok(action.digest()), "{wallet}");
+        let wallet = action.wallet_json(Network::Mainnet);
+        assert_eq!(digest_of_wallet_json(&wallet), Ok(action.digest(Network::Mainnet)), "{wallet}");
 
         let typed: Value = serde_json::from_str(&wallet).unwrap();
         let posted: Value = serde_json::from_str(json).unwrap();
         let primary = typed["primaryType"].as_str().unwrap();
-        assert_eq!(primary, action.typed().primary_type());
+        assert_eq!(primary, action.typed(Network::Mainnet).primary_type());
         assert_eq!(typed["domain"]["chainId"], 42_161);
         assert_eq!(typed["domain"]["name"], "HyperliquidSignTransaction");
 
         let names: Vec<&str> =
             typed["types"][primary].as_array().unwrap().iter().map(|f| f["name"].as_str().unwrap()).collect();
-        let wire = action.action();
+        let wire = action.action(Network::Mainnet);
         let posted_names: Vec<&str> = wire.keys().filter(|key| !matches!(*key, "type" | "signatureChainId")).collect();
         assert_eq!(names, posted_names, "{json}: the typed fields are the posted keys");
         for name in names {
@@ -168,39 +168,49 @@ fn every_transfer_s_wallet_json_is_the_digest_and_the_posted_action() {
 #[test]
 fn a_wallet_signature_is_read_checked_and_posted() {
     let key = key();
-    let send = SendAsset::usdc(address(FRIEND), SPOT_DEX, SPOT_DEX, amount("25"), NONCE);
+    let send = SendAsset::usdc(Network::Mainnet, address(FRIEND), SPOT_DEX, SPOT_DEX, amount("25"), NONCE);
     assert_eq!(
-        send.wire(),
+        send.wire(Network::Mainnet),
         r#"{"type":"sendAsset","signatureChainId":"0xa4b1","hyperliquidChain":"Mainnet","destination":"0x0d1d9635d0640821d15e323ac8adadfa9c111414","sourceDex":"spot","destinationDex":"spot","token":"USDC:0x6d1e7cde53ba9467b783cb7c530ce054","amount":"25","fromSubAccount":"","nonce":1790412105001}"#
     );
-    let wallet_digest = digest_of_wallet_json(&send.wallet_json()).unwrap();
+    let wallet_digest = digest_of_wallet_json(&send.wallet_json(Network::Mainnet)).unwrap();
     let signed = key.sign_digest(&wallet_digest).unwrap();
     let mut answer = [0u8; 65];
     answer[..64].copy_from_slice(&signed.to_compact());
     answer[64] = signed.v() - 27;
     let signature = Signature::from_hex(&hex::encode_prefixed(&answer)).unwrap();
-    assert_eq!(verify(&send.digest(), &signature, address(OWN)), Ok(()));
-    assert!(verify(&send.digest(), &signature, address(FRIEND)).is_err(), "a wallet signing as another account");
-    assert!(send.body(&signature).starts_with(r#"{"action":{"type":"sendAsset","#));
+    assert_eq!(verify(&send.digest(Network::Mainnet), &signature, address(OWN)), Ok(()));
+    assert!(
+        verify(&send.digest(Network::Mainnet), &signature, address(FRIEND)).is_err(),
+        "a wallet signing as another account"
+    );
+    assert!(send.body(&signature, Network::Mainnet).starts_with(r#"{"action":{"type":"sendAsset","#));
 }
 
 #[test]
 fn moving_between_one_s_own_balances_is_a_send_asset_to_oneself() {
     let combine = SendAsset::usdc(
+        Network::Mainnet,
         address(OWN),
         PERP_DEX,
         SPOT_DEX,
         Amount::cut(Dec::parse("12.3456789").unwrap(), 6).unwrap(),
         NONCE,
     );
-    assert!(combine.wire().contains(
+    assert!(combine.wire(Network::Mainnet).contains(
         r#""destination":"0x14791697260e4c9a71f18484c9f997b308e59325","sourceDex":"","destinationDex":"spot","#
     ));
-    assert!(combine.wire().contains(r#""amount":"12.345678""#));
-    let from_sub =
-        SendAsset::usdc(address(OWN), SPOT_DEX, PERP_DEX, amount("1"), NONCE).from_sub_account(address(FRIEND));
-    assert!(from_sub.wire().contains(r#""fromSubAccount":"0x0d1d9635d0640821d15e323ac8adadfa9c111414""#));
-    assert_ne!(from_sub.digest(), SendAsset::usdc(address(OWN), SPOT_DEX, PERP_DEX, amount("1"), NONCE).digest());
+    assert!(combine.wire(Network::Mainnet).contains(r#""amount":"12.345678""#));
+    let from_sub = SendAsset::usdc(Network::Mainnet, address(OWN), SPOT_DEX, PERP_DEX, amount("1"), NONCE)
+        .from_sub_account(address(FRIEND));
+    assert!(
+        from_sub.wire(Network::Mainnet).contains(r#""fromSubAccount":"0x0d1d9635d0640821d15e323ac8adadfa9c111414""#)
+    );
+    assert_ne!(
+        from_sub.digest(Network::Mainnet),
+        SendAsset::usdc(Network::Mainnet, address(OWN), SPOT_DEX, PERP_DEX, amount("1"), NONCE)
+            .digest(Network::Mainnet)
+    );
 }
 
 /// Answers by path and keeps what was sent. Nothing leaves the process.
@@ -238,9 +248,9 @@ fn a_send_checks_the_recipient_then_posts_its_body_once() {
     let check = block_on(pre_transfer_check(&transport, address(FRIEND), address(OWN))).unwrap();
     assert_eq!(check.activation_fee(), Some(Dec::ONE));
 
-    let send = SendAsset::usdc(address(FRIEND), SPOT_DEX, SPOT_DEX, amount("25"), NONCE);
-    let signature = key().sign_digest(&send.digest()).unwrap();
-    let accepted = block_on(exchange(&transport, send.body(&signature))).unwrap();
+    let send = SendAsset::usdc(Network::Mainnet, address(FRIEND), SPOT_DEX, SPOT_DEX, amount("25"), NONCE);
+    let signature = key().sign_digest(&send.digest(Network::Mainnet)).unwrap();
+    let accepted = block_on(exchange(&transport, send.body(&signature, Network::Mainnet))).unwrap();
     assert_eq!(accepted.kind, "default");
 
     let sent = transport.sent.borrow();
@@ -249,7 +259,10 @@ fn a_send_checks_the_recipient_then_posts_its_body_once() {
     assert!(sent[0].1.contains(
         r#""user":"0x0d1d9635d0640821d15e323ac8adadfa9c111414","source":"0x14791697260e4c9a71f18484c9f997b308e59325""#
     ));
-    assert_eq!((sent[1].0.as_str(), sent[1].1.as_str()), ("/exchange", send.body(&signature).as_str()));
+    assert_eq!(
+        (sent[1].0.as_str(), sent[1].1.as_str()),
+        ("/exchange", send.body(&signature, Network::Mainnet).as_str())
+    );
 }
 
 #[test]
@@ -263,4 +276,13 @@ fn the_ledger_reads_through_the_transport() {
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].delta, Delta::Deposit { usdc: Dec::parse("2525.99").unwrap() });
     assert_eq!(transport.sent.borrow()[0].0, "/info");
+}
+
+#[test]
+fn usdc_is_named_by_the_network_s_own_token_id() {
+    for network in hl_core::Network::ALL {
+        let send = SendAsset::usdc(network, address(FRIEND), SPOT_DEX, SPOT_DEX, amount("25"), NONCE);
+        let token = format!(r#""token":"{}""#, network.usdc().wire);
+        assert!(send.wire(network).contains(&token), "{network}: {}", send.wire(network));
+    }
 }

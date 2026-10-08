@@ -2,7 +2,7 @@
 //! `@nktkas/hyperliquid` 0.33.2 order, amounts already in normal form,
 //! addresses lowercase. Signed by the account's own wallet only.
 
-use hl_core::{Address, Field, NonceKey, UserAction, UserSigned};
+use hl_core::{Address, Field, Network, NonceKey, UserAction, UserSigned};
 
 use crate::amount::Amount;
 
@@ -48,16 +48,17 @@ impl SendAsset {
 
     /// USDC from one balance to another: to another account from spot (or,
     /// on a standard account, from the perp balance), or to the account itself
-    /// to combine its two balances.
+    /// to combine its two balances. USDC's token id is the network's own.
     #[must_use]
     pub fn usdc(
+        network: Network,
         destination: Address,
         source_dex: &str,
         destination_dex: &str,
         amount: Amount,
         nonce: u64,
     ) -> SendAsset {
-        SendAsset::new(destination, source_dex, destination_dex, hl_core::USDC.wire, amount, nonce)
+        SendAsset::new(destination, source_dex, destination_dex, network.usdc().wire, amount, nonce)
     }
 
     /// Sent from one of the account's subaccounts rather than the account.

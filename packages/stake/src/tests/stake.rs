@@ -3,6 +3,7 @@
 //! 1790412105001. Digests are viem's `hashTypedData` over the SDK's own
 //! EIP-712 types. Mainnet.
 
+use hl_core::Network;
 use hl_core::{LocalKey, UserAction, digest_of_wallet_json, hex};
 
 use super::*;
@@ -53,13 +54,17 @@ fn every_staking_action_is_the_sdk_s_byte_for_byte() {
         ),
     ];
     for (action, json, digest, r, s, v) in cases {
-        assert_eq!(action.wire(), json);
-        assert_eq!(hex::encode_prefixed(&action.digest()), digest, "{json}: the digest");
-        assert_eq!(digest_of_wallet_json(&action.wallet_json()), Ok(action.digest()), "{json}: wallet json");
-        let signature = key.sign_digest(&action.digest()).unwrap();
+        assert_eq!(action.wire(Network::Mainnet), json);
+        assert_eq!(hex::encode_prefixed(&action.digest(Network::Mainnet)), digest, "{json}: the digest");
+        assert_eq!(
+            digest_of_wallet_json(&action.wallet_json(Network::Mainnet)),
+            Ok(action.digest(Network::Mainnet)),
+            "{json}: wallet json"
+        );
+        let signature = key.sign_digest(&action.digest(Network::Mainnet)).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
         assert_eq!(
-            action.body(&signature),
+            action.body(&signature, Network::Mainnet),
             format!(r#"{{"action":{json},"nonce":{NONCE},"signature":{{"r":"{r}","s":"{s}","v":{v}}}}}"#)
         );
     }
@@ -72,7 +77,7 @@ fn hype_goes_out_as_wei_and_a_finer_amount_is_refused() {
     assert!(CDeposit::new(Dec::ZERO, NONCE).is_err());
     let validator = address("0x000000000056f99d36b6f2e0c51fd41496bbacb8");
     let back = TokenDelegate::undelegate(validator, dec("359"), NONCE).unwrap();
-    assert!(back.wire().contains(r#""wei":35900000000,"isUndelegate":true"#));
+    assert!(back.wire(Network::Mainnet).contains(r#""wei":35900000000,"isUndelegate":true"#));
 }
 
 /// Live, mainnet, 2026-10-06: the first validator, and a jailed one.

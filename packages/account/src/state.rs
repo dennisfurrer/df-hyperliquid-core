@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use hl_core::{Address, Dec, USDC, user_request};
+use hl_core::{Address, Dec, USDC_INDEX, user_request};
 use serde::{Deserialize, Deserializer, de};
 
 /// `{"type":"spotClearinghouseState","user":..}`.
@@ -82,7 +82,7 @@ impl SpotState {
     /// has no row.
     #[must_use]
     pub fn usdc(&self) -> Option<&SpotBalance> {
-        self.balance(USDC.index)
+        self.balance(USDC_INDEX)
     }
 }
 

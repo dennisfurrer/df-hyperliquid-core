@@ -1,4 +1,4 @@
-use hl_core::{Dec, L1Action, USDC};
+use hl_core::{Dec, L1Action, MAINNET_USDC as USDC};
 use hl_trade::{PlaceOrder, Side, Tif};
 
 use super::*;

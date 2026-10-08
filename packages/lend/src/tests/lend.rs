@@ -3,6 +3,7 @@
 //! 1790412105001, a transport that kept the body. Connection ids are the
 //! SDK's `createL1ActionHash`. Mainnet.
 
+use hl_core::Network;
 use std::{
     cell::RefCell,
     future::{Future, ready},
@@ -55,7 +56,7 @@ fn borrow_lend_is_the_sdk_s_byte_for_byte() {
     for (action, json, id, r, s, v) in cases {
         assert_eq!(action.wire(), json);
         assert_eq!(hex::encode_prefixed(&action.connection_id(NONCE, None)), id, "{json}");
-        let signature = key.sign_digest(&action.digest(NONCE, None)).unwrap();
+        let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
         assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{json}");
         assert_eq!(
             action.body(NONCE, &signature, None),

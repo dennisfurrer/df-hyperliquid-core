@@ -10,6 +10,7 @@
 //!   nonce 1234567890000 its own tests pin.
 //! - Studio's HIP-4 presets as of 0.3.11, the bodies the venue takes.
 
+use hl_core::Network;
 use hl_core::{Address, L1Action, Value, connection_id, hex};
 
 use super::*;
@@ -217,7 +218,7 @@ fn an_outcome_action_nests_in_a_multi_sig_as_the_python_sdk_nests_it() {
 fn assert_golden(name: &str, action: &impl L1Action, msgpack: &str, id: &str, digest: &str) {
     assert_eq!(hex::encode(&action.msgpack()), msgpack, "{name}: the msgpack");
     assert_eq!(hex::encode(&action.connection_id(GOLDEN_NONCE, None)), id, "{name}: the L1 hash");
-    assert_eq!(hex::encode(&action.digest(GOLDEN_NONCE, None)), digest, "{name}: the digest");
+    assert_eq!(hex::encode(&action.digest(GOLDEN_NONCE, None, Network::Mainnet)), digest, "{name}: the digest");
 }
 
 #[test]

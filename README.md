@@ -1,4 +1,4 @@
-# hl
+# hl-rust
 
 The Hyperliquid family. `hl-core` is the backbone; every other crate is one product area on top of it.
 
@@ -37,8 +37,8 @@ flowchart BT
 ## Rules
 
 - **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. Nothing else crosses.
-- **Standalone:** no `hl-*` crate depends on CoReserve, so the family can move to its own repo.
+- **Standalone:** no `hl-*` crate depends on an app. hip4-tui, atlas and coreserve are consumers, never dependencies.
 - **Targets:** every crate builds native and `wasm32-unknown-unknown`. No tokio, no OS keychain in the family; transports plug in from outside.
 - **Money:** `Dec`, never floats (`clippy::float_arithmetic` denied in every crate).
-- **Signing:** golden vectors before any new action. A crate never holds the user's wallet key.
-- **Network:** mainnet only. `/exchange` is never retried.
+- **Signing:** golden vectors before any new action (`vectors/`, each file naming the implementation that made it). A crate never holds the user's wallet key.
+- **Network:** mainnet or testnet, and every signature names one: an action signed for one network is never valid on the other, so nothing assumes it. `/exchange` is never retried.
