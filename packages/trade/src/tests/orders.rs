@@ -79,6 +79,28 @@ fn an_open_order_without_its_original_size_is_refused() {
     assert!(serde_json::from_value::<OpenOrder>(row).is_err());
 }
 
+/// A kind is read from the venue's words without going through serde, and a word this build
+/// does not know is kept as written.
+#[test]
+fn an_order_kind_is_parsed_from_the_venue_s_words() {
+    for kind in [
+        OrderKind::Limit,
+        OrderKind::Market,
+        OrderKind::StopMarket,
+        OrderKind::StopLimit,
+        OrderKind::TakeProfitMarket,
+        OrderKind::TakeProfitLimit,
+    ] {
+        assert_eq!(OrderKind::parse(kind.word()), kind);
+    }
+    assert_eq!(OrderKind::parse("Liquidation Market"), OrderKind::Other("Liquidation Market".to_owned()));
+    assert_eq!(
+        OrderKind::parse("stop market"),
+        OrderKind::Other("stop market".to_owned()),
+        "the venue's spelling only"
+    );
+}
+
 #[test]
 fn a_frontend_order_says_what_kind_of_order_it_is() {
     let orders: Vec<FrontendOrder> = serde_json::from_str(FRONTEND).unwrap();

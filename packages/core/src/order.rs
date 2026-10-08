@@ -142,6 +142,21 @@ pub enum OrderKind {
 }
 
 impl OrderKind {
+    /// From the venue's words: `Stop Market`. A kind this build does not know is kept as
+    /// written.
+    #[must_use]
+    pub fn parse(word: &str) -> OrderKind {
+        match word {
+            "Limit" => OrderKind::Limit,
+            "Market" => OrderKind::Market,
+            "Stop Market" => OrderKind::StopMarket,
+            "Stop Limit" => OrderKind::StopLimit,
+            "Take Profit Market" => OrderKind::TakeProfitMarket,
+            "Take Profit Limit" => OrderKind::TakeProfitLimit,
+            other => OrderKind::Other(other.to_owned()),
+        }
+    }
+
     /// As the venue writes it: `Stop Market`.
     #[must_use]
     pub fn word(&self) -> &str {
@@ -175,16 +190,7 @@ impl OrderKind {
 
 impl<'de> Deserialize<'de> for OrderKind {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let word = String::deserialize(deserializer)?;
-        Ok(match word.as_str() {
-            "Limit" => OrderKind::Limit,
-            "Market" => OrderKind::Market,
-            "Stop Market" => OrderKind::StopMarket,
-            "Stop Limit" => OrderKind::StopLimit,
-            "Take Profit Market" => OrderKind::TakeProfitMarket,
-            "Take Profit Limit" => OrderKind::TakeProfitLimit,
-            _ => OrderKind::Other(word),
-        })
+        Ok(OrderKind::parse(&<Cow<'de, str>>::deserialize(deserializer)?))
     }
 }
 
