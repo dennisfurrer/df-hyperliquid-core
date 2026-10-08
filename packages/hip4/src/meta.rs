@@ -142,6 +142,59 @@ impl OutcomeMeta {
     pub fn deployer(&self, venue: &str) -> Option<&Deployer> {
         self.deployers.iter().find(|deployer| deployer.venue.as_deref() == Some(venue))
     }
+
+    /// The venue `who` names: a venue's own name, case aside, or its
+    /// deployer's address.
+    #[must_use]
+    pub fn venue_of(&self, who: &str) -> Option<&str> {
+        let who = who.trim();
+        match who.parse::<Address>() {
+            Ok(address) => self.deployers.iter().find(|one| one.deployer == address)?.venue.as_deref(),
+            Err(_) => self
+                .deployers
+                .iter()
+                .find_map(|one| one.venue.as_deref().filter(|venue| venue.eq_ignore_ascii_case(who))),
+        }
+    }
+}
+
+/// One address a deployer lets send operations, and which.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SubDeployer {
+    pub address: Address,
+    /// The operations' wire names, in the order the venue lists them.
+    pub actions: Vec<String>,
+}
+
+impl SubDeployer {
+    #[must_use]
+    pub fn settles(&self) -> bool {
+        self.actions.iter().any(|action| action.starts_with("settle"))
+    }
+
+    #[must_use]
+    pub fn registers(&self) -> bool {
+        self.actions.iter().any(|action| action.starts_with("register"))
+    }
+}
+
+impl Deployer {
+    /// The table the venue keeps by operation, read by address instead: the
+    /// addresses granted most first.
+    #[must_use]
+    pub fn keys(&self) -> Vec<SubDeployer> {
+        let mut found: Vec<SubDeployer> = Vec::new();
+        for (action, addresses) in &self.sub_deployers {
+            for address in addresses {
+                match found.iter_mut().find(|key| key.address == *address) {
+                    Some(key) => key.actions.push(action.clone()),
+                    None => found.push(SubDeployer { address: *address, actions: vec![action.clone()] }),
+                }
+            }
+        }
+        found.sort_by(|a, b| (b.actions.len(), b.address).cmp(&(a.actions.len(), a.address)));
+        found
+    }
 }
 
 #[cfg(test)]

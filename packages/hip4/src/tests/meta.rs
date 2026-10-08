@@ -54,3 +54,31 @@ fn a_settlement_copies_what_outcome_meta_lists() {
 fn the_read_names_its_type() {
     assert_eq!(outcome_meta_request(), r#"{"type":"outcomeMeta"}"#);
 }
+
+/// hip4-tui's `core/src/tests/chain.rs`: a live delegation table, one
+/// address in upper case as the venue sometimes writes it.
+#[test]
+fn the_delegation_table_is_read_by_key_and_not_by_action() {
+    let text = r#"{"outcomes": [], "deployers": [{
+        "deployer": "0x0c46eb73fae2816f219fcf11f50d6d3c59b5819e",
+        "venue": "out",
+        "subDeployers": [
+          ["registerQuestionFromTemplate",
+           ["0x6947A610EF50F8B5D4B59ABCD94DD75AAAA645B9", "0xf1923927d7d2847191fb7ef8b1a16028aa5ae754"]],
+          ["settleOutcome",
+           ["0x6947a610ef50f8b5d4b59abcd94dd75aaaa645b9", "0xf1923927d7d2847191fb7ef8b1a16028aa5ae754"]],
+          ["settleQuestion", ["0xf1923927d7d2847191fb7ef8b1a16028aa5ae754"]]
+        ]}]}"#;
+    let meta: OutcomeMeta = serde_json::from_str(text).unwrap();
+    let keys = meta.deployers[0].keys();
+    assert_eq!(keys.len(), 2, "five grants across two addresses");
+    assert_eq!(keys[0].address.to_hex(), "0xf1923927d7d2847191fb7ef8b1a16028aa5ae754");
+    assert_eq!(keys[0].actions, ["registerQuestionFromTemplate", "settleOutcome", "settleQuestion"]);
+    assert_eq!(keys[1].address.to_hex(), "0x6947a610ef50f8b5d4b59abcd94dd75aaaa645b9");
+    assert!(keys[0].settles() && keys[0].registers());
+    assert_eq!(meta.venue_of("out"), Some("out"));
+    assert_eq!(meta.venue_of("OUT"), Some("out"), "a venue's name, case aside");
+    assert_eq!(meta.venue_of("0x0C46EB73FAE2816F219FCF11F50D6D3C59B5819E"), Some("out"), "or its deployer");
+    assert_eq!(meta.venue_of("0x0000000000000000000000000000000000000000"), None);
+    assert_eq!(meta.venue_of("skew"), None);
+}

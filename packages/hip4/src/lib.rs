@@ -15,6 +15,7 @@ pub mod coin;
 pub mod deploy;
 pub mod error;
 pub mod fields;
+pub mod market;
 pub mod meta;
 pub mod px;
 pub mod template;
