@@ -1,0 +1,25 @@
+[package]
+name = "hl-store"
+description = "The live state an app keeps, sans-IO: interests reference-counted into websocket subscriptions within the venue's limits, frames and reads folded per market and per account, and the views a page reads (positions, orders, usable balance by account mode, worth, the touch, the mid, a market's context)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+hl-ws.workspace = true
+hl-account.workspace = true
+hl-trade.workspace = true
+hl-perps.workspace = true
+hl-spot.workspace = true
+hl-hip3.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[lints]
+workspace = true

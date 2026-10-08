@@ -20,6 +20,8 @@ members = [
   "packages/hydromancer",
   "packages/ws",
   "packages/evm",
+  # composites: the state an app keeps, built from any crate above; never the umbrella or a wire.
+  "packages/store",
   # transports: the wire an app plugs into hl-core, one per platform.
   "packages/native",
   "packages/web",
@@ -53,6 +55,7 @@ hl-web = { path = "packages/web" }
 hl-hydromancer = { path = "packages/hydromancer" }
 hl-ws = { path = "packages/ws" }
 hl-evm = { path = "packages/evm" }
+hl-store = { path = "packages/store" }
 hl = { path = "packages/hl" }
 
 serde = { version = "1.0.229", features = ["derive"] }

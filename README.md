@@ -21,6 +21,12 @@ flowchart BT
   SPOT("hl-spot") --> TRADE
   HIP3("hl-hip3") --> TRADE
   HIP4("hl-hip4") --> TRADE
+
+  STORE("<b>hl-store</b><br/>interests, folded state,<br/>views a page reads") --> WS
+  STORE --> ACCOUNT
+  STORE --> PERPS
+  STORE --> SPOT
+  STORE --> HIP3
 ```
 
 | Crate | Owns |
@@ -40,10 +46,11 @@ flowchart BT
 | `hl-ws` | the public websocket, sans-IO: every subscription the docs list (and `assetCtxs`, `spotAssetCtxs`, `userHistoricalOrders`), the subscribe, unsubscribe, ping and post frames, each channel decoded into exact `Dec` (an unknown one kept as written), and the connection's state machine: resubscribe on open, a ping after 30 s of quiet, a reconnect after 60 s of silence, delays doubling from 250 ms to 20 s with jitter and no last attempt, the venue's per-IP limits refused before anything is sent |
 | `hl-evm` | HyperEVM (999 mainnet, 998 testnet) and the Arbitrum side of the bridge: typed JSON-RPC over `Http` (HyperEVM's RPC by network, Arbitrum by URL; `eth_bigBlockGasPrice`, `eth_usingBigBlocks`), exact `U256` quantities, ABI, RLP and EIP-1559 transactions (calls and contract creations; signing is its own `sign` feature), every read precompile `L1Read.sol` names, CoreWriter actions encoded, decoded from `RawAction` logs and read in words, system addresses and the transaction that sends a token back to Core |
 | `hl-web` | the wire for the browser and Workers, on their globals and never `window`: hl-core's `Http` through `fetch`, `Date.now` as the clock, and `Feed`, one hl-ws session over `WebSocket` (subscriptions kept while down and sent on every open, a quiet socket pinged and a silent one dropped on `setTimeout`, dialled again after the session's delay with `Math.random` jitter, a post refused while down and an unanswered one reported, never sent again; typed events read with an async `next`) |
+| `hl-store` | the live state an app keeps, sans-IO: interests a page registers and holds by a handle, counted into hl-ws subscriptions (subscribe, and unsubscribe once nothing needs one, into a `Session` of the same network only) within the venue's per-IP limits; socket frames and the crates' `/info` reads folded per market (book, prints, candles, mids, contexts) and per account and dex (clearinghouse, spot, mode, resting orders, fills, fundings, ledger), snapshots told from deltas, a fill held once, each piece stamped with when it was last told and last changed; views: positions, resting orders, what an account can use on a market by its mode (hl-account's), worth counted once, the touch, the mid, a market's context; up to ten accounts, a subaccount at its own address with its own mode |
 
 ## Rules
 
-- **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. Nothing else crosses.
+- **Layering:** a crate depends on `hl-core`. The four market crates may also depend on `hl-trade`. A composite (`hl-store`) may depend on any crate below it, never on the umbrella or a wire. Nothing else crosses.
 - **Standalone:** no `hl-*` crate depends on an app. hip4-tui, atlas and coreserve are consumers, never dependencies.
 - **Targets:** every crate builds native and `wasm32-unknown-unknown`. No tokio, no OS keychain in the family; transports plug in from outside.
 - **Money:** `Dec`, never floats (`clippy::float_arithmetic` denied in every crate).
