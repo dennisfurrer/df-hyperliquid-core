@@ -10,3 +10,6 @@ copied unchanged from the crate or repository named; none holds a key or a token
 | `perp_dexs_mainnet.json`, `all_perp_metas_mainnet.json` | Live mainnet `perpDexs` and `allPerpMetas`, 2026-09-27, recorded by hip4-tui (`net/src/tests/fixtures`) and copied from hl-hip3's `src/tests/fixtures`. |
 | `meta_and_asset_ctxs_para_mainnet.json` | Live mainnet `metaAndAssetCtxs` for `para`, 2026-09-26, recorded by hip4-tui (`tui/src/app/tests/fixtures`) and copied from hl-hip3's `src/tests/fixtures`. |
 | `builder_fills_*_20260926.csv.lz4` | Two builders' files for 2026-09-26 from Hyperliquid's `stats-data` bucket, stored as sent, recorded by hip4-tui and copied from hl-hydromancer's `src/tests/fixtures`, whose sums the tests take. |
+| `outcome_meta_mainnet_20260926.json` | Live mainnet `outcomeMeta`, 2026-09-26: 233 outcomes from three HIP-4 deployers and the venue's own, 98 of them legs of 20 questions; recorded by hip4-tui (`tui/src/app/tests/fixtures/outcome_meta_mainnet.json`). Not the trimmed file of the same name in hl-hip4. |
+| `outcome_templates_mainnet.json` | Live mainnet `outcomeTemplates`, 2026-09-28, recorded by atlas and copied from hl-hip4's `fixtures`. |
+| `ledger_rows_mainnet.json` | One live mainnet row of every type `userNonFundingLedgerUpdates` sent on 2026-10-06, keyed by type, copied from hl-transfer's `src/tests/ledger.json`. |

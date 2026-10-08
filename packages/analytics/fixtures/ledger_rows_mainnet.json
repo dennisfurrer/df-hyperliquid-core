@@ -1,0 +1,134 @@
+{
+ "deposit": {
+  "time": 1764137107387,
+  "hash": "0x839a943b8933989f37013c2678ae68f5119ec1cf43a1e7eb9e607285a52b3485",
+  "delta": {
+   "type": "deposit",
+   "usdc": "2525.99"
+  }
+ },
+ "send": {
+  "time": 1764137118053,
+  "hash": "0x78f58c155136e4317a6f0430356e2802049b00faec3a03031cbe3768103abe1c",
+  "delta": {
+   "type": "send",
+   "user": "0x51172933b60847085e2a959e860e2ec9e240ac09",
+   "destination": "0x51172933b60847085e2a959e860e2ec9e240ac09",
+   "sourceDex": "",
+   "destinationDex": "spot",
+   "token": "USDC",
+   "amount": "2550.0",
+   "usdcValue": "2550.0",
+   "fee": "0.0",
+   "nativeTokenFee": "0.0",
+   "nonce": 1764137111508,
+   "feeToken": ""
+  }
+ },
+ "spotGenesis": {
+  "time": 1764243377155,
+  "hash": "0xe92fad8237f1d062eaa9043049691a0203ad0067d2f4ef348cf858d4f6f5aa4d",
+  "delta": {
+   "type": "spotGenesis",
+   "token": "KNTQ",
+   "amount": "730000000.0"
+  }
+ },
+ "spotTransfer": {
+  "time": 1764245231509,
+  "hash": "0xc584778d9d6e7c90c6fe043049c21702016b007338619b62694d22e05c62567b",
+  "delta": {
+   "type": "spotTransfer",
+   "token": "KNTQ",
+   "amount": "10.0",
+   "usdcValue": "1.55759",
+   "user": "0x51172933b60847085e2a959e860e2ec9e240ac09",
+   "destination": "0x200000000000000000000000000000000000007c",
+   "fee": "0.0",
+   "nativeTokenFee": "0.00002",
+   "nonce": 1764245231181,
+   "feeToken": ""
+  }
+ },
+ "internalTransfer": {
+  "time": 1764684592925,
+  "hash": "0x664b3ae60eec956067c404309ca2aa02042400cba9efb4320a13e638cde06f4b",
+  "delta": {
+   "type": "internalTransfer",
+   "usdc": "2462.0",
+   "user": "0x51172933b60847085e2a959e860e2ec9e240ac09",
+   "destination": "0xac84a81cd786abde89136b77482866905106adb6",
+   "fee": "1.0"
+  }
+ },
+ "deployGasAuction": {
+  "time": 1778809102240,
+  "hash": "0xe2f04fb5932a1189e46a043b6b69cc0201de009b2e2d305b86b8fb08522deb74",
+  "delta": {
+   "type": "deployGasAuction",
+   "token": "HYPE",
+   "amount": "500.0"
+  }
+ },
+ "accountActivationGas": {
+  "time": 1788607718007,
+  "hash": "0x77ad0f7763cf862179260443bc1aca010200275cfec2a4f31b75baca22c3600c",
+  "delta": {
+   "type": "accountActivationGas",
+   "amount": "1.0",
+   "token": "USDC"
+  }
+ },
+ "accountClassTransfer": {
+  "time": 1759897873604,
+  "hash": "0x2f9006041844f2083109042d0e71d202016200e9b34810dad358b156d748cbf2",
+  "delta": {
+   "type": "accountClassTransfer",
+   "usdc": "49981.11",
+   "toPerp": true
+  }
+ },
+ "withdraw": {
+  "time": 1759910068334,
+  "hash": "0x5062c64461d5bbdbc1f30b6cf88dd21b0ec9b8acc45d3974d992ffb2d23bb026",
+  "delta": {
+   "type": "withdraw",
+   "usdc": "52912.218999",
+   "nonce": 1759909832650000,
+   "fee": "1.0"
+  }
+ },
+ "vaultDeposit": {
+  "time": 1760244130942,
+  "hash": "0x6f3235a0d6f8966570ab042d4fee82020215008671fbb53712fae0f395fc7050",
+  "delta": {
+   "type": "vaultDeposit",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "usdc": "58499.16"
+  }
+ },
+ "vaultWithdraw": {
+  "time": 1760649119907,
+  "hash": "0x6d109ee23f481e306e8a042d9cbeb402016800c7da4b3d0210d94a34fe4bf81b",
+  "delta": {
+   "type": "vaultWithdraw",
+   "vault": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+   "user": "0x5f3df357144f748d7d53f30719a6e4040e2c7d04",
+   "requestedUsd": "24987.57",
+   "commission": "0.0",
+   "closingCost": "0.0",
+   "basis": "25000.721474",
+   "netWithdrawnUsd": "24987.57"
+  }
+ },
+ "cStakingTransfer": {
+  "time": 1775829125556,
+  "hash": "0xdfd48c1b4fad4b24e14e0438d4298b0203eb0000eaa069f6839d376e0ea1250f",
+  "delta": {
+   "type": "cStakingTransfer",
+   "token": "HYPE",
+   "amount": "2915.2795455",
+   "isDeposit": true
+  }
+ }
+}
