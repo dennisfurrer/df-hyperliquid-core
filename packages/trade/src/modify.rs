@@ -22,17 +22,36 @@ impl OrderRef {
     }
 }
 
-/// `modify`: `{type, oid, order}`, one order.
+/// `modify`: `{type, oid, order, a?}`, one order.
+///
+/// `a` is always place, as in a `batchModify`: the venue's exchange docs give
+/// both modifies the flag, refuse a trigger without it, and refuse an action
+/// hashed with `a: false`. It is written only when set, last, where the SDK's
+/// `modify` schema puts it, and set whenever the new order is a trigger. A
+/// `batchModify` entry never carries it: the batch does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Modify {
     target: OrderRef,
     order: Order,
+    always_place: bool,
 }
 
 impl Modify {
     #[must_use]
     pub const fn new(target: OrderRef, order: Order) -> Modify {
-        Modify { target, order }
+        Modify { target, order, always_place: order.is_trigger() }
+    }
+
+    /// Places the new order even where the old one is gone.
+    #[must_use]
+    pub const fn always_place(mut self) -> Modify {
+        self.always_place = true;
+        self
+    }
+
+    #[must_use]
+    pub const fn is_always_place(&self) -> bool {
+        self.always_place
     }
 
     #[must_use]
@@ -54,7 +73,11 @@ impl Modify {
 
 impl L1Action for Modify {
     fn action(&self) -> Map {
-        Map::new().put("type", "modify").put("oid", self.target.wire()).put("order", self.order.wire())
+        Map::new()
+            .put("type", "modify")
+            .put("oid", self.target.wire())
+            .put("order", self.order.wire())
+            .put_some("a", self.always_place.then_some(true))
     }
 }
 
