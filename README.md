@@ -92,6 +92,7 @@ Keep the websocket open with a `Feed` (`hl::native` or `hl::web`, the same API),
 - **Features:** the curve is `hl-core`'s `sign` feature. Every crate takes `hl-core` without it, so an app that only reads never compiles `k256`; one that signs asks for it.
 - **Rate limit:** `hl_core::Api` gates Hyperliquid's `/info` and `/exchange`, one network's endpoints behind one gate: reads hold back near the IP's 1,200 a minute, and a 429 closes the gate for everything. Hydromancer and HyperEVM's RPC go through `Http` directly, outside it.
 - **Network:** mainnet or testnet, and every signature names one: an action signed for one network is never valid on the other, so nothing assumes it. `/exchange` is never retried.
+- **Builder:** none by default. An order carries a builder and its fee only when the caller passes one; no crate names a builder of its own.
 
 ## Check
 
