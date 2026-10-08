@@ -165,7 +165,7 @@ fn ledger_snapshot_then_live_rows_each_held_once() {
     let _ledger = wanting(&mut store, [Interest::Ledger { user: first() }]);
     assert_eq!(store.apply(1_000, &frame("userNonFundingLedgerUpdates")), Folded::Changed);
     let newest = store.account(first()).unwrap().ledger().unwrap()[0].clone();
-    assert_eq!((newest.time, newest.kind()), (1790318031225, Some("send")));
+    assert_eq!((newest.time, newest.kind()), (1790318031225, "send"));
     // The newest row, a day later, sent live.
     let live = changed("userNonFundingLedgerUpdates", |json| {
         let mut row = json["data"]["nonFundingLedgerUpdates"][22].clone();

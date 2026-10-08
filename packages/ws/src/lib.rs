@@ -24,7 +24,7 @@ pub mod session;
 pub mod subscription;
 
 pub use account::{
-    AllDexsState, AssetData, AssetPosition, Balance, Cancel, Clearinghouse, CumFunding, DexState, Fill,
+    AllDexsState, AssetData, AssetPosition, Balance, Cancel, Clearinghouse, CumFunding, Delta, DexState, Fill,
     FillLiquidation, Funding, HistoricalOrder, HistoricalOrders, LeadingVault, Ledger, LedgerUpdate, Leverage,
     Liquidation, Margin, MarginSummary, OpenOrder, OpenOrders, Order, OrderUpdate, PerpDexState, Position, SpotState,
     TwapEvent, TwapHistory, TwapSliceFill, TwapSliceFills, TwapState, TwapStates, TwapStatus, UserEvent, UserFills,

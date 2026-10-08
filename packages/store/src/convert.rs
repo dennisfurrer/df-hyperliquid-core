@@ -1,9 +1,10 @@
-//! One type a piece, whichever way it arrived. The socket and the `/info` reads say the same
-//! things in the types of different crates; each piece is kept in the one every source reads
-//! into without losing what it said:
+//! Where the socket and the `/info` reads say a piece differently, though both read into
+//! hl-core's types:
 //!
-//! - fundings and ledger rows as hl-ws reads them;
-//! - spot balances and the mode as hl-account reads them;
+//! - spot balances: the socket's do not say whether the account is on portfolio margin, nor its
+//!   ratio, so those are kept from the last read;
+//! - fundings: `userFunding` rows wrap each payment in a `delta` beside its hash, where the
+//!   socket's are flat.
 
 use hl_account::SpotState;
 use hl_perps::UserFunding;

@@ -184,14 +184,15 @@ impl Account {
         fold_rows(&mut self.fundings, now, fundings, whole, |row| (row.time, row.coin.clone()), |row| row.time)
     }
 
-    /// Ledger rows told at `now`, newest first: the same only when every key and digit is.
+    /// Ledger rows told at `now`, newest first: the same only when every field and digit is (a
+    /// delta's debug form keeps each figure's digits, where its equality would not).
     pub(crate) fn fold_ledger(&mut self, now: u64, rows: Vec<LedgerUpdate>, whole: bool) -> bool {
         fold_rows(
             &mut self.ledger,
             now,
             rows,
             whole,
-            |row| (row.time, row.hash.clone(), row.delta.compact()),
+            |row| (row.time, row.hash.clone(), format!("{:?}", row.delta)),
             |row| row.time,
         )
     }

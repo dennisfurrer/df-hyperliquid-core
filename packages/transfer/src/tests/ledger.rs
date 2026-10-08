@@ -3,6 +3,8 @@
 
 use std::collections::BTreeMap;
 
+use hl_core::Dec;
+
 use super::*;
 
 const LIVE: &str = include_str!("ledger.json");
@@ -46,7 +48,7 @@ fn the_modelled_types_read_field_for_field() {
             amount: dec("2550"),
             usdc_value: dec("2550"),
             fee: Dec::ZERO,
-            native_token_fee: Dec::ZERO,
+            native_token_fee: Some(Dec::ZERO),
             nonce: Some(1_764_137_111_508),
             fee_token: String::new(),
         }
@@ -69,7 +71,7 @@ fn the_modelled_types_read_field_for_field() {
             user,
             destination: address("0x200000000000000000000000000000000000007c"),
             fee: Dec::ZERO,
-            native_token_fee: dec("0.00002"),
+            native_token_fee: Some(dec("0.00002")),
             nonce: Some(1_764_245_231_181),
             fee_token: String::new(),
         }
@@ -138,16 +140,35 @@ fn a_known_type_that_changed_shape_does_not_blank_the_list() {
         {"time":4,"hash":"0x03","delta":{"noType":true}}
     ]"#;
     let rows: Vec<LedgerUpdate> = serde_json::from_str(text).unwrap();
-    let kinds: Vec<&Delta> = rows.iter().map(|row| &row.delta).collect();
+    assert_eq!(rows[0].delta, Delta::Deposit { usdc: dec("5") });
+    let kept: Vec<(&str, String)> = rows[1..]
+        .iter()
+        .map(|row| match &row.delta {
+            Delta::Other { kind, fields } => (kind.as_str(), fields.compact()),
+            other => panic!("{other:?} read"),
+        })
+        .collect();
     assert_eq!(
-        kinds,
+        kept,
         [
-            &Delta::Deposit { usdc: dec("5") },
-            &Delta::Other { kind: "deposit".to_owned() },
-            &Delta::Other { kind: "somethingNew".to_owned() },
-            &Delta::Other { kind: String::new() },
-        ]
+            ("deposit", r#"{"type":"deposit","amount":"5"}"#.to_owned()),
+            ("somethingNew", r#"{"type":"somethingNew","x":[1,2]}"#.to_owned()),
+            ("", r#"{"noType":true}"#.to_owned()),
+        ],
+        "kept as written, every key and digit"
     );
+}
+
+/// Every recorded send carries its USDC value, fee and fee token: one without them is kept as a
+/// row of its type unread, never read as a send of no value.
+#[test]
+fn a_send_missing_what_every_recording_carries_is_not_read_as_zero() {
+    let live: serde_json::Value = serde_json::from_str(LIVE).unwrap();
+    let mut send = live["send"].clone();
+    send["delta"].as_object_mut().unwrap().remove("usdcValue");
+    let row: LedgerUpdate = serde_json::from_value(send).unwrap();
+    assert_eq!(row.delta.kind(), "send");
+    assert!(!matches!(row.delta, Delta::Send { .. }), "unread, not a send worth nothing");
 }
 
 #[test]

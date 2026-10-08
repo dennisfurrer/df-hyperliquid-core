@@ -1,8 +1,8 @@
-use hl_core::{Accepted, Address, Dec, ExchangeResponse, Json, Status, order::Cloid};
+use hl_core::{Accepted, Address, Dec, ExchangeResponse, Status, order::Cloid};
 
 use super::*;
 use crate::{
-    account::{Fill, FillLiquidation, Leverage, Margin, TwapState, UserEvent},
+    account::{Delta, Fill, FillLiquidation, Leverage, Margin, TwapState, UserEvent},
     fixtures::{all, docs, hip4_tui, mainnet, testnet},
     market::{Book, Level, Side},
     subscription::{Interval, Subscription},
@@ -328,18 +328,14 @@ fn fundings_and_ledger_updates_keep_their_amounts_exact() {
     assert_eq!((ledger.user, ledger.is_snapshot, ledger.updates.len()), (address(FIRST), true, 23));
     let deposit = &ledger.updates[0];
     assert_eq!(
-        (deposit.time, deposit.kind(), deposit.dec("usdc")),
-        (1_788_831_761_730, Some("deposit"), Some(dec("7.0")))
+        (deposit.time, deposit.kind(), &deposit.delta),
+        (1_788_831_761_730, "deposit", &Delta::Deposit { usdc: dec("7.0") })
     );
     assert_eq!(deposit.hash, "0x885308289db123a4efc1afb1aa1070955311838659bd00672be3005d450b7fb4");
     let send = &ledger.updates[1];
-    assert_eq!(
-        (send.kind(), send.dec("amount"), send.dec("fee")),
-        (Some("send"), Some(dec("9.75306")), Some(Dec::ZERO))
-    );
-    assert_eq!(send.delta.get("destinationDex").and_then(Json::as_str), Some(""));
-    assert_eq!(send.delta.get("nonce").and_then(Json::as_u64), Some(3_217_031));
-    assert_eq!(send.dec("token"), None, "a name is not an amount");
+    let Delta::Send { amount, fee, destination_dex, nonce, .. } = &send.delta else { panic!("a send") };
+    assert_eq!((send.kind(), *amount, *fee), ("send", dec("9.75306"), Dec::ZERO));
+    assert_eq!((destination_dex.as_str(), *nonce), ("", Some(3_217_031)));
 }
 
 #[test]

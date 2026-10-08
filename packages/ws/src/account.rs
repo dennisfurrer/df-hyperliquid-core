@@ -4,7 +4,7 @@
 
 use std::fmt;
 
-use hl_core::{Address, Dec, Json};
+use hl_core::{Address, Dec};
 use serde::{Deserialize, Deserializer, de};
 use serde_json::value::RawValue;
 
@@ -150,40 +150,9 @@ pub struct Ledger {
     pub updates: Vec<LedgerUpdate>,
 }
 
-/// One ledger row. The `delta` is kept as written, every key and digit: its types are many and
-/// grow, and `hl-transfer` reads the same rows into its own `Delta`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct LedgerUpdate {
-    /// Milliseconds.
-    pub time: u64,
-    pub hash: String,
-    #[serde(deserialize_with = "json")]
-    pub delta: Json,
-}
-
-impl LedgerUpdate {
-    /// The row's `type`: `deposit`, `send`, `withdraw`, `accountClassTransfer` and the rest.
-    #[must_use]
-    pub fn kind(&self) -> Option<&str> {
-        self.delta.get("type").and_then(Json::as_str)
-    }
-
-    /// One of the delta's amounts (`usdc`, `amount`, `fee`), exact; `None` when it is absent or
-    /// not a decimal.
-    #[must_use]
-    pub fn dec(&self, key: &str) -> Option<Dec> {
-        match self.delta.get(key)? {
-            Json::String(text) | Json::Number(text) => Dec::parse(text).ok(),
-            _ => None,
-        }
-    }
-}
-
-/// A value read into hl-core's order-keeping tree, numbers kept as their digits.
-fn json<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Json, D::Error> {
-    let raw = Box::<RawValue>::deserialize(deserializer)?;
-    Json::parse(raw.get()).map_err(de::Error::custom)
-}
+/// One ledger row and what it did: hl-core's, the rows `userNonFundingLedgerUpdates` answers. A
+/// type this build does not read is kept as written.
+pub use hl_core::ledger::{Delta, LedgerUpdate};
 
 /// One dex's clearinghouse, its margin and positions, a position's leverage (or what the account
 /// has set on a coin) and whether it shares the account's balance: hl-core's, the shapes
