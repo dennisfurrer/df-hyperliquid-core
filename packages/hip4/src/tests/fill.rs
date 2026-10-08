@@ -195,7 +195,9 @@ fn a_spot_answer_yields_outcome_holdings_and_nothing_else() {
     assert_eq!(first.coin, Coin::lookup("#12140").unwrap());
     assert_eq!((first.total, first.hold, first.entry_ntl), (dec("218"), dec("12"), dec("58.975575")));
     assert_eq!(first.free(), dec("206"), "hold is part of total and never added to it");
+    assert_eq!(first.average(), Some(dec("0.27053016")), "what it cost a contract, to eight places");
     assert_eq!(held[1].coin, Coin::lookup("+12160").unwrap());
+    assert_eq!(held[1].average(), Some(dec("0.08376452")));
 }
 
 /// D9: the balance is the answer; fills corroborate it, and where they do not
