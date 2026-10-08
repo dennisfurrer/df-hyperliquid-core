@@ -24,24 +24,8 @@ pub struct UserFills {
     pub fills: Vec<Fill>,
 }
 
-/// An order as `orderUpdates` sends it.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Order {
-    pub coin: String,
-    pub side: Side,
-    pub limit_px: Dec,
-    /// What is left.
-    pub sz: Dec,
-    pub oid: u64,
-    /// When it was placed, milliseconds.
-    pub timestamp: u64,
-    pub orig_sz: Dec,
-    #[serde(default)]
-    pub cloid: Option<String>,
-    #[serde(default)]
-    pub reduce_only: bool,
-}
+/// An order as `orderUpdates` sends it: hl-core's, the shape of an `openOrders` row.
+pub use hl_core::order::OpenOrder as Order;
 
 /// One order's new status on `orderUpdates`: `open`, `filled`, `canceled`, `triggered`,
 /// `rejected`, `marginCanceled`, `badAloPxRejected` and the rest the info docs list.
@@ -54,43 +38,9 @@ pub struct OrderUpdate {
     pub status_timestamp: u64,
 }
 
-/// A resting order with its trigger and type, as `openOrders` and `userHistoricalOrders` send
-/// it (the info endpoint's `frontendOpenOrders` shape).
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenOrder {
-    pub coin: String,
-    pub side: Side,
-    pub limit_px: Dec,
-    /// What is left; `0` on a position TP/SL, which closes the whole position.
-    pub sz: Dec,
-    pub oid: u64,
-    /// Milliseconds.
-    pub timestamp: u64,
-    /// `N/A` unless a trigger order.
-    #[serde(default)]
-    pub trigger_condition: String,
-    #[serde(default)]
-    pub is_trigger: bool,
-    #[serde(default)]
-    pub trigger_px: Dec,
-    /// A parent's take-profit and stop-loss.
-    #[serde(default)]
-    pub children: Vec<OpenOrder>,
-    #[serde(default)]
-    pub is_position_tpsl: bool,
-    #[serde(default)]
-    pub reduce_only: bool,
-    /// `Limit`, `Stop Market`, `Take Profit Limit` and the like.
-    #[serde(default)]
-    pub order_type: String,
-    pub orig_sz: Dec,
-    /// `Gtc`, `Alo`, `Ioc`, `FrontendMarket`; none on a trigger order.
-    #[serde(default)]
-    pub tif: Option<String>,
-    #[serde(default)]
-    pub cloid: Option<String>,
-}
+/// A resting order with its trigger and type, as `openOrders` and `userHistoricalOrders` send it:
+/// hl-core's, the shape of a `frontendOpenOrders` row.
+pub use hl_core::order::FrontendOrder as OpenOrder;
 
 /// `userEvents`, on the channel `user`: one kind of event a frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -539,11 +489,5 @@ pub struct HistoricalOrders {
     pub orders: Vec<HistoricalOrder>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct HistoricalOrder {
-    pub order: OpenOrder,
-    pub status: String,
-    /// Milliseconds.
-    pub status_timestamp: u64,
-}
+/// An order and what became of it: hl-core's, the shape of a `historicalOrders` row.
+pub use hl_core::order::OrderRecord as HistoricalOrder;

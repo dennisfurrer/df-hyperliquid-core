@@ -6,16 +6,13 @@
 //! - a dex's clearinghouse as hl-perps reads it, and from it hl-account's, which usable
 //!   balances and worth are read from;
 //! - spot balances and the mode as hl-account reads them;
-//! - resting orders as hl-trade reads `frontendOpenOrders`, the shape `openOrders` sends.
 
 use hl_account::{
     PerpState, SpotBalance, SpotState,
     state::{AssetPosition as HeldPosition, Leverage as HeldLeverage},
 };
 use hl_perps::{AssetPosition, ClearinghouseState, CumFunding, Leverage, MarginSummary, Position, UserFunding};
-use hl_trade::{FrontendOrder, OrderKind};
 use hl_ws::{Funding, Margin};
-use serde::{Deserialize, de::IntoDeserializer};
 
 /// The socket's clearinghouse as hl-perps reads one. An isolated position always carries its
 /// `rawUsd`; one that did not would read as none put up.
@@ -124,31 +121,6 @@ pub(crate) fn spot_state(sent: &hl_ws::SpotState, held: Option<&SpotState>) -> S
         portfolio_margin_enabled: held.is_some_and(|held| held.portfolio_margin_enabled),
         portfolio_margin_ratio: held.and_then(|held| held.portfolio_margin_ratio),
         token_to_available_after_maintenance: sent.available_after_maintenance.clone(),
-    }
-}
-
-/// The socket's resting order as hl-trade reads `frontendOpenOrders`. A client id that is not
-/// one (`0x` and 32 hex digits) is left out.
-pub(crate) fn order(sent: &hl_ws::OpenOrder) -> FrontendOrder {
-    let kind: Result<OrderKind, serde::de::value::Error> =
-        OrderKind::deserialize(sent.order_type.as_str().into_deserializer());
-    FrontendOrder {
-        coin: sent.coin.clone(),
-        side: sent.side,
-        limit_px: sent.limit_px,
-        sz: sent.sz,
-        oid: sent.oid,
-        timestamp: sent.timestamp,
-        trigger_condition: sent.trigger_condition.clone(),
-        is_trigger: sent.is_trigger,
-        trigger_px: sent.trigger_px,
-        children: sent.children.iter().map(order).collect(),
-        is_position_tpsl: sent.is_position_tpsl,
-        reduce_only: sent.reduce_only,
-        order_type: kind.unwrap_or_else(|_| OrderKind::Other(sent.order_type.clone())),
-        orig_sz: sent.orig_sz,
-        tif: sent.tif.clone(),
-        cloid: sent.cloid.as_deref().and_then(|cloid| cloid.parse().ok()),
     }
 }
 

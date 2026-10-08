@@ -131,6 +131,15 @@ fn an_order_reports_what_the_book_has_already_taken() {
     assert!(OpenOrder::read(&RawOrder { coin: "BTC".to_owned(), ..raw }).is_none());
 }
 
+/// Every recorded resting order, read or sent, carries its original size: a
+/// row without it is refused, not read as never filled.
+#[test]
+fn an_order_without_its_original_size_is_refused() {
+    let text =
+        r##"{"coin": "#12100", "side": "B", "limitPx": "0.27", "sz": "120.0", "oid": 7, "timestamp": 1789233746112}"##;
+    assert!(serde_json::from_str::<RawOrder>(text).is_err());
+}
+
 #[test]
 fn a_position_comes_from_the_newest_fill_alone() {
     let fills = read(&[raw("#12100", "B", "100", "439", "Buy", 3_000), raw("#12100", "A", "39", "539", "Sell", 4_000)]);

@@ -42,6 +42,7 @@ pub mod mids;
 pub mod msgpack;
 pub mod network;
 pub mod nonce;
+pub mod order;
 pub mod side;
 pub mod signer;
 pub mod signers;

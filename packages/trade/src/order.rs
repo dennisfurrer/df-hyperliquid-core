@@ -3,40 +3,15 @@
 //! order the venue hashes: `a b p s r t c` for an order, then `grouping`, then
 //! `builder` last.
 
-use std::{fmt, str::FromStr};
-
-use hl_core::{Address, Asset, AssetKind, BadHex, BuilderFee, Dec, L1Action, Map, Value, hex};
-use serde::{Deserialize, Deserializer, de};
+use hl_core::{Address, Asset, AssetKind, BuilderFee, Dec, L1Action, Map, Value};
 
 /// Which way an order trades. It lives in hl-core, where the sockets and the
 /// data crates read the same `B` and `A`.
 pub use hl_core::Side;
 
-/// How long an order may rest.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Tif {
-    /// Add liquidity only: refused if it would cross.
-    Alo,
-    /// Immediate or cancel.
-    Ioc,
-    /// Rests until filled or cancelled. Never a market order.
-    Gtc,
-    /// The venue's market order: crosses up to its price and never rests.
-    /// Only [`Order::market`] makes one.
-    FrontendMarket,
-}
-
-impl Tif {
-    #[must_use]
-    pub const fn wire(self) -> &'static str {
-        match self {
-            Tif::Alo => "Alo",
-            Tif::Ioc => "Ioc",
-            Tif::Gtc => "Gtc",
-            Tif::FrontendMarket => "FrontendMarket",
-        }
-    }
-}
+/// How long an order may rest, which way a trigger fires, and a client order id: hl-core's,
+/// where the orders read back name them too.
+pub use hl_core::order::{Cloid, Tif, Tpsl};
 
 /// How the orders of one action relate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -58,72 +33,6 @@ impl Grouping {
             Grouping::NormalTpsl => "normalTpsl",
             Grouping::PositionTpsl => "positionTpsl",
         }
-    }
-}
-
-/// Which way a trigger fires.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Tpsl {
-    /// When the price moves the position's way.
-    TakeProfit,
-    /// When it moves against it.
-    StopLoss,
-}
-
-impl Tpsl {
-    #[must_use]
-    pub const fn wire(self) -> &'static str {
-        match self {
-            Tpsl::TakeProfit => "tp",
-            Tpsl::StopLoss => "sl",
-        }
-    }
-}
-
-/// A client order id: 128 bits, written as `0x` and 32 hex digits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Cloid([u8; 16]);
-
-impl Cloid {
-    #[must_use]
-    pub const fn from_bytes(bytes: [u8; 16]) -> Cloid {
-        Cloid(bytes)
-    }
-
-    #[must_use]
-    pub const fn from_u128(value: u128) -> Cloid {
-        Cloid(value.to_be_bytes())
-    }
-
-    #[must_use]
-    pub const fn bytes(&self) -> &[u8; 16] {
-        &self.0
-    }
-
-    #[must_use]
-    pub fn to_hex(self) -> String {
-        hex::encode_prefixed(&self.0)
-    }
-}
-
-impl FromStr for Cloid {
-    type Err = BadHex;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        hex::decode_array(text).map(Cloid)
-    }
-}
-
-impl fmt::Display for Cloid {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.to_hex())
-    }
-}
-
-/// From the hex the venue writes for an order's or a fill's `cloid`.
-impl<'de> Deserialize<'de> for Cloid {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer)?.parse().map_err(de::Error::custom)
     }
 }
 

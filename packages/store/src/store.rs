@@ -216,7 +216,7 @@ impl Store {
                 None => Folded::Dropped,
             },
             Frame::OpenOrders(open) => {
-                let orders = open.orders.iter().map(convert::order).collect();
+                let orders = open.orders.clone();
                 self.fold_orders(now, open.user, &open.dex, orders)
             }
             Frame::UserFills(fills) => {

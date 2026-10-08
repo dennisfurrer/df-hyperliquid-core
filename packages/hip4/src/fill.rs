@@ -20,7 +20,7 @@ use std::{
     str::FromStr,
 };
 
-use hl_core::{Dec, Round};
+use hl_core::{Dec, Round, order::Cloid};
 use hl_trade::Side;
 use serde::Deserialize;
 
@@ -108,15 +108,6 @@ impl fmt::Display for Direction {
     }
 }
 
-/// `B` adds to a holding, `A` takes from it.
-fn side_of(text: &str) -> Option<Side> {
-    match text.trim() {
-        "B" | "b" => Some(Side::Buy),
-        "A" | "a" => Some(Side::Sell),
-        _ => None,
-    }
-}
-
 /// One row of `userFills` or `userFillsByTime`, as written: hl-core's. Perp
 /// and spot rows come in the same answer; [`Fill::read`] skips them.
 pub type RawFill = hl_core::fill::Fill;
@@ -195,21 +186,8 @@ impl Fill {
     }
 }
 
-/// One row of `openOrders` or `frontendOpenOrders`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RawOrder {
-    pub coin: String,
-    pub side: String,
-    pub limit_px: String,
-    pub sz: String,
-    pub oid: u64,
-    pub timestamp: u64,
-    #[serde(default)]
-    pub orig_sz: Option<String>,
-    #[serde(default)]
-    pub cloid: Option<String>,
-}
+/// One row of `openOrders` or `frontendOpenOrders`, as written: hl-core's.
+pub type RawOrder = hl_core::order::OpenOrder;
 
 /// An outcome order resting on the book.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -222,7 +200,7 @@ pub struct OpenOrder {
     pub original_size: Qty,
     pub placed_ms: u64,
     pub oid: u64,
-    pub cloid: Option<String>,
+    pub cloid: Option<Cloid>,
 }
 
 impl OpenOrder {
@@ -232,20 +210,15 @@ impl OpenOrder {
         if !raw.coin.starts_with('#') {
             return None;
         }
-        let size = Qty::parse(&raw.sz).ok()?;
-        let original_size = match raw.orig_sz.as_deref() {
-            Some(text) => Qty::parse(text).ok()?,
-            None => size,
-        };
         Some(OpenOrder {
             coin: Coin::parse(&raw.coin)?,
-            side: side_of(&raw.side)?,
-            price: Px::parse(&raw.limit_px).ok()?,
-            size,
-            original_size,
+            side: raw.side,
+            price: Px::from_dec(raw.limit_px).ok()?,
+            size: Qty::from_dec(raw.sz).ok()?,
+            original_size: Qty::from_dec(raw.orig_sz).ok()?,
             placed_ms: raw.timestamp,
             oid: raw.oid,
-            cloid: raw.cloid.clone(),
+            cloid: raw.cloid,
         })
     }
 

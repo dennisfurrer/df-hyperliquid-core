@@ -1,4 +1,4 @@
-use hl_core::{Accepted, Address, Dec, ExchangeResponse, Json, Status};
+use hl_core::{Accepted, Address, Dec, ExchangeResponse, Json, Status, order::Cloid};
 
 use super::*;
 use crate::{
@@ -230,15 +230,12 @@ fn order_updates_and_historical_orders_carry_status_and_order() {
         ("BTC", Side::Buy, dec("80462.0"), dec("0.20705"))
     );
     assert_eq!((order.oid, order.timestamp, order.orig_sz), (569_017_209_592, 1_791_480_448_890, dec("0.20705")));
-    assert_eq!(order.cloid.as_deref(), Some("0x273d565c96b2523ae6a0b5ca299c6f00"));
+    assert_eq!(order.cloid.map(Cloid::to_hex).as_deref(), Some("0x273d565c96b2523ae6a0b5ca299c6f00"));
 
     let Frame::HistoricalOrders(history) = read(&mainnet("userHistoricalOrders")) else { panic!("history") };
     assert_eq!((history.user, history.is_snapshot, history.orders.len()), (address(SECOND), false, 1));
     let past = &history.orders[0];
-    assert_eq!(
-        (past.status.as_str(), past.order.oid, past.order.tif.as_deref()),
-        ("open", 569_017_209_592, Some("Alo"))
-    );
+    assert_eq!((past.status.word(), past.order.oid, past.order.tif.as_deref()), ("open", 569_017_209_592, Some("Alo")));
 }
 
 #[test]
@@ -387,6 +384,17 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     assert_eq!(older.states[1].0, "xyz");
 }
 
+/// Every recorded resting order, sent or read, says its type, its trigger and whether it is a
+/// position's TP/SL: one without them is refused, not read as a plain limit.
+#[test]
+fn a_resting_order_without_its_type_or_trigger_is_refused() {
+    let sent = mainnet("openOrders");
+    assert!(decode(&sent).is_ok());
+    for gone in [r#""orderType":"Limit","#, r#""triggerCondition":"N/A","#, r#""isPositionTpsl":false,"#] {
+        assert!(decode(&sent.replace(gone, "")).is_err(), "without {gone}");
+    }
+}
+
 #[test]
 fn open_orders_spot_balances_and_web_data_read_what_they_say() {
     let Frame::OpenOrders(open) = read(&mainnet("openOrders")) else { panic!("orders") };
@@ -397,7 +405,7 @@ fn open_orders_spot_balances_and_web_data_read_what_they_say() {
         (dec("80459.0"), dec("0.20706"), dec("0.20706"), Dec::ZERO)
     );
     assert_eq!(
-        (order.order_type.as_str(), order.tif.as_deref(), order.trigger_condition.as_str()),
+        (order.order_type.word(), order.tif.as_deref(), order.trigger_condition.as_str()),
         ("Limit", Some("Alo"), "N/A")
     );
     assert!(!order.is_trigger && !order.is_position_tpsl && !order.reduce_only && order.children.is_empty());

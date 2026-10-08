@@ -59,13 +59,24 @@ fn open_orders_read_with_reduce_only_only_where_the_venue_writes_it() {
     assert_eq!(orders.len(), 3);
     let stop = &orders[0];
     assert_eq!((stop.coin.as_str(), stop.side, stop.oid), ("ENS", Side::Buy, 569_021_780_586));
-    assert_eq!((stop.limit_px, stop.sz, stop.orig_sz), (dec("6.5232"), Dec::ZERO, Some(Dec::ZERO)));
+    assert_eq!((stop.limit_px, stop.sz, stop.orig_sz), (dec("6.5232"), Dec::ZERO, Dec::ZERO));
     assert!(stop.reduce_only);
     assert_eq!(stop.cloid, Some("0xba5ed11067f2cc01ba5ed10000ba5ed1".parse().unwrap()));
     let spot = &orders[1];
     assert_eq!((spot.coin.as_str(), spot.limit_px, spot.sz), ("@142", dec("79335"), dec("0.00126")));
     assert!(!spot.reduce_only, "absent is false");
     assert_eq!(orders[2].side, Side::Sell, "A is a sell");
+}
+
+/// Every recorded resting order, read or sent, carries its original size: a row without it is
+/// refused, not read as a size unknown.
+#[test]
+fn an_open_order_without_its_original_size_is_refused() {
+    let orders: Vec<serde_json::Value> = serde_json::from_str(OPEN).unwrap();
+    let mut row = orders[1].clone();
+    assert!(serde_json::from_value::<OpenOrder>(row.clone()).is_ok());
+    row.as_object_mut().unwrap().remove("origSz");
+    assert!(serde_json::from_value::<OpenOrder>(row).is_err());
 }
 
 #[test]
