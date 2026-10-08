@@ -1,0 +1,87 @@
+{
+  "source": "What /exchange answers. `docs`: Hyperliquid's exchange endpoint page, each example response as written there (read 2026-10-08; its Python-style `{'status': 'ok', 'response': {'type': 'default'}}` written as JSON). `hip4-tui`: answers and statuses the venue sent hip4-tui, as its net/src/tests/exchange.rs recorded them (the refusal's address shortened there). `sdk`: the words @nktkas/hyperliquid 0.33.2's OrderResponse type lists, which no example shows.",
+  "answers": [
+    {
+      "name": "order_resting",
+      "source": "docs: Place an order, 200 OK resting",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"resting\":{\"oid\":77738308}}]}}}"
+    },
+    {
+      "name": "order_refused",
+      "source": "docs: Place an order, 200 OK error",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"error\":\"Order must have minimum value of $10.\"}]}}}"
+    },
+    {
+      "name": "order_filled",
+      "source": "docs: Place an order, 200 OK filled",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"filled\":{\"totalSz\":\"0.02\",\"avgPx\":\"1891.4\",\"oid\":77747314}}]}}}"
+    },
+    {
+      "name": "cancel_taken",
+      "source": "docs: Cancel order(s), 200 OK",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"cancel\",\"data\":{\"statuses\":[\"success\"]}}}"
+    },
+    {
+      "name": "cancel_refused",
+      "source": "docs: Cancel order(s), 200 OK error",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"cancel\",\"data\":{\"statuses\":[{\"error\":\"Order was never placed, already canceled, or filled.\"}]}}}"
+    },
+    {
+      "name": "twap_running",
+      "source": "docs: Place a TWAP order, 200 OK",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"twapOrder\",\"data\":{\"status\":{\"running\":{\"twapId\":77738308}}}}}"
+    },
+    {
+      "name": "twap_refused",
+      "source": "docs: Place a TWAP order, 200 OK error",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"twapOrder\",\"data\":{\"status\":{\"error\":\"Invalid TWAP duration: 1 min(s)\"}}}}"
+    },
+    {
+      "name": "twap_cancel_taken",
+      "source": "docs: Cancel a TWAP order, 200 OK",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"twapCancel\",\"data\":{\"status\":\"success\"}}}"
+    },
+    {
+      "name": "twap_cancel_refused",
+      "source": "docs: Cancel a TWAP order, 200 OK error",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"twapCancel\",\"data\":{\"status\":{\"error\":\"TWAP was never placed, already canceled, or filled.\"}}}}"
+    },
+    {
+      "name": "default",
+      "source": "docs: Update leverage, Update isolated margin, Reserve additional actions and Invalidate pending nonce (noop), 200 OK; the SDK's ModifyResponse and ScheduleCancelResponse are the same",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"default\"}}"
+    },
+    {
+      "name": "refused_whole",
+      "source": "hip4-tui: an order signed by a key the venue does not know",
+      "answer": "{\"status\":\"err\",\"response\":\"User or API Wallet 0xf6b2 does not exist.\"}"
+    }
+  ],
+  "statuses": [
+    {
+      "name": "resting_outcome",
+      "source": "hip4-tui: an outcome order resting",
+      "status": "{\"resting\":{\"oid\":543186691772}}"
+    },
+    {
+      "name": "filled_outcome",
+      "source": "hip4-tui: the same order filled",
+      "status": "{\"filled\":{\"totalSz\":\"92.0\",\"avgPx\":\"0.27225\",\"oid\":543186691772}}"
+    },
+    {
+      "name": "filled_between_ticks",
+      "source": "hip4-tui: an average between two ticks",
+      "status": "{\"filled\":{\"totalSz\":\"605.0\",\"avgPx\":\"0.269935\",\"oid\":1}}"
+    },
+    {
+      "name": "waiting_for_trigger",
+      "source": "sdk: OrderResponse",
+      "status": "\"waitingForTrigger\""
+    },
+    {
+      "name": "waiting_for_fill",
+      "source": "sdk: OrderResponse",
+      "status": "\"waitingForFill\""
+    }
+  ]
+}

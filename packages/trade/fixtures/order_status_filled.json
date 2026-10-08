@@ -1,0 +1,1 @@
+{"status":"order","order":{"order":{"coin":"GRAM","side":"A","limitPx":"1.2342","sz":"0.0","oid":569016338230,"timestamp":1791480420925,"triggerCondition":"N/A","isTrigger":false,"triggerPx":"0.0","children":[],"isPositionTpsl":false,"reduceOnly":true,"orderType":"Market","origSz":"4095.0","tif":"FrontendMarket","cloid":null},"status":"filled","statusTimestamp":1791480420925}}

@@ -489,6 +489,8 @@ name = "hl-trade"
 version = "0.1.0"
 dependencies = [
  "hl-core",
+ "serde",
+ "serde_json",
  "thiserror",
 ]
 

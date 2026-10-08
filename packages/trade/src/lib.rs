@@ -20,25 +20,39 @@
 #![deny(clippy::float_arithmetic)]
 
 pub mod action;
+pub mod answer;
 pub mod builder;
 pub mod cancel;
 pub mod error;
+pub mod fills;
 pub mod grid;
 pub mod leverage;
+pub mod market;
 pub mod modify;
 pub mod order;
+pub mod orders;
+mod request;
 pub mod schedule;
 pub mod twap;
 
 pub use action::TradeAction;
+pub use answer::{CancelAnswer, OrderAnswer, TwapAnswer};
 pub use builder::{Approval, ApprovalRefused, Approved, BuilderSetting, FeeRule, SignedBy};
 pub use cancel::{Cancel, CancelByCloid};
 pub use error::TradeError;
+pub use fills::{
+    DailyVolume, FeeSchedule, FeeTiers, Fill, MakerTier, StakingDiscount, TwapSliceFill, UserFees, VolumeTier,
+};
 pub use grid::{Grid, MAX_SLIPPAGE, MINIMUM_ORDER_VALUE, PERP_PRICE_PLACES, SIGNIFICANT_FIGURES, SPOT_PRICE_PLACES};
 pub use hl_core::{Asset, AssetKind, BuilderFee, L1Action};
 pub use leverage::{MarginMode, UpdateIsolatedMargin, UpdateLeverage};
+pub use market::{Candle, Interval, L2Book, Level, MarketTrade, Mids, Precision, UnknownInterval};
 pub use modify::{BatchModify, Modify, OrderRef};
 pub use order::{Builder, Cloid, Grouping, Order, OrderType, OverCap, PlaceOrder, Side, Tif, Tpsl};
+pub use orders::{FrontendOrder, OpenOrder, OrderKind, OrderLookup, OrderRecord, OrderState};
 pub use schedule::{Noop, ScheduleCancel, TooSoon};
 pub use twap::{Twap, TwapCancel};
 
+#[cfg(test)]
+#[path = "tests/support.rs"]
+mod tests_support;

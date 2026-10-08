@@ -6,6 +6,7 @@
 use std::{fmt, str::FromStr};
 
 use hl_core::{Address, Asset, AssetKind, BadHex, BuilderFee, Dec, L1Action, Map, Round, Value, hex};
+use serde::{Deserialize, Deserializer, de};
 
 /// Which way an order trades.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -145,6 +146,24 @@ impl FromStr for Cloid {
 impl fmt::Display for Cloid {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(&self.to_hex())
+    }
+}
+
+/// From the hex the venue writes for an order's or a fill's `cloid`.
+impl<'de> Deserialize<'de> for Cloid {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer)?.parse().map_err(de::Error::custom)
+    }
+}
+
+/// From the side a read writes: `B` a buy, `A` a sell (the ask side).
+impl<'de> Deserialize<'de> for Side {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        match String::deserialize(deserializer)?.as_str() {
+            "B" => Ok(Side::Buy),
+            "A" => Ok(Side::Sell),
+            other => Err(de::Error::custom(format!("`{other}` is not a side; expected B or A"))),
+        }
     }
 }
 

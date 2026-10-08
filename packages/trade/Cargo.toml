@@ -1,6 +1,6 @@
 [package]
 name = "hl-trade"
-description = "Hyperliquid order primitives shared by every market kind: order, cancel, modify, TIF rules (market orders are FrontendMarket, never Gtc), tick and lot rounding."
+description = "Hyperliquid trading shared by every market kind: order, cancel, modify, scheduleCancel, noop, TWAP, leverage and margin; tick and lot rounding; the ticket from intent to action (market orders are FrontendMarket, never Gtc); builder fees as a setting and their approval; what /exchange answers; order, fill and market reads."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,6 +9,8 @@ license.workspace = true
 
 [dependencies]
 hl-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
