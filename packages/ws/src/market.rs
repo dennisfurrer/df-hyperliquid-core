@@ -2,10 +2,8 @@
 //! and asset contexts. Every price and size is an exact [`Dec`] read from the venue's string;
 //! a number written as a float is refused, never rounded.
 
-use std::fmt;
-
 use hl_core::Dec;
-use serde::{Deserialize, Deserializer, de};
+use serde::Deserialize;
 
 /// One price level and `l2Book`, the whole visible book each frame: hl-core's, the shape the
 /// `/info` read answers too.
@@ -55,39 +53,16 @@ pub use hl_core::candle::Candle;
 pub struct Mids {
     #[serde(default)]
     pub dex: String,
-    #[serde(deserialize_with = "pairs")]
-    pub mids: Vec<(String, Dec)>,
+    /// hl-core's, the map `allMids` answers.
+    pub mids: hl_core::mids::Mids,
 }
 
 impl Mids {
     /// A coin's mid, the coin spelled as the venue spells it.
     #[must_use]
     pub fn get(&self, coin: &str) -> Option<Dec> {
-        self.mids.iter().find(|(name, _)| name == coin).map(|(_, mid)| *mid)
+        self.mids.get(coin)
     }
-}
-
-/// A JSON map read into pairs in the order written, which a map type would lose.
-fn pairs<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<(String, Dec)>, D::Error> {
-    struct Pairs;
-
-    impl<'de> de::Visitor<'de> for Pairs {
-        type Value = Vec<(String, Dec)>;
-
-        fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            f.write_str("a map of coin to price")
-        }
-
-        fn visit_map<A: de::MapAccess<'de>>(self, mut map: A) -> Result<Self::Value, A::Error> {
-            let mut out = Vec::with_capacity(map.size_hint().unwrap_or(0));
-            while let Some(pair) = map.next_entry::<String, Dec>()? {
-                out.push(pair);
-            }
-            Ok(out)
-        }
-    }
-
-    deserializer.deserialize_map(Pairs)
 }
 
 /// A perp's context, as `activeAssetCtx`, `assetCtxs` and `allDexsAssetCtxs` send it and

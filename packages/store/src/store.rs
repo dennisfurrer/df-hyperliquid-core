@@ -181,7 +181,7 @@ impl Store {
     pub fn apply(&mut self, now: u64, frame: &Frame) -> Folded {
         self.settle();
         match frame {
-            Frame::AllMids(mids) => self.fold_mids(now, &mids.dex, mids.mids.iter().cloned().collect()),
+            Frame::AllMids(mids) => self.fold_mids(now, &mids.dex, &mids.mids),
             Frame::Book(book) => self.fold_book(now, book.clone()),
             Frame::Trades(prints) => self.fold_prints(now, prints.iter().rev().cloned()),
             Frame::Candle(candle) => self.fold_candles(now, [candle.clone()]),
@@ -246,9 +246,7 @@ impl Store {
             Read::Book(book) => self.fold_book(now, (*book).clone()),
             Read::Trades(prints) => self.fold_prints(now, prints.iter().cloned()),
             Read::Candles(candles) => self.fold_history(now, candles.to_vec()),
-            Read::Mids { dex, mids } => {
-                self.fold_mids(now, dex, mids.iter().map(|(coin, mid)| (coin.to_owned(), mid)).collect())
-            }
+            Read::Mids { dex, mids } => self.fold_mids(now, dex, mids),
             Read::Perps(read) => {
                 let coins: Vec<String> = read.meta.universe.iter().map(|perp| perp.name.clone()).collect();
                 let listed = self.list("", coins, read.meta.collateral_token);
@@ -323,7 +321,8 @@ impl Store {
         }
     }
 
-    fn fold_mids(&mut self, now: u64, dex: &str, mids: BTreeMap<String, Dec>) -> Folded {
+    fn fold_mids(&mut self, now: u64, dex: &str, mids: &Mids) -> Folded {
+        let mids: BTreeMap<String, Dec> = mids.iter().map(|(coin, mid)| (coin.to_owned(), mid)).collect();
         match self.markets.mids.get_mut(dex) {
             Some(held) => Folded::of(held.set(now, mids)),
             None => {

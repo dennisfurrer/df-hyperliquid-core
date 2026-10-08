@@ -2,10 +2,7 @@
 //! `recentTrades` and `allMids`. A coin is `BTC`, `xyz:XYZ100` on a HIP-3
 //! dex, `@107` or `PURR/USDC` for a pair, `#14730` for an outcome side.
 
-use std::collections::BTreeMap;
-
-use hl_core::{ApiError, Dec, Transport, info};
-use serde::Deserialize;
+use hl_core::{ApiError, Transport, info};
 
 use crate::request::{body, dex, number, text};
 
@@ -51,32 +48,8 @@ pub use hl_core::candle::{Candle, Interval, UnknownInterval};
 /// A print: `side` is the aggressor's. hl-core's, the shape the socket sends.
 pub type MarketTrade = hl_core::trade::Trade;
 
-/// `allMids`: every coin's mid on one dex. Where a book is empty the venue
-/// prints its last trade instead. A mid can sit between two ticks.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
-#[serde(transparent)]
-pub struct Mids(BTreeMap<String, Dec>);
-
-impl Mids {
-    #[must_use]
-    pub fn get(&self, coin: &str) -> Option<Dec> {
-        self.0.get(coin).copied()
-    }
-
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = (&str, Dec)> {
-        self.0.iter().map(|(coin, mid)| (coin.as_str(), *mid))
-    }
-}
+/// `allMids`: every coin's mid on one dex. hl-core's, the map the socket sends.
+pub use hl_core::mids::Mids;
 
 /// `{"type":"l2Book","coin":..,"nSigFigs"?,"mantissa"?}`.
 #[must_use]

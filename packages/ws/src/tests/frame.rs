@@ -88,7 +88,7 @@ fn bbo_mids_and_candles_read_as_sent() {
 
     let Frame::AllMids(mids) = read(&mainnet("allMids")) else { panic!("mids") };
     assert_eq!((mids.dex.as_str(), mids.mids.len()), ("", 1239));
-    assert_eq!(mids.mids[0], ("#14720".to_owned(), dec("0.5")), "kept in the order sent");
+    assert_eq!(mids.mids.iter().next(), Some(("#14720", dec("0.5"))), "kept in the order sent");
     assert_eq!(
         (mids.get("@1"), mids.get("#14730"), mids.get("nothing")),
         (Some(dec("11.9515")), Some(dec("0.612995")), None)
