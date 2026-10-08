@@ -52,6 +52,19 @@ fn contexts_line_up_with_the_universe_and_a_quiet_market_has_no_mid() {
     assert_eq!(btc.impact_pxs, Some(vec![dec("85631.1"), dec("85635")]));
     let (_, _, hpos) = both.find("HPOS").unwrap();
     assert_eq!((hpos.mid_px, hpos.premium, hpos.reference()), (None, None, dec("0.041873")));
+    assert_eq!(both.meta.margin_tables.len(), 1, "the one table this trimmed answer kept");
+    assert_eq!(both.meta.margin_table(50).and_then(|table| table.max_leverage_at(Dec::ZERO)), Some(50));
+}
+
+/// BTC's context as hip4-tui recorded it, live, mainnet, 2026-09-26, and the
+/// day change it showed for it: -0.68%.
+#[test]
+fn a_context_says_its_day_change_and_its_open_interest_at_the_mark() {
+    let btc: PerpCtx = serde_json::from_str(r#"{"funding":"0.0000125","openInterest":"37697.76106","prevDayPx":"84556.0","dayNtlVlm":"2460964638.0624189377","premium":"-0.0004701178","oraclePx":"84021.5","markPx":"83982.0","midPx":"83981.5","impactPxs":["83981.0","83982.0"],"dayBaseVlm":"29257.91492"}"#).unwrap();
+    assert_eq!(btc.day_change(), Some(dec("-0.68")));
+    assert_eq!(btc.open_interest_value(), Some(dec("3165933369.34092")));
+    let both = both();
+    assert_eq!(both.find("BTC").unwrap().2.day_change(), Some(dec("0.41")));
 }
 
 #[test]

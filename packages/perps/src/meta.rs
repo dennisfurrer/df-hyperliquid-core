@@ -1,10 +1,16 @@
 //! `meta` and `metaAndAssetCtxs` for the main dex: the fields an order needs
-//! (name, size decimals, leverage, margin) and the ones a market shows. Every
-//! other field the venue sends is left unread.
+//! (name, size decimals, leverage, margin, the margin tables) and the ones a
+//! market shows; and `perpsAtOpenInterestCap`. Every other field the venue
+//! sends is left unread.
 
-use hl_core::{ApiError, Asset, AssetKind, Dec, Json, Transport, info};
+use hl_core::{ApiError, Asset, AssetKind, Dec, Json, Round, Transport, info};
 use hl_trade::Grid;
 use serde::Deserialize;
+
+use crate::{
+    dex::{self, Dex},
+    table::MarginTable,
+};
 
 fn request(kind: &str) -> String {
     Json::Object(vec![("type".to_owned(), Json::String(kind.to_owned()))]).compact()
@@ -30,11 +36,27 @@ pub async fn meta_and_asset_ctxs(transport: &impl Transport) -> Result<MetaAndAs
     info(transport, meta_and_asset_ctxs_request()).await
 }
 
+/// `{"type":"perpsAtOpenInterestCap"}`, with `dex` for a HIP-3 dex.
+#[must_use]
+pub fn perps_at_open_interest_cap_request(dex: Dex<'_>) -> String {
+    dex::request("perpsAtOpenInterestCap", Vec::new(), dex)
+}
+
+/// The perps whose open interest is at its cap, by coin: an order there may
+/// only reduce a position.
+pub async fn perps_at_open_interest_cap(transport: &impl Transport, dex: Dex<'_>) -> Result<Vec<String>, ApiError> {
+    info(transport, perps_at_open_interest_cap_request(dex)).await
+}
+
 /// The main dex's perps, in the order their asset ids count.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
     pub universe: Vec<PerpAsset>,
+    /// The tiered margin tables by id; a flat one is never listed
+    /// ([`Meta::margin_table`]).
+    #[serde(default)]
+    pub margin_tables: Vec<(u32, MarginTable)>,
     /// The spot token perps are margined in; 0 is USDC.
     #[serde(default)]
     pub collateral_token: Option<u32>,
@@ -128,6 +150,20 @@ impl PerpCtx {
     #[must_use]
     pub fn reference(&self) -> Dec {
         self.mid_px.unwrap_or(self.mark_px)
+    }
+
+    /// The mark's change over the day, in percent to two places, as
+    /// hip4-tui shows it. `None` without a previous day's price.
+    #[must_use]
+    pub fn day_change(&self) -> Option<Dec> {
+        let then = Some(self.prev_day_px).filter(|then| then.is_positive())?;
+        self.mark_px.checked_sub(then)?.checked_mul(Dec::from_int(100))?.checked_div(then, 2, Round::Nearest)
+    }
+
+    /// The open interest at the mark, in the quote.
+    #[must_use]
+    pub fn open_interest_value(&self) -> Option<Dec> {
+        self.open_interest.checked_mul(self.mark_px)
     }
 }
 
