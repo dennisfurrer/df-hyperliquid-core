@@ -65,44 +65,7 @@ impl Mids {
     }
 }
 
-/// A perp's context, as `activeAssetCtx`, `assetCtxs` and `allDexsAssetCtxs` send it and
-/// `metaAndAssetCtxs` answers it. A market with no book has no mid, premium or impact prices.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PerpCtx {
-    /// Hourly, as a fraction of the position's value.
-    pub funding: Dec,
-    /// In the base asset.
-    pub open_interest: Dec,
-    pub prev_day_px: Dec,
-    /// The quote traded over the last day.
-    pub day_ntl_vlm: Dec,
-    #[serde(default)]
-    pub premium: Option<Dec>,
-    pub oracle_px: Dec,
-    pub mark_px: Dec,
-    #[serde(default)]
-    pub mid_px: Option<Dec>,
-    #[serde(default)]
-    pub impact_pxs: Option<Vec<Dec>>,
-    #[serde(default)]
-    pub day_base_vlm: Option<Dec>,
-}
-
-/// A spot pair's or an outcome side's context, as `activeSpotAssetCtx` and `spotAssetCtxs` send
-/// it. An outcome side's open interest is its `circulatingSupply`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotCtx {
-    pub coin: String,
-    pub prev_day_px: Dec,
-    pub day_ntl_vlm: Dec,
-    pub mark_px: Dec,
-    #[serde(default)]
-    pub mid_px: Option<Dec>,
-    pub circulating_supply: Dec,
-    #[serde(default)]
-    pub total_supply: Option<Dec>,
-    #[serde(default)]
-    pub day_base_vlm: Option<Dec>,
-}
+/// A perp's context, as `activeAssetCtx`, `assetCtxs` and `allDexsAssetCtxs` send it, and a spot
+/// pair's or an outcome side's, as `activeSpotAssetCtx` and `spotAssetCtxs` send it: hl-core's,
+/// the shapes `metaAndAssetCtxs` and `spotMetaAndAssetCtxs` answer.
+pub use hl_core::context::{PerpCtx, SpotCtx};

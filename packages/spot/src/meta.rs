@@ -218,33 +218,9 @@ impl SpotMeta {
     }
 }
 
-/// What a pair is doing now. HIP-4 outcome sides ride in the same list,
-/// keyed `#<encoding>`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotCtx {
-    /// The pair's or outcome side's book name.
-    pub coin: String,
-    pub mark_px: Dec,
-    #[serde(default)]
-    pub mid_px: Option<Dec>,
-    pub prev_day_px: Dec,
-    pub day_ntl_vlm: Dec,
-    #[serde(default)]
-    pub day_base_vlm: Option<Dec>,
-    #[serde(default)]
-    pub circulating_supply: Option<Dec>,
-    #[serde(default)]
-    pub total_supply: Option<Dec>,
-}
-
-impl SpotCtx {
-    /// The price a market order is bounded from: the mid, else the mark.
-    #[must_use]
-    pub fn reference(&self) -> Dec {
-        self.mid_px.unwrap_or(self.mark_px)
-    }
-}
+/// What a pair is doing now: hl-core's, the shape the socket sends. HIP-4 outcome sides ride in
+/// the same list, keyed `#<encoding>`.
+pub use hl_core::context::SpotCtx;
 
 /// `spotMetaAndAssetCtxs`: `[spotMeta, [ctx, ...]]`. The contexts are keyed
 /// by `coin`, not by place: they outnumber the pairs.

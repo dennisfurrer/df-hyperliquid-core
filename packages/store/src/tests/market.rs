@@ -276,7 +276,7 @@ fn a_market_s_context_is_its_kind_s() {
     let Some(Context::Perp(btc)) = store.context("BTC").map(|ctx| ctx.value) else { panic!("a perp") };
     assert_eq!((btc.mark_px, btc.funding, btc.oracle_px), (dec("80454.0"), dec("0.0000078567"), dec("80491.9")));
     let Some(Context::Spot(hype)) = store.context("@107").map(|ctx| ctx.value) else { panic!("a pair") };
-    assert_eq!((hype.mark_px, hype.circulating_supply), (dec("82.858"), Some(dec("302175679.3606832623"))));
+    assert_eq!((hype.mark_px, hype.circulating_supply), (dec("82.858"), dec("302175679.3606832623")));
     let side = store.context("#14720").unwrap();
     assert_eq!((side.mark(), side.mid(), side.heard), (dec("0.5"), None, 1_000));
     assert!(store.context("ETH").is_none());

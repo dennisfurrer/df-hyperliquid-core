@@ -222,35 +222,8 @@ impl DexMeta {
     }
 }
 
-/// What a HIP-3 perp is doing now; the main dex's shape.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DexCtx {
-    pub mark_px: Dec,
-    #[serde(default)]
-    pub mid_px: Option<Dec>,
-    pub oracle_px: Dec,
-    pub prev_day_px: Dec,
-    /// Hourly, as a fraction of the position's value.
-    pub funding: Dec,
-    pub open_interest: Dec,
-    pub day_ntl_vlm: Dec,
-    #[serde(default)]
-    pub day_base_vlm: Option<Dec>,
-    /// `null`, with the impact prices, on a market with no book.
-    #[serde(default)]
-    pub premium: Option<Dec>,
-    #[serde(default)]
-    pub impact_pxs: Option<Vec<Dec>>,
-}
-
-impl DexCtx {
-    /// The price a market order is bounded from: the mid, else the mark.
-    #[must_use]
-    pub fn reference(&self) -> Dec {
-        self.mid_px.unwrap_or(self.mark_px)
-    }
-}
+/// What a HIP-3 perp is doing now: the main dex's shape, hl-core's.
+pub type DexCtx = hl_core::context::PerpCtx;
 
 /// `metaAndAssetCtxs` with `dex`: `[meta, [ctx, ...]]`, one context per perp.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

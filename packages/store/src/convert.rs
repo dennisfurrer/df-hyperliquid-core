@@ -3,8 +3,6 @@
 //! into without losing what it said:
 //!
 //! - fills, fundings and ledger rows as hl-ws reads them;
-//! - perp contexts as hl-perps reads them (hl-hip3's are the same fields), spot contexts as
-//!   hl-spot does (its supplies may be absent, the socket's never are);
 //! - a dex's clearinghouse as hl-perps reads it, and from it hl-account's, which usable
 //!   balances and worth are read from;
 //! - spot balances and the mode as hl-account reads them;
@@ -14,56 +12,10 @@ use hl_account::{
     PerpState, SpotBalance, SpotState,
     state::{AssetPosition as HeldPosition, Leverage as HeldLeverage},
 };
-use hl_perps::{
-    AssetPosition, ClearinghouseState, CumFunding, Leverage, MarginSummary, PerpCtx, Position, UserFunding,
-};
-use hl_spot::SpotCtx;
+use hl_perps::{AssetPosition, ClearinghouseState, CumFunding, Leverage, MarginSummary, Position, UserFunding};
 use hl_trade::{FrontendOrder, OrderKind};
 use hl_ws::{Fill, Funding, Margin};
 use serde::{Deserialize, de::IntoDeserializer};
-
-pub(crate) fn perp_ctx(sent: &hl_ws::PerpCtx) -> PerpCtx {
-    PerpCtx {
-        mark_px: sent.mark_px,
-        mid_px: sent.mid_px,
-        oracle_px: sent.oracle_px,
-        prev_day_px: sent.prev_day_px,
-        funding: sent.funding,
-        open_interest: sent.open_interest,
-        day_ntl_vlm: sent.day_ntl_vlm,
-        day_base_vlm: sent.day_base_vlm,
-        premium: sent.premium,
-        impact_pxs: sent.impact_pxs.clone(),
-    }
-}
-
-pub(crate) fn dex_ctx(read: &hl_hip3::DexCtx) -> PerpCtx {
-    PerpCtx {
-        mark_px: read.mark_px,
-        mid_px: read.mid_px,
-        oracle_px: read.oracle_px,
-        prev_day_px: read.prev_day_px,
-        funding: read.funding,
-        open_interest: read.open_interest,
-        day_ntl_vlm: read.day_ntl_vlm,
-        day_base_vlm: read.day_base_vlm,
-        premium: read.premium,
-        impact_pxs: read.impact_pxs.clone(),
-    }
-}
-
-pub(crate) fn spot_ctx(sent: &hl_ws::SpotCtx) -> SpotCtx {
-    SpotCtx {
-        coin: sent.coin.clone(),
-        mark_px: sent.mark_px,
-        mid_px: sent.mid_px,
-        prev_day_px: sent.prev_day_px,
-        day_ntl_vlm: sent.day_ntl_vlm,
-        day_base_vlm: sent.day_base_vlm,
-        circulating_supply: Some(sent.circulating_supply),
-        total_supply: sent.total_supply,
-    }
-}
 
 /// The socket's clearinghouse as hl-perps reads one. An isolated position always carries its
 /// `rawUsd`; one that did not would read as none put up.

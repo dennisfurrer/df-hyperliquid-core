@@ -60,6 +60,14 @@ fn contexts_are_keyed_by_book_name_outcome_sides_included() {
     assert_eq!(both.ctx("HYPE/USDC"), None, "the book calls it @107");
 }
 
+/// Every recorded context, read and sent, carries its circulating supply: one without it is
+/// refused, not read as a supply unknown.
+#[test]
+fn a_context_without_its_circulating_supply_is_refused() {
+    let without = r#"{"prevDayPx":"0.1647","dayNtlVlm":"2299853.9030900002","markPx":"0.15262","midPx":"0.15272","coin":"PURR/USDC","totalSupply":"594784610.6496700048","dayBaseVlm":"14751907.0"}"#;
+    assert!(serde_json::from_str::<SpotCtx>(without).is_err());
+}
+
 /// What a balance of each token is worth: its pair with USDC's mark.
 #[test]
 fn a_token_is_priced_in_usdc_by_its_pair_s_mark() {

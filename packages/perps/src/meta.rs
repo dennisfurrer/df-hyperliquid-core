@@ -3,7 +3,7 @@
 //! market shows; and `perpsAtOpenInterestCap`. Every other field the venue
 //! sends is left unread.
 
-use hl_core::{ApiError, Asset, AssetKind, Dec, Round, Transport, info, info_request};
+use hl_core::{ApiError, Asset, AssetKind, Transport, info, info_request};
 use hl_trade::Grid;
 use serde::Deserialize;
 
@@ -121,51 +121,8 @@ impl Meta {
     }
 }
 
-/// What a perp is doing now. The venue leaves `midPx`, `premium` and
-/// `impactPxs` out (as null) on a market with no book.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PerpCtx {
-    pub mark_px: Dec,
-    #[serde(default)]
-    pub mid_px: Option<Dec>,
-    pub oracle_px: Dec,
-    pub prev_day_px: Dec,
-    /// Hourly, as a fraction of the position's value.
-    pub funding: Dec,
-    /// In the base asset.
-    pub open_interest: Dec,
-    /// The quote traded over the last day.
-    pub day_ntl_vlm: Dec,
-    #[serde(default)]
-    pub day_base_vlm: Option<Dec>,
-    #[serde(default)]
-    pub premium: Option<Dec>,
-    #[serde(default)]
-    pub impact_pxs: Option<Vec<Dec>>,
-}
-
-impl PerpCtx {
-    /// The price a market order is bounded from: the mid, else the mark.
-    #[must_use]
-    pub fn reference(&self) -> Dec {
-        self.mid_px.unwrap_or(self.mark_px)
-    }
-
-    /// The mark's change over the day, in percent to two places, as
-    /// hip4-tui shows it. `None` without a previous day's price.
-    #[must_use]
-    pub fn day_change(&self) -> Option<Dec> {
-        let then = Some(self.prev_day_px).filter(|then| then.is_positive())?;
-        self.mark_px.checked_sub(then)?.checked_mul(Dec::from_int(100))?.checked_div(then, 2, Round::Nearest)
-    }
-
-    /// The open interest at the mark, in the quote.
-    #[must_use]
-    pub fn open_interest_value(&self) -> Option<Dec> {
-        self.open_interest.checked_mul(self.mark_px)
-    }
-}
+/// What a perp is doing now: hl-core's, the shape the socket sends.
+pub use hl_core::context::PerpCtx;
 
 /// `metaAndAssetCtxs`: `[meta, [ctx, ...]]`, one context per perp, in order.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

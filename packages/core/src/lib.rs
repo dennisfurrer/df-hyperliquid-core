@@ -27,6 +27,7 @@ pub mod book;
 pub mod builder_fee;
 pub mod candle;
 pub mod client;
+pub mod context;
 pub mod dec;
 pub mod dex;
 pub mod eip712;

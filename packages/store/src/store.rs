@@ -185,15 +185,15 @@ impl Store {
             Frame::Book(book) => self.fold_book(now, book.clone()),
             Frame::Trades(prints) => self.fold_prints(now, prints.iter().rev().cloned()),
             Frame::Candle(candle) => self.fold_candles(now, [candle.clone()]),
-            Frame::AssetCtx { coin, ctx } => self.fold_perp_ctxs(now, [(coin.clone(), convert::perp_ctx(ctx))]),
-            Frame::SpotAssetCtx { coin, ctx } => self.fold_spot_ctxs(now, [(coin.clone(), convert::spot_ctx(ctx))]),
+            Frame::AssetCtx { coin, ctx } => self.fold_perp_ctxs(now, [(coin.clone(), ctx.clone())]),
+            Frame::SpotAssetCtx { coin, ctx } => self.fold_spot_ctxs(now, [(coin.clone(), ctx.clone())]),
             Frame::AllDexsAssetCtxs(dexes) => dexes
                 .iter()
-                .map(|(dex, ctxs)| self.fold_dex_ctxs(now, dex, ctxs.iter().map(convert::perp_ctx)))
+                .map(|(dex, ctxs)| self.fold_dex_ctxs(now, dex, ctxs.iter().cloned()))
                 .fold(Folded::Dropped, Folded::or),
-            Frame::AssetCtxs { dex, ctxs } => self.fold_dex_ctxs(now, dex, ctxs.iter().map(convert::perp_ctx)),
+            Frame::AssetCtxs { dex, ctxs } => self.fold_dex_ctxs(now, dex, ctxs.iter().cloned()),
             Frame::SpotAssetCtxs(ctxs) => {
-                self.fold_spot_ctxs(now, ctxs.iter().map(|ctx| (ctx.coin.clone(), convert::spot_ctx(ctx))))
+                self.fold_spot_ctxs(now, ctxs.iter().map(|ctx| (ctx.coin.clone(), ctx.clone())))
             }
             Frame::ClearinghouseState(one) => {
                 let state = convert::clearinghouse(&one.state);
@@ -255,7 +255,7 @@ impl Store {
             Read::Dex { dex, read } => {
                 let coins: Vec<String> = read.meta.universe.iter().map(|perp| perp.name.clone()).collect();
                 let listed = self.list(dex, coins, read.meta.collateral_token);
-                listed.or(self.fold_dex_ctxs(now, dex, read.ctxs.iter().map(convert::dex_ctx)))
+                listed.or(self.fold_dex_ctxs(now, dex, read.ctxs.iter().cloned()))
             }
             Read::Dexes(dexes) => dexes
                 .list
