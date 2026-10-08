@@ -1,20 +1,37 @@
 //! hl-core's wire for the browser and Workers: [`Web`] sends hl-core's
-//! requests through the global `fetch`, and [`clock`] is `Date.now()`. Hand
-//! both to [`hl_core::Api`]:
+//! requests through the global `fetch`, [`clock`] is `Date.now()`, and a
+//! [`Feed`] keeps Hyperliquid's websocket open over the global `WebSocket`.
+//! Hand the first two to [`hl_core::Api`]:
 //!
 //! ```ignore
 //! let api = hl_core::Api::new(hl_web::Web, hl_core::Network::Mainnet, hl_web::clock);
 //! ```
 //!
-//! The global `fetch` is the same function in a page, a Web Worker and a
-//! Cloudflare Worker, so nothing here asks for a `window`. Hyperliquid's API
-//! answers CORS with `*`, so a page calls it directly. Nothing here retries.
+//! and an [`hl_ws::Session`] to the feed, then read what it hands back:
+//!
+//! ```ignore
+//! let mut feed = hl_web::Feed::start(hl_ws::Session::new(hl_core::Network::Mainnet));
+//! feed.subscribe(hl_ws::Subscription::AllMids { dex: String::new() }).await?;
+//! while let Some(event) = feed.next().await {
+//!     // Opened, Frame, Unreadable, or Closed with the delay before the next dial.
+//! }
+//! ```
+//!
+//! `fetch`, `WebSocket` and `setTimeout` are the same globals in a page, a Web
+//! Worker, a Cloudflare Worker and Node 22, so nothing here asks for a
+//! `window`. Hyperliquid's API answers CORS with `*`, so a page calls it
+//! directly. A request is never retried; the feed dials again when its socket
+//! drops, after the session's delay.
+
+pub mod socket;
 
 use hl_core::{Http, Method, Request, Response, TransportError};
 use js_sys::{Array, Function, Promise, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Headers, RequestInit};
+
+pub use socket::{Event, Feed, FeedError};
 
 /// The global `fetch`.
 #[derive(Debug, Clone, Copy, Default)]

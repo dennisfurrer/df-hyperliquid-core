@@ -578,7 +578,9 @@ name = "hl-web"
 version = "0.1.0"
 dependencies = [
  "hl-core",
+ "hl-ws",
  "js-sys",
+ "thiserror",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-bindgen-test",
