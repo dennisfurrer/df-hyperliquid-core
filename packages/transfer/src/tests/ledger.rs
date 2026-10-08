@@ -1,5 +1,8 @@
 //! `ledger.json` is one live mainnet row of every type seen on 2026-10-06,
-//! keyed by type, as the venue sent it.
+//! keyed by type, as the venue sent it. `ledger_more.json` is one live
+//! mainnet row each of `rewardsClaim` (a builder's claim), `subAccountTransfer`
+//! and `vaultCreate` (a vault leader's, its creation fee charged), read on
+//! 2026-10-08 and kept as the venue sent them.
 
 use std::collections::BTreeMap;
 
@@ -8,6 +11,7 @@ use hl_core::Dec;
 use super::*;
 
 const LIVE: &str = include_str!("ledger.json");
+const MORE: &str = include_str!("ledger_more.json");
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -100,6 +104,36 @@ fn the_modelled_types_read_field_for_field() {
             net_withdrawn_usd: dec("24987.57"),
         }
     );
+}
+
+/// A reward claimed names its token and amount, not `usdc`; a subaccount transfer is USDC
+/// between a master and its subaccount; a vault's creation names the USDC put in and the fee.
+#[test]
+fn the_claim_subaccount_and_vault_creation_rows_read() {
+    let rows: BTreeMap<String, LedgerUpdate> = serde_json::from_str(MORE).unwrap();
+    assert_eq!(
+        rows["rewardsClaim"].delta,
+        Delta::RewardsClaim { amount: dec("37.41544941"), token: "USDC".to_owned() }
+    );
+    assert_eq!(
+        rows["subAccountTransfer"].delta,
+        Delta::SubAccountTransfer {
+            usdc: dec("50"),
+            user: address("0x7789450871fb1315fa982ccb8039cb34e8f2f60d"),
+            destination: address("0xbe72e881983eaf61de3b63c56c488f0053266f04"),
+        }
+    );
+    assert_eq!(
+        rows["vaultCreate"].delta,
+        Delta::VaultCreate {
+            vault: address("0x9b5b1931fa5838a891973f9877c7648c93ee80cc"),
+            usdc: dec("150"),
+            fee: dec("100"),
+        }
+    );
+    for (kind, row) in &rows {
+        assert_eq!(row.kind(), kind);
+    }
 }
 
 /// HYPE in and out of staking (`cDeposit`, `cWithdraw`), a deployer's

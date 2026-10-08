@@ -131,6 +131,23 @@ pub enum Delta {
         token: String,
         amount: Dec,
     },
+    /// Referral or builder rewards claimed: an amount of `token`, not `usdc`.
+    RewardsClaim {
+        amount: Dec,
+        token: String,
+    },
+    /// USDC between a master and one of its subaccounts, `user` to `destination`.
+    SubAccountTransfer {
+        usdc: Dec,
+        user: Address,
+        destination: Address,
+    },
+    /// A vault made: the USDC its leader put in, and the creation fee charged beside it.
+    VaultCreate {
+        vault: Address,
+        usdc: Dec,
+        fee: Dec,
+    },
     /// A type this build does not read, or a known one that no longer reads as modelled: its
     /// `type` (empty when it names none) and the delta as written, every key and digit.
     #[serde(skip_deserializing)]
@@ -157,6 +174,9 @@ impl Delta {
             Delta::CStakingTransfer { .. } => "cStakingTransfer",
             Delta::SpotGenesis { .. } => "spotGenesis",
             Delta::DeployGasAuction { .. } => "deployGasAuction",
+            Delta::RewardsClaim { .. } => "rewardsClaim",
+            Delta::SubAccountTransfer { .. } => "subAccountTransfer",
+            Delta::VaultCreate { .. } => "vaultCreate",
             Delta::Other { kind, .. } => kind,
         }
     }
