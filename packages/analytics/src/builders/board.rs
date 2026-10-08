@@ -4,10 +4,13 @@
 //! one read. The fills no builder routed are a row of their own, ranked by volume beside the
 //! builders and holding no place: trading direct is not a builder.
 
-use hl_core::{Address, Dec, Round};
+use hl_core::{Address, Dec};
 use hl_hydromancer::VolumeDaily;
 
-use crate::date::At;
+use crate::{
+    date::At,
+    math::{add, share, sum},
+};
 
 /// A board's window, the newest days of the matrix.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -202,25 +205,6 @@ fn rank(rows: &mut [Standing], total: Dec) {
         }
         row.share = share(row.volume, total);
     }
-}
-
-/// `part` of `whole` in hundredths of a percent, cut down; nothing of nothing.
-pub(crate) fn share(part: Dec, whole: Dec) -> u32 {
-    if !whole.is_positive() {
-        return 0;
-    }
-    part.checked_div(whole, 4, Round::Down)
-        .and_then(|fraction| fraction.units_at(4, Round::Down))
-        .map_or(0, |units| u32::try_from(units.max(0)).unwrap_or(u32::MAX))
-}
-
-/// Exact while a `Dec` holds the total, which a day's volume never nears.
-pub(crate) fn add(sum: Dec, more: Dec) -> Dec {
-    sum.checked_add(more).unwrap_or(sum)
-}
-
-pub(crate) fn sum(figures: &[Dec]) -> Dec {
-    figures.iter().fold(Dec::ZERO, |total, one| add(total, *one))
 }
 
 #[cfg(test)]

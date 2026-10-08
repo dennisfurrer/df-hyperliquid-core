@@ -9,8 +9,8 @@ use hl_core::{Dec, Round};
 use hl_hip4::{Catalog, Fill, multiplier};
 
 use crate::{
-    builders::board::add,
     estimate::{Basis, Estimate},
+    math::add,
 };
 
 /// Hundredths of a basis point in the whole: a rate of 1344 is 13.44 bp.

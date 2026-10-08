@@ -15,6 +15,7 @@ use super::money;
 use crate::{
     date::{At, DAY_MS},
     hip4::LedgerRow,
+    math::add,
 };
 
 /// Where a row stands.
@@ -303,7 +304,7 @@ impl State {
                 match row.status {
                     Status::Sent => {
                         entry.rows_sent += 1;
-                        entry.sent = entry.sent.checked_add(row.amount).unwrap_or(entry.sent);
+                        entry.sent = add(entry.sent, row.amount);
                         if let Some(at) = row.sent_at {
                             entry.last_payout_at = Some(entry.last_payout_at.map_or(at, |had| had.max(at)));
                         }

@@ -1,7 +1,7 @@
 //! Payouts: a file of wallets and USDC amounts paid from a treasury, ported from hip4-tui's
 //! payout tool without its files and its sends. A file is read from its text ([`csv`]), recorded
 //! as a batch in an append-only ledger of JSON lines ([`ledger`]) that hip4-tui and the payout tool
-//! before it share, and planned against the guards a person set ([`config`], [`plan`]) before
+//! before it share, and planned against the guards a person set ([`config`], [`mod@plan`]) before
 //! anything moves. Reading and appending the files, signing and sending are the caller's: every
 //! function here takes and gives text and values.
 //!

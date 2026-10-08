@@ -1,7 +1,7 @@
 //! A payout file as text: a header naming a wallet column and an amount column (and a memo, if
 //! any) in any of the spellings people use, then a row a payout. Read whole or refused whole: a
 //! row that will not read, or a wallet named twice unless merging was asked for, refuses the
-//! file, because guessing pays the wrong amount. Written back in one spelling ([`write`]).
+//! file, because guessing pays the wrong amount. Written back in one spelling ([`write()`]).
 
 use std::collections::BTreeMap;
 
@@ -231,7 +231,7 @@ pub fn read(text: &str, merge: bool) -> Result<Sheet, BadSheet> {
 }
 
 /// Rows as a file: `wallet,amount_usdc,memo`, a field quoted where it holds a comma, a quote or a
-/// line break. What [`read`] reads back to the same rows.
+/// line break. What [`read()`] reads back to the same rows.
 #[must_use]
 pub fn write(rows: &[Row]) -> String {
     let mut out = String::from("wallet,amount_usdc,memo\n");

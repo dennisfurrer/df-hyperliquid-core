@@ -3,6 +3,8 @@
 
 use hl_core::{Dec, Round};
 
+use crate::math::add;
+
 /// USDC's own precision.
 pub const USDC_DECIMALS: u32 = 6;
 
@@ -60,7 +62,7 @@ pub fn is_payable(amount: Dec) -> bool {
 /// Every amount added, exactly.
 #[must_use]
 pub fn total(amounts: impl IntoIterator<Item = Dec>) -> Dec {
-    amounts.into_iter().fold(Dec::ZERO, |sum, one| sum.checked_add(one).unwrap_or(sum))
+    amounts.into_iter().fold(Dec::ZERO, add)
 }
 
 #[cfg(test)]

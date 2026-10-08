@@ -6,18 +6,19 @@
 //! says when now is ([`At`]). Money is exact, [`hl_core::Dec`] or integers, never a float.
 //!
 //! - [`builders`]: the board, every builder ranked by volume over a window
-//!   ([`Board`]); the curated labels ([`labels`]); how a builder fee works, as numbers
-//!   ([`codes`]); and what a builder code has been paid ([`Rewards`]).
+//!   ([`Board`]); the curated labels ([`builders::labels`]); how a builder fee works, as
+//!   numbers ([`builders::codes`]); and what a builder code has been paid ([`Rewards`]).
 //! - [`hip3`]: every perp dex and how its deployer set it up ([`Setup`]), what its assets are
 //!   doing ([`Activity`]), and the builders that route perps on a day ([`Routing`]).
-//! - [`hip4`]: who lists what ([`Venue`]) and from which templates ([`Uses`]), and what a deployer
+//! - [`hip4`]: who lists what ([`Venue`]) and from which templates ([`hip4::Uses`]), and what a deployer
 //!   earns. No endpoint reports that, so it is an [`Estimate`] wherever it appears: from the
 //!   deployer's own ledger ([`Earned`]) or from fills by the fee model ([`Paid`], [`Takes`]).
 //! - [`projection`]: the revenue projection, period by period ([`Projection`], [`Period`]), and
 //!   the assumptions it is made of.
-//! - [`payout`]: a payout file read and written as text ([`Sheet`]), its batch in the append-only
-//!   ledger ([`Event`], [`State`]), the guards ([`Config`]) and the plan made before anything
-//!   moves ([`Plan`]). The files, the signing and the sends are the caller's.
+//! - [`payout`]: a payout file read and written as text ([`payout::Sheet`]), its batch in the
+//!   append-only ledger ([`payout::Event`], [`payout::State`]), the guards ([`payout::Config`])
+//!   and the plan made before anything moves ([`payout::Plan`]). The files, the signing and the
+//!   sends are the caller's.
 #![deny(clippy::float_arithmetic)]
 
 pub mod builders;
@@ -25,16 +26,13 @@ pub mod date;
 pub mod estimate;
 pub mod hip3;
 pub mod hip4;
+mod math;
 pub mod payout;
 pub mod projection;
 
-pub use builders::{
-    Board, Cap, Kind, Label, Ragged, Rewards, SHARE_OF_CAP, SHARE_UNITS, Stage, Standing, TENTHS_PER_BASIS_POINT,
-    Window, codes, labels,
-};
-pub use date::{At, DAY_MS};
+pub use builders::{Board, Ragged, Rewards, Standing, Window};
+pub use date::At;
 pub use estimate::{Basis, Estimate};
 pub use hip3::{Activity, Routing, Setup};
-pub use hip4::{Earned, First, LedgerRow, Paid, Take, Takes, Uses, Venue};
-pub use payout::{Config, Event, Plan, Sheet, State};
-pub use projection::{Period, Projection, Totals};
+pub use hip4::{Earned, Paid, Takes, Venue};
+pub use projection::{Period, Projection};

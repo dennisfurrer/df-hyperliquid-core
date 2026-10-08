@@ -14,6 +14,7 @@ use serde::Deserialize;
 use crate::{
     builders::Rewards,
     estimate::{Basis, Estimate},
+    math::add,
 };
 
 /// One row of `userNonFundingLedgerUpdates`.
@@ -93,7 +94,7 @@ impl LedgerRow {
 #[must_use]
 pub fn explained(rows: &[LedgerRow], me: Address) -> (Dec, bool) {
     rows.iter().fold((Dec::ZERO, true), |(total, exact), row| match row.moved(me) {
-        Some(moved) => (total.checked_add(moved).unwrap_or(total), exact),
+        Some(moved) => (add(total, moved), exact),
         None => (total, false),
     })
 }

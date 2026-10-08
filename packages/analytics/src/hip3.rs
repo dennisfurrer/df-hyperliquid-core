@@ -10,12 +10,9 @@ use hl_hip4::{Deployer, SubDeployer};
 use hl_hydromancer::BuilderDay;
 
 use crate::{
-    builders::{
-        Board, Window,
-        board::{add, share},
-        labels,
-    },
+    builders::{Board, Window, labels},
     date::At,
+    math::{add, share},
 };
 
 /// One HIP-3 dex as its deployer set it up.
