@@ -63,18 +63,18 @@ impl Grid {
         self.ceiling.saturating_sub(self.sz_decimals)
     }
 
-    /// `price` on the grid, rounded as asked: cut to the places allowed,
-    /// then, unless whole, to five significant figures. `None` when nothing
-    /// positive is left.
+    /// `price` on the grid, rounded as asked, once: at the coarser of the
+    /// places allowed and five significant figures, and never past the whole
+    /// part (a whole price is always taken). Rounding to the places and then
+    /// to the figures would round twice: to the nearest, `81800.45` would
+    /// become `81801`, not `81800`. `None` when nothing positive is left.
     #[must_use]
     pub fn tick(self, price: Dec, round: Round) -> Option<Dec> {
         if !price.is_positive() {
             return None;
         }
-        let mut kept = price.round(self.price_places(), round);
-        if !kept.is_integer() {
-            kept = kept.round_sig(SIGNIFICANT_FIGURES, round);
-        }
+        let places = self.price_places().min(price.sig_places(SIGNIFICANT_FIGURES));
+        let kept = price.round(places, round);
         kept.is_positive().then_some(kept)
     }
 

@@ -23,7 +23,8 @@ const PRICES: [(&str, u32, bool, Option<&str>); 15] = [
     ("1.23456789", 5, false, Some("1.2")),
     ("0.0000123456789", 0, true, Some("0.00001234")),
     ("83982.7", 5, false, Some("83982")),
-    ("123456.7", 0, false, Some("123450")),
+    // the SDK cuts to five figures (123450); a whole price is always taken, so the nearest one wins
+    ("123456.7", 0, false, Some("123456")),
     ("123456", 0, false, Some("123456")),
     ("3.14159265", 2, false, Some("3.1415")),
     ("0.001234567", 0, false, Some("0.001234")),
@@ -56,6 +57,17 @@ fn sizes_are_cut_toward_zero_to_the_size_decimals() {
     ] {
         assert_eq!(Grid::perp(sz_decimals).size(dec(size)).map(Dec::to_wire).as_deref(), wanted, "{size}");
     }
+}
+
+#[test]
+fn a_price_rounds_once_at_the_coarser_step() {
+    // to the places (81800.5), then to five figures, would round twice and give 81801
+    assert_eq!(Grid::perp(5).tick(dec("81800.45"), Round::Nearest), Some(dec("81800")));
+    assert_eq!(Grid::perp(5).tick(dec("81800.5"), Round::Nearest), Some(dec("81801")));
+    assert_eq!(Grid::perp(2).tick(dec("85.12345"), Round::Nearest), Some(dec("85.123")));
+    assert_eq!(dec("123.456").sig_places(5), 2);
+    assert_eq!(dec("0.01234567").sig_places(5), 6);
+    assert_eq!(dec("123456.7").sig_places(5), 0);
 }
 
 #[test]

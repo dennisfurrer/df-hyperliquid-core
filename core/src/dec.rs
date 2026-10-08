@@ -154,6 +154,15 @@ impl Dec {
         self.units_at(places, round).map_or(self, |units| Dec { units, scale: places }.normal())
     }
 
+    /// The places `figures` significant digits reach for this value: 2 for
+    /// `123.456` at five figures, 6 for `0.01234567`; 0 when they end in the
+    /// whole part (`123456.7`).
+    #[must_use]
+    pub fn sig_places(self, figures: u32) -> u32 {
+        let places = i64::from(figures) - i64::from(digits(self.units)) + i64::from(self.scale);
+        u32::try_from(places.max(0)).unwrap_or(0)
+    }
+
     /// Kept to at most `figures` significant digits. Digits dropped before the
     /// point become zeros, so `123456.7` to five figures is `123450`.
     #[must_use]
