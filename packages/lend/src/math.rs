@@ -99,24 +99,12 @@ impl ReserveState {
     }
 }
 
-/// `part / whole` to [`RATE_PLACES`], the nearest, both not negative. Both
-/// are first counted in the same units: `Dec::checked_div` scales the
-/// numerator by ten to the twentieth for two ten-place figures, which a
-/// reserve's hundreds of millions overflow.
+/// `part / whole` to [`RATE_PLACES`], the nearest, both not negative.
 fn ratio(part: Dec, whole: Dec) -> Option<Dec> {
-    let places = part.places().max(whole.places());
-    let part = part.units_at(places, Round::Down)?;
-    let whole = whole.units_at(places, Round::Down)?;
-    if part < 0 || whole <= 0 {
+    if part < Dec::ZERO || whole <= Dec::ZERO {
         return None;
     }
-    let scaled = part.checked_mul(10i128.checked_pow(RATE_PLACES)?)?;
-    let (quotient, rest) = (scaled / whole, scaled % whole);
-    let units = match rest.checked_mul(2)? >= whole {
-        true => quotient.checked_add(1)?,
-        false => quotient,
-    };
-    Dec::new(units, RATE_PLACES)
+    part.checked_div(whole, RATE_PLACES, Round::Nearest)
 }
 
 /// What an account can still borrow, in USDC: each held token's free amount

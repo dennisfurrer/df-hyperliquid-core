@@ -222,14 +222,31 @@ impl Dec {
             return None;
         }
         let (a, b) = (self.normal(), other.normal());
-        // a/b = (ua * 10^(places + sb)) / (ub * 10^sa), in units of 10^-places.
-        let numerator = a.units.checked_mul(ten(places + b.scale)?)?;
-        let denominator = b.units.checked_mul(ten(a.scale)?)?;
-        let (numerator, denominator) = match denominator < 0 {
-            true => (numerator.checked_neg()?, denominator.checked_neg()?),
-            false => (numerator, denominator),
+        // At one scale a/b is a division of integers. Its digits behind the
+        // point come one at a time from the remainder, which stays below the
+        // divisor, so nothing grows past the quotient itself: scaling the
+        // numerator up front overflowed for figures in the hundreds of
+        // millions at ten places.
+        let scale = a.scale.max(b.scale);
+        let top = a.units.checked_mul(ten(scale - a.scale)?)?;
+        let bottom = b.units.checked_mul(ten(scale - b.scale)?)?;
+        let negative = (top < 0) != (bottom < 0);
+        let (top, bottom) = (top.unsigned_abs(), bottom.unsigned_abs());
+        let mut units = top / bottom;
+        let mut rest = top % bottom;
+        for _ in 0..places {
+            rest = rest.checked_mul(10)?;
+            units = units.checked_mul(10)?.checked_add(rest / bottom)?;
+            rest %= bottom;
+        }
+        let away = match round {
+            Round::Down => false,
+            Round::Up => rest != 0,
+            Round::Nearest => rest != 0 && rest >= bottom - rest,
         };
-        Some(Dec { units: divide(numerator, denominator, round), scale: places }.normal())
+        let units = i128::try_from(units.checked_add(u128::from(away))?).ok()?;
+        let units = if negative { -units } else { units };
+        Some(Dec { units, scale: places }.normal())
     }
 
     /// The canonical spelling: no trailing zeros, no exponent, `0` for zero.

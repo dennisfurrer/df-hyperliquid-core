@@ -47,6 +47,29 @@ fn arithmetic_is_exact() {
     assert_eq!(dec("1").checked_div(Dec::ZERO, 2, Round::Down), None);
 }
 
+/// Lending reserves in the hundreds of millions at ten places overflowed an
+/// i128 on the way to their ratio (hl-lend's report). Expected quotients are
+/// Python `decimal`'s at 80 digits.
+#[test]
+fn large_figures_divide_without_overflowing() {
+    let (supplied, borrowed) = (dec("612345678.9876543211"), dec("512345678.1234567891"));
+    assert_eq!(borrowed.checked_div(supplied, 10, Round::Down), Some(dec("0.8366935469")));
+    assert_eq!(borrowed.checked_div(supplied, 10, Round::Up), Some(dec("0.836693547")));
+    assert_eq!(borrowed.checked_div(supplied, 10, Round::Nearest), Some(dec("0.836693547")));
+    assert_eq!(dec("-512345678.1234567891").checked_div(supplied, 10, Round::Down), Some(dec("-0.8366935469")));
+    assert_eq!(dec("-512345678.1234567891").checked_div(supplied, 10, Round::Up), Some(dec("-0.836693547")));
+    assert_eq!(
+        dec("498765432.1234567891").checked_div(dec("734567890.9876543213"), 10, Round::Nearest),
+        Some(dec("0.6789916061"))
+    );
+    assert_eq!(
+        dec("98765432109876543.21").checked_div(dec("0.0000000003"), 2, Round::Down),
+        Some(dec("329218107032921810700000000"))
+    );
+    assert_eq!(dec("1").checked_div(dec("7"), 18, Round::Down), Some(dec("0.142857142857142857")));
+    assert_eq!(dec("1").checked_div(dec("7"), 18, Round::Up), Some(dec("0.142857142857142858")));
+}
+
 #[test]
 fn rounding_goes_the_way_it_is_asked() {
     assert_eq!(dec("1.23456").round(2, Round::Down), dec("1.23"));
