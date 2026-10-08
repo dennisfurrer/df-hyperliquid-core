@@ -7,7 +7,7 @@
 //! (`states`) has not been seen live here, so all of its fields but the
 //! token and its spec are read as optional.
 
-use hl_core::{Address, ApiError, Dec, Json, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Transport, info, info_request, user_request};
 use serde::Deserialize;
 
 /// `{"type":"spotDeployState","user":..}`.
@@ -23,7 +23,7 @@ pub async fn spot_deploy_state(transport: &impl Transport, user: Address) -> Res
 /// `{"type":"spotPairDeployAuctionStatus"}`.
 #[must_use]
 pub fn spot_pair_deploy_auction_request() -> String {
-    Json::Object(vec![("type".to_owned(), Json::String("spotPairDeployAuctionStatus".to_owned()))]).compact()
+    info_request("spotPairDeployAuctionStatus", &[])
 }
 
 pub async fn spot_pair_deploy_auction(transport: &impl Transport) -> Result<GasAuction, ApiError> {

@@ -44,7 +44,7 @@ pub use asset::{Asset, AssetKind, HIP3_ASSET_BASE, HIP3_DEX_SPAN, OUTCOME_ASSET_
 pub use builder_fee::{BuilderFee, OUTCOME_BUILDER_CAP, PERP_BUILDER_CAP, SPOT_BUILDER_CAP};
 pub use client::{
     Accepted, ApiError, ExchangeResponse, Http, Method, Request, Response, Status, Transport, TransportError, exchange,
-    info, user_request,
+    info, info_request, user_request,
 };
 pub use dec::{BadDec, Dec, Round};
 pub use eip712::{Domain, Field, TypedStruct, digest, digest_of_wallet_json};

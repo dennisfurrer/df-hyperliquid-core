@@ -1,12 +1,12 @@
 //! `spotMeta` and `spotMetaAndAssetCtxs`: tokens, pairs, and what each pair
 //! is doing now. Fields the venue adds are left unread.
 
-use hl_core::{Address, ApiError, Asset, AssetKind, Dec, Json, SPOT_ASSET_BASE, Transport, USDC_INDEX, info};
+use hl_core::{Address, ApiError, Asset, AssetKind, Dec, SPOT_ASSET_BASE, Transport, USDC_INDEX, info, info_request};
 use hl_trade::Grid;
 use serde::Deserialize;
 
 fn request(kind: &str) -> String {
-    Json::Object(vec![("type".to_owned(), Json::String(kind.to_owned()))]).compact()
+    info_request(kind, &[])
 }
 
 /// `{"type":"spotMeta"}`.

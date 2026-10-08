@@ -3,24 +3,20 @@
 //! utilization are fractions (0.05 is 5%). A token is its spot index, from the
 //! caller's `spotMeta`: HYPE is 150 on mainnet and 1105 on testnet.
 
-use hl_core::{Address, ApiError, Dec, Figure, Json, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Figure, Json, Transport, info, info_request, user_request};
 use serde::Deserialize;
 
 /// `{"type":"allBorrowLendReserveStates"}`.
 #[must_use]
 pub fn all_reserve_states_request() -> String {
-    Json::Object(vec![("type".to_owned(), Json::String("allBorrowLendReserveStates".to_owned()))]).compact()
+    info_request("allBorrowLendReserveStates", &[])
 }
 
 /// `{"type":"borrowLendReserveState","token":..}`. A token with no reserve is
 /// answered HTTP 500.
 #[must_use]
 pub fn reserve_state_request(token: u32) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("borrowLendReserveState".to_owned())),
-        ("token".to_owned(), Json::Number(token.to_string())),
-    ])
-    .compact()
+    info_request("borrowLendReserveState", &[("token", Json::Number(token.to_string()))])
 }
 
 /// `{"type":"borrowLendUserState","user":..}`.

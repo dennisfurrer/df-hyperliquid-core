@@ -2,7 +2,7 @@
 //! than funding. Each row's `delta` is tagged by `type`; a type this build
 //! does not know reads as [`Delta::Other`] rather than failing the list.
 
-use hl_core::{Address, ApiError, Dec, Json, Transport, info};
+use hl_core::{Address, ApiError, Dec, Json, Transport, info, info_request};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
@@ -10,15 +10,11 @@ use serde_json::Value;
 /// times in milliseconds.
 #[must_use]
 pub fn ledger_request(user: Address, start_time: u64, end_time: Option<u64>) -> String {
-    let mut request = vec![
-        ("type".to_owned(), Json::String("userNonFundingLedgerUpdates".to_owned())),
-        ("user".to_owned(), Json::String(user.to_hex())),
-        ("startTime".to_owned(), Json::Number(start_time.to_string())),
-    ];
+    let mut fields = vec![("user", Json::String(user.to_hex())), ("startTime", Json::Number(start_time.to_string()))];
     if let Some(end_time) = end_time {
-        request.push(("endTime".to_owned(), Json::Number(end_time.to_string())));
+        fields.push(("endTime", Json::Number(end_time.to_string())));
     }
-    Json::Object(request).compact()
+    info_request("userNonFundingLedgerUpdates", &fields)
 }
 
 /// The row a send signed with `nonce` made: a read back that finds the very

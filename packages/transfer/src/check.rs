@@ -1,18 +1,16 @@
 //! What the venue says about a recipient before a send, and which addresses
 //! a send must never go to.
 
-use hl_core::{Address, ApiError, Dec, Json, Transport, info};
+use hl_core::{Address, ApiError, Dec, Json, Transport, info, info_request};
 use serde::Deserialize;
 
 /// `{"type":"preTransferCheck","user":<recipient>,"source":<sender>}`.
 #[must_use]
 pub fn pre_transfer_check_request(recipient: Address, sender: Address) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("preTransferCheck".to_owned())),
-        ("user".to_owned(), Json::String(recipient.to_hex())),
-        ("source".to_owned(), Json::String(sender.to_hex())),
-    ])
-    .compact()
+    info_request(
+        "preTransferCheck",
+        &[("user", Json::String(recipient.to_hex())), ("source", Json::String(sender.to_hex()))],
+    )
 }
 
 /// The venue's answer about a recipient. A fresh one costs an activation fee

@@ -9,7 +9,7 @@
 
 use std::{collections::BTreeMap, fmt, str::FromStr};
 
-use hl_core::{ApiError, Json, Transport, info};
+use hl_core::{ApiError, Json, Transport, info, info_request};
 use serde::{
     Deserialize, Deserializer,
     de::{IgnoredAny, SeqAccess, Visitor},
@@ -379,7 +379,7 @@ impl<'de> Deserialize<'de> for Templates {
 /// `{"type":"outcomeTemplates"}`.
 #[must_use]
 pub fn outcome_templates_request() -> String {
-    Json::Object(vec![("type".to_owned(), Json::String("outcomeTemplates".to_owned()))]).compact()
+    info_request("outcomeTemplates", &[])
 }
 
 pub async fn outcome_templates(transport: &impl Transport) -> Result<Vec<OutcomeTemplate>, ApiError> {
@@ -389,11 +389,7 @@ pub async fn outcome_templates(transport: &impl Transport) -> Result<Vec<Outcome
 /// `{"type":"outcomeDeployerLimits","venue":..}`.
 #[must_use]
 pub fn deployer_limits_request(venue: &str) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("outcomeDeployerLimits".to_owned())),
-        ("venue".to_owned(), Json::String(venue.to_owned())),
-    ])
-    .compact()
+    info_request("outcomeDeployerLimits", &[("venue", Json::String(venue.to_owned()))])
 }
 
 /// What `outcomeDeployerLimits` answers: how many more a venue may register

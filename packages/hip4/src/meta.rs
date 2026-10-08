@@ -1,7 +1,7 @@
 //! `outcomeMeta`: every live outcome, every question, and who deploys on
 //! which venue. A settled outcome leaves the list for good.
 
-use hl_core::{Address, ApiError, Dec, Json, OutcomeSide, Transport, info};
+use hl_core::{Address, ApiError, Dec, OutcomeSide, Transport, info, info_request};
 use serde::Deserialize;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
 /// `{"type":"outcomeMeta"}`.
 #[must_use]
 pub fn outcome_meta_request() -> String {
-    Json::Object(vec![("type".to_owned(), Json::String("outcomeMeta".to_owned()))]).compact()
+    info_request("outcomeMeta", &[])
 }
 
 pub async fn outcome_meta(transport: &impl Transport) -> Result<OutcomeMeta, ApiError> {

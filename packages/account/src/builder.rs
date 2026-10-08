@@ -2,7 +2,9 @@
 //! builder to charge (`maxBuilderFee`). An order whose builder fee is over
 //! the approval is refused by the venue.
 
-use hl_core::{Address, ApiError, BuilderFee, Field, Json, NonceKey, Transport, UserAction, UserSigned, info};
+use hl_core::{
+    Address, ApiError, BuilderFee, Field, Json, NonceKey, Transport, UserAction, UserSigned, info, info_request,
+};
 
 /// `approveBuilderFee`, signed by the account's own wallet: lets `builder`
 /// charge up to `max_fee` on this account's orders. `maxFeeRate` is the
@@ -49,12 +51,7 @@ impl UserAction for ApproveBuilderFee {
 /// `{"type":"maxBuilderFee","user":..,"builder":..}`.
 #[must_use]
 pub fn max_builder_fee_request(user: Address, builder: Address) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("maxBuilderFee".to_owned())),
-        ("user".to_owned(), Json::String(user.to_hex())),
-        ("builder".to_owned(), Json::String(builder.to_hex())),
-    ])
-    .compact()
+    info_request("maxBuilderFee", &[("user", Json::String(user.to_hex())), ("builder", Json::String(builder.to_hex()))])
 }
 
 /// What `user` has approved `builder` to charge, in tenths of a basis point;

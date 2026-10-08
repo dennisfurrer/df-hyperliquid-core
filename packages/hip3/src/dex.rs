@@ -1,18 +1,17 @@
 //! `perpDexs`, and `meta` and `metaAndAssetCtxs` with `dex`. A dex the venue
 //! does not know answers `null`.
 
-use hl_core::{Address, ApiError, Asset, Dec, Json, Transport, info};
+use hl_core::{Address, ApiError, Asset, Dec, Json, Transport, info, info_request};
 use hl_trade::Grid;
 use serde::Deserialize;
 
 use crate::{ids::asset_parts, margin::MarginTable};
 
 pub(crate) fn request(kind: &str, dex: Option<&str>) -> String {
-    let mut fields = vec![("type".to_owned(), Json::String(kind.to_owned()))];
-    if let Some(dex) = dex {
-        fields.push(("dex".to_owned(), Json::String(dex.to_owned())));
+    match dex {
+        Some(dex) => info_request(kind, &[("dex", Json::String(dex.to_owned()))]),
+        None => info_request(kind, &[]),
     }
-    Json::Object(fields).compact()
 }
 
 /// `{"type":"perpDexs"}`.

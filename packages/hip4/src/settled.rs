@@ -8,7 +8,7 @@
 
 use std::collections::BTreeMap;
 
-use hl_core::{ApiError, Dec, Json, OutcomeSide, Transport, info};
+use hl_core::{ApiError, Dec, Json, OutcomeSide, Transport, info, info_request};
 use serde::{Deserialize, Deserializer};
 
 use crate::meta::Outcome;
@@ -16,11 +16,7 @@ use crate::meta::Outcome;
 /// `{"type":"settledOutcome","outcome":..}`.
 #[must_use]
 pub fn settled_outcome_request(outcome: u32) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("settledOutcome".to_owned())),
-        ("outcome".to_owned(), Json::Number(outcome.to_string())),
-    ])
-    .compact()
+    info_request("settledOutcome", &[("outcome", Json::Number(outcome.to_string()))])
 }
 
 /// `None` until the outcome settles.

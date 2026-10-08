@@ -1,17 +1,13 @@
 //! `tokenDetails`: one token's supply, prices and how it was deployed, asked
 //! by its token id (`0x` and 32 hex digits, as `spotMeta` writes it).
 
-use hl_core::{Address, ApiError, Dec, Json, Transport, info};
+use hl_core::{Address, ApiError, Dec, Json, Transport, info, info_request};
 use serde::Deserialize;
 
 /// `{"type":"tokenDetails","tokenId":..}`.
 #[must_use]
 pub fn token_details_request(token_id: &str) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("tokenDetails".to_owned())),
-        ("tokenId".to_owned(), Json::String(token_id.to_owned())),
-    ])
-    .compact()
+    info_request("tokenDetails", &[("tokenId", Json::String(token_id.to_owned()))])
 }
 
 /// HYPE's answer carries every genesis balance, near 100,000 of them: a read

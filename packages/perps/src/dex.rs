@@ -2,7 +2,7 @@
 //! and answers for one at a time: a request without `dex` is the main dex's,
 //! one with `"dex":"xyz"` that HIP-3 dex's.
 
-use hl_core::Json;
+use hl_core::{Json, info_request};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum Dex<'a> {
@@ -34,13 +34,11 @@ impl<'a> Dex<'a> {
 }
 
 /// `{"type":<kind>, ..fields, "dex":<name>}`, `dex` left out for the main dex.
-pub(crate) fn request(kind: &str, fields: Vec<(&str, Json)>, dex: Dex<'_>) -> String {
-    let mut object = vec![("type".to_owned(), Json::String(kind.to_owned()))];
-    object.extend(fields.into_iter().map(|(key, value)| (key.to_owned(), value)));
+pub(crate) fn request(kind: &str, mut fields: Vec<(&str, Json)>, dex: Dex<'_>) -> String {
     if let Some(name) = dex.name() {
-        object.push(("dex".to_owned(), Json::String(name.to_owned())));
+        fields.push(("dex", Json::String(name.to_owned())));
     }
-    Json::Object(object).compact()
+    info_request(kind, &fields)
 }
 
 /// A count or a time as the venue writes it: a bare integer.

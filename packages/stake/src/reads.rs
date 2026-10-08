@@ -2,7 +2,7 @@
 //! `delegatorRewards`, `delegatorHistory`. HYPE figures are decimal strings,
 //! except a validator's `stake`, which is wei.
 
-use hl_core::{Address, ApiError, Dec, Json, Network, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Network, Transport, info, info_request, user_request};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
@@ -56,7 +56,7 @@ pub const fn locked_until(network: Network, now_ms: u64) -> u64 {
 /// `{"type":"validatorSummaries"}`.
 #[must_use]
 pub fn validator_summaries_request() -> String {
-    Json::Object(vec![("type".to_owned(), Json::String("validatorSummaries".to_owned()))]).compact()
+    info_request("validatorSummaries", &[])
 }
 
 #[must_use]

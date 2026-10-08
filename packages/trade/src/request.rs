@@ -1,13 +1,11 @@
 //! An `/info` body: `type` first, then the fields in the order the venue's
 //! docs list them, so a request reads the same wherever it is logged.
 
-use hl_core::{Address, Json};
+use hl_core::{Address, Json, info_request};
 
 /// `{"type":kind, ...fields}`.
 pub(crate) fn body(kind: &str, fields: impl IntoIterator<Item = (&'static str, Json)>) -> String {
-    let mut entries = vec![("type".to_owned(), Json::String(kind.to_owned()))];
-    entries.extend(fields.into_iter().map(|(key, value)| (key.to_owned(), value)));
-    Json::Object(entries).compact()
+    info_request(kind, &fields.into_iter().collect::<Vec<_>>())
 }
 
 pub(crate) fn text(value: &str) -> Json {

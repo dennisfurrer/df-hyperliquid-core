@@ -3,7 +3,7 @@
 //! are read as the digits sent ([`Figure`]), never through an f64. Its
 //! `portfolio` history is left unread.
 
-use hl_core::{Address, ApiError, Dec, Figure, Json, Round, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Figure, Json, Round, Transport, info, info_request, user_request};
 use serde::Deserialize;
 
 use crate::transfer::USD_DECIMALS;
@@ -12,14 +12,11 @@ use crate::transfer::USD_DECIMALS;
 /// answer carries that follower's state.
 #[must_use]
 pub fn vault_details_request(vault: Address, user: Option<Address>) -> String {
-    let mut fields = vec![
-        ("type".to_owned(), Json::String("vaultDetails".to_owned())),
-        ("vaultAddress".to_owned(), Json::String(vault.to_hex())),
-    ];
+    let mut fields = vec![("vaultAddress", Json::String(vault.to_hex()))];
     if let Some(user) = user {
-        fields.push(("user".to_owned(), Json::String(user.to_hex())));
+        fields.push(("user", Json::String(user.to_hex())));
     }
-    Json::Object(fields).compact()
+    info_request("vaultDetails", &fields)
 }
 
 #[must_use]

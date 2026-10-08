@@ -127,14 +127,22 @@ pub enum ApiError {
     Refused(String),
 }
 
+/// `{"type":<kind>, ..fields}`, the body of every `/info` read: the type
+/// first, then each field in the order given. Keys go out in the order the
+/// docs list them, so a request reads the same wherever it is logged and
+/// matches a recorded one byte for byte.
+#[must_use]
+pub fn info_request(kind: &str, fields: &[(&str, Json)]) -> String {
+    let mut object = Vec::with_capacity(fields.len() + 1);
+    object.push(("type".to_owned(), Json::String(kind.to_owned())));
+    object.extend(fields.iter().map(|(key, value)| ((*key).to_owned(), value.clone())));
+    Json::Object(object).compact()
+}
+
 /// `{"type":<kind>,"user":<user>}`, the shape of most account reads.
 #[must_use]
 pub fn user_request(kind: &str, user: Address) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String(kind.to_owned())),
-        ("user".to_owned(), Json::String(user.to_hex())),
-    ])
-    .compact()
+    info_request(kind, &[("user", Json::String(user.to_hex()))])
 }
 
 /// One read from `/info`. Reads may be retried; this does not, the caller

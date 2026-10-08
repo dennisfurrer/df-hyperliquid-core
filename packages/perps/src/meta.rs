@@ -3,7 +3,7 @@
 //! market shows; and `perpsAtOpenInterestCap`. Every other field the venue
 //! sends is left unread.
 
-use hl_core::{ApiError, Asset, AssetKind, Dec, Json, Round, Transport, info};
+use hl_core::{ApiError, Asset, AssetKind, Dec, Round, Transport, info, info_request};
 use hl_trade::Grid;
 use serde::Deserialize;
 
@@ -13,7 +13,7 @@ use crate::{
 };
 
 fn request(kind: &str) -> String {
-    Json::Object(vec![("type".to_owned(), Json::String(kind.to_owned()))]).compact()
+    info_request(kind, &[])
 }
 
 /// `{"type":"meta"}`.

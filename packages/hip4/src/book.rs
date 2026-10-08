@@ -3,7 +3,7 @@
 //! coin that is no outcome side, refuses the whole book rather than reading
 //! as something it is not.
 
-use hl_core::{ApiError, Json, Transport, info};
+use hl_core::{ApiError, Json, Transport, info, info_request};
 use serde::{Deserialize, Deserializer, de};
 
 use crate::{
@@ -14,11 +14,7 @@ use crate::{
 /// `{"type":"l2Book","coin":"#14730"}`.
 #[must_use]
 pub fn book_request(coin: Coin) -> String {
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("l2Book".to_owned())),
-        ("coin".to_owned(), Json::String(coin.to_string())),
-    ])
-    .compact()
+    info_request("l2Book", &[("coin", Json::String(coin.to_string()))])
 }
 
 pub async fn book(transport: &impl Transport, coin: Coin) -> Result<Book, ApiError> {

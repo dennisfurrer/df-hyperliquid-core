@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use hl_core::{Address, Dec, Json, USDC_INDEX, user_request};
+use hl_core::{Address, Dec, Json, USDC_INDEX, info_request, user_request};
 use serde::{Deserialize, Deserializer, de};
 
 /// `{"type":"spotClearinghouseState","user":..}`.
@@ -25,12 +25,7 @@ pub fn perp_state_on_request(user: Address, dex: &str) -> String {
     if dex.is_empty() {
         return perp_state_request(user);
     }
-    Json::Object(vec![
-        ("type".to_owned(), Json::String("clearinghouseState".to_owned())),
-        ("user".to_owned(), Json::String(user.to_hex())),
-        ("dex".to_owned(), Json::String(dex.to_owned())),
-    ])
-    .compact()
+    info_request("clearinghouseState", &[("user", Json::String(user.to_hex())), ("dex", Json::String(dex.to_owned()))])
 }
 
 /// `{"type":"userAbstraction","user":..}`.
