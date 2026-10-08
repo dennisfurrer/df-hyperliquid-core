@@ -408,6 +408,7 @@ dependencies = [
  "hl-trade",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]

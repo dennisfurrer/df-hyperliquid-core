@@ -1,6 +1,6 @@
 [package]
 name = "hl-hip3"
-description = "HIP-3 builder-deployed perp dexes: dex list, dex asset ids, per-dex meta, deployer actions."
+description = "HIP-3 builder-deployed perp dexes: dex list and metas, dex asset ids, per-dex meta, limits, status, funding settings, leverage, the deploy auction."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -11,6 +11,7 @@ license.workspace = true
 hl-core.workspace = true
 hl-trade.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 hl-core = { workspace = true, features = ["sign"] }

@@ -5,7 +5,9 @@ use hl_core::{Address, ApiError, Asset, Dec, Json, Transport, info};
 use hl_trade::Grid;
 use serde::Deserialize;
 
-fn request(kind: &str, dex: Option<&str>) -> String {
+use crate::{ids::asset_parts, margin::MarginTable};
+
+pub(crate) fn request(kind: &str, dex: Option<&str>) -> String {
     let mut fields = vec![("type".to_owned(), Json::String(kind.to_owned()))];
     if let Some(dex) = dex {
         fields.push(("dex".to_owned(), Json::String(dex.to_owned())));
@@ -70,6 +72,12 @@ impl PerpDexs {
     pub fn get(&self, name: &str) -> Option<&PerpDex> {
         self.dexes().find(|(_, dex)| dex.name == name).map(|(_, dex)| dex)
     }
+
+    /// A dex's name by its place; `None` for the main dex at 0.
+    #[must_use]
+    pub fn name_of(&self, place: u32) -> Option<&str> {
+        self.0.get(usize::try_from(place).ok()?)?.as_ref().map(|dex| dex.name.as_str())
+    }
 }
 
 /// One HIP-3 dex as `perpDexs` lists it.
@@ -91,8 +99,51 @@ pub struct PerpDex {
     /// The open interest cap each coin streams toward, in the quote.
     #[serde(default)]
     pub asset_to_streaming_oi_cap: Vec<(String, Dec)>,
+    /// What each listed coin's funding is scaled by, 0 to 10; unlisted is 1.
     #[serde(default)]
     pub asset_to_funding_multiplier: Vec<(String, Dec)>,
+    /// An interest rate of its own in a coin's funding, -0.01 to 0.01.
+    #[serde(default)]
+    pub asset_to_funding_interest_rate: Vec<(String, Dec)>,
+    /// The most a coin's hourly funding may be either way, 0 to 0.01
+    /// (`setFundingClamps`).
+    #[serde(default)]
+    pub asset_to_funding_clamp: Vec<(String, Dec)>,
+}
+
+impl PerpDex {
+    #[must_use]
+    pub fn streaming_oi_cap(&self, coin: &str) -> Option<Dec> {
+        lookup(&self.asset_to_streaming_oi_cap, coin)
+    }
+
+    /// A coin's funding multiplier where the deployer set one.
+    #[must_use]
+    pub fn funding_multiplier(&self, coin: &str) -> Option<Dec> {
+        lookup(&self.asset_to_funding_multiplier, coin)
+    }
+
+    #[must_use]
+    pub fn funding_interest_rate(&self, coin: &str) -> Option<Dec> {
+        lookup(&self.asset_to_funding_interest_rate, coin)
+    }
+
+    /// A coin's funding clamp where the deployer set one.
+    #[must_use]
+    pub fn funding_clamp(&self, coin: &str) -> Option<Dec> {
+        lookup(&self.asset_to_funding_clamp, coin)
+    }
+
+    /// Who besides the deployer may send `action` (`registerAsset`,
+    /// `setOracle`, ...) for this dex.
+    #[must_use]
+    pub fn sub_deployers_for(&self, action: &str) -> &[Address] {
+        self.sub_deployers.iter().find(|(listed, _)| listed == action).map_or(&[], |(_, users)| users.as_slice())
+    }
+}
+
+fn lookup(pairs: &[(String, Dec)], coin: &str) -> Option<Dec> {
+    pairs.iter().find(|(listed, _)| listed == coin).map(|(_, value)| *value)
 }
 
 /// One dex's perps, in the order their asset ids count.
@@ -100,6 +151,10 @@ pub struct PerpDex {
 #[serde(rename_all = "camelCase")]
 pub struct DexMeta {
     pub universe: Vec<DexAsset>,
+    /// The tiered margin tables by id; a flat one is never listed
+    /// ([`DexMeta::margin_table`]).
+    #[serde(default)]
+    pub margin_tables: Vec<(u32, MarginTable)>,
     /// The spot token the dex margins in; 0 is USDC.
     #[serde(default)]
     pub collateral_token: Option<u32>,
@@ -157,6 +212,15 @@ impl DexMeta {
     pub fn find(&self, dex: u32, coin: &str) -> Option<(Asset, &DexAsset)> {
         self.perps(dex).find(|(_, perp)| perp.name == coin)
     }
+
+    /// A perp by its asset id, for the dex at `dex` in `perpDexs`.
+    #[must_use]
+    pub fn get(&self, dex: u32, asset: Asset) -> Option<&DexAsset> {
+        match asset_parts(asset)? {
+            (place, index) if place == dex => self.universe.get(usize::try_from(index).ok()?),
+            _ => None,
+        }
+    }
 }
 
 /// What a HIP-3 perp is doing now; the main dex's shape.
@@ -172,6 +236,13 @@ pub struct DexCtx {
     pub funding: Dec,
     pub open_interest: Dec,
     pub day_ntl_vlm: Dec,
+    #[serde(default)]
+    pub day_base_vlm: Option<Dec>,
+    /// `null`, with the impact prices, on a market with no book.
+    #[serde(default)]
+    pub premium: Option<Dec>,
+    #[serde(default)]
+    pub impact_pxs: Option<Vec<Dec>>,
 }
 
 impl DexCtx {
