@@ -96,4 +96,3 @@ Keep the websocket open with a `Feed` (`hl::native` or `hl::web`, the same API),
 ## Check
 
 `just check` is the gate before any commit: fmt, clippy native and wasm, every test, and the feature check.
-# hl-rust
