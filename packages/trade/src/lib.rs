@@ -20,6 +20,7 @@
 #![deny(clippy::float_arithmetic)]
 
 pub mod action;
+pub mod builder;
 pub mod cancel;
 pub mod error;
 pub mod grid;
@@ -30,6 +31,7 @@ pub mod schedule;
 pub mod twap;
 
 pub use action::TradeAction;
+pub use builder::{Approval, ApprovalRefused, Approved, BuilderSetting, FeeRule, SignedBy};
 pub use cancel::{Cancel, CancelByCloid};
 pub use error::TradeError;
 pub use grid::{Grid, MAX_SLIPPAGE, MINIMUM_ORDER_VALUE, PERP_PRICE_PLACES, SIGNIFICANT_FIGURES, SPOT_PRICE_PLACES};
