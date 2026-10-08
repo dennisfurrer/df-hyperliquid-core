@@ -3,8 +3,10 @@
 //! are read as the digits sent ([`Figure`]), never through an f64. Its
 //! `portfolio` history is left unread.
 
-use hl_core::{Address, ApiError, Dec, Figure, Json, Transport, info, user_request};
+use hl_core::{Address, ApiError, Dec, Figure, Json, Round, Transport, info, user_request};
 use serde::Deserialize;
+
+use crate::transfer::USD_DECIMALS;
 
 /// `{"type":"vaultDetails","vaultAddress":..,"user"?:..}`: with `user`, the
 /// answer carries that follower's state.
@@ -78,10 +80,28 @@ pub struct VaultDetails {
     pub max_withdrawable: Option<Figure>,
     #[serde(default)]
     pub is_closed: bool,
+    /// Whether it leads strategy vaults (HLP), is one, or neither.
+    #[serde(default)]
+    pub relationship: Relationship,
     #[serde(default)]
     pub allow_deposits: bool,
     #[serde(default)]
     pub always_close_on_withdraw: bool,
+}
+
+/// `{"type":"parent","data":{"childAddresses":[..]}}`, `{"type":"child"}` or
+/// `{"type":"normal"}`.
+#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
+#[serde(tag = "type", content = "data", rename_all = "camelCase")]
+pub enum Relationship {
+    /// A vault anyone may follow, led by a person.
+    #[default]
+    Normal,
+    /// Leads the strategy vaults it lists (HLP).
+    #[serde(rename_all = "camelCase")]
+    Parent { child_addresses: Vec<Address> },
+    /// One of a parent's strategies, led by the parent itself.
+    Child,
 }
 
 impl VaultDetails {
@@ -89,6 +109,21 @@ impl VaultDetails {
     #[must_use]
     pub const fn takes_deposits(&self) -> bool {
         self.allow_deposits && !self.is_closed
+    }
+
+    /// What the asking follower may take out at `now_ms`, in USDC cut to
+    /// millionths: its `maxWithdrawable` once its lockup has passed, nothing
+    /// before, and nothing when no follower was asked about.
+    #[must_use]
+    pub fn withdrawable_now(&self, now_ms: u64) -> Dec {
+        match &self.follower_state {
+            Some(follower) if !follower.is_locked(now_ms) => self
+                .max_withdrawable
+                .as_ref()
+                .and_then(Figure::to_dec)
+                .map_or(Dec::ZERO, |most| most.round(USD_DECIMALS, Round::Down).max(Dec::ZERO)),
+            _ => Dec::ZERO,
+        }
     }
 }
 
@@ -111,6 +146,14 @@ pub struct Follower {
     /// Milliseconds; a withdrawal before it is refused.
     #[serde(default)]
     pub lockup_until: Option<u64>,
+}
+
+impl Follower {
+    /// Whether a withdrawal at `now_ms` would be refused for the lockup.
+    #[must_use]
+    pub fn is_locked(&self, now_ms: u64) -> bool {
+        self.lockup_until.is_some_and(|until| now_ms < until)
+    }
 }
 
 /// A follower's `user`: an address, or `Leader` for the leader's own stake.
@@ -136,6 +179,16 @@ impl VaultEquity {
     pub const fn is_locked(&self, now_ms: u64) -> bool {
         now_ms < self.locked_until_timestamp
     }
+
+    /// What may leave at `now_ms`, in USDC: the equity cut to millionths once
+    /// the lockup has passed, nothing before.
+    #[must_use]
+    pub fn withdrawable(&self, now_ms: u64) -> Dec {
+        match self.is_locked(now_ms) {
+            true => Dec::ZERO,
+            false => self.equity.round(USD_DECIMALS, Round::Down).max(Dec::ZERO),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -148,3 +201,7 @@ pub struct LeadingVault {
 #[cfg(test)]
 #[path = "tests/vault.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "tests/details.rs"]
+mod recorded;

@@ -9,7 +9,7 @@ use std::{
 use hl_core::{L1Action, LocalKey, TransportError, hex};
 
 use super::*;
-use crate::transfer::{HLP, HLP_LOCKUP_MS, VAULT_LOCKUP_MS, VaultTransfer, lockup_ms};
+use crate::transfer::{HLP_LOCKUP_MS, MAINNET_HLP as HLP, MAINNET_VAULT_LOCKUP_MS, VaultTransfer, lockup_ms};
 
 const KEY: &str = "0x0123456789012345678901234567890123456789012345678901234567890123";
 const NONCE: u64 = 1_790_412_105_001;
@@ -66,9 +66,9 @@ fn usd_goes_out_in_millionths_and_finer_is_refused() {
 
 #[test]
 fn hlp_locks_a_deposit_four_days_and_any_other_vault_one() {
-    assert_eq!(lockup_ms(HLP), HLP_LOCKUP_MS);
-    assert_eq!(HLP_LOCKUP_MS, 4 * VAULT_LOCKUP_MS);
-    assert_eq!(lockup_ms("0x010461c14e146ac35fe42271bdc1134ee31c703a".parse().unwrap()), 86_400_000);
+    assert_eq!(lockup_ms(Network::Mainnet, HLP), HLP_LOCKUP_MS);
+    assert_eq!(HLP_LOCKUP_MS, 4 * MAINNET_VAULT_LOCKUP_MS);
+    assert_eq!(lockup_ms(Network::Mainnet, "0x010461c14e146ac35fe42271bdc1134ee31c703a".parse().unwrap()), 86_400_000);
 }
 
 #[test]

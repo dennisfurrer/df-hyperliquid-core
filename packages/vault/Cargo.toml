@@ -10,6 +10,7 @@ license.workspace = true
 [dependencies]
 hl-core.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 hl-core = { workspace = true, features = ["sign"] }

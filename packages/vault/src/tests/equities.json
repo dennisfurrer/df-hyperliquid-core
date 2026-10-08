@@ -1,0 +1,4 @@
+{
+ "testnetHlpFollower": [{"vaultAddress":"0xa15099a30bbf2e68942d6f4c43d70d04faeab0a0","equity":"1068.95511","lockedUntilTimestamp":1765926140668}],
+ "testnetTwoVaults": [{"vaultAddress":"0x9c53b22660fd666f6137d3e2d3f10a6a6ed09819","equity":"0.000492","lockedUntilTimestamp":1737575670809},{"vaultAddress":"0xa15099a30bbf2e68942d6f4c43d70d04faeab0a0","equity":"969.013982","lockedUntilTimestamp":1739568606981}]
+}

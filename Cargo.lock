@@ -481,6 +481,7 @@ dependencies = [
  "hl-core",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
@@ -508,6 +509,7 @@ dependencies = [
  "hl-core",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
