@@ -44,26 +44,8 @@ pub async fn pre_transfer_check(
     info(transport, pre_transfer_check_request(recipient, sender)).await
 }
 
-/// Where native HYPE crosses from Core to HyperEVM.
-pub const HYPE_SYSTEM: Address = Address::from_bytes([0x22; 20]);
-
-/// The address a linked spot token crosses to HyperEVM through: `0x20`, then
-/// the token index big-endian in the low bytes. Token 1452 is `0x2000…05ac`.
-#[must_use]
-pub fn system_address(index: u64) -> Address {
-    let mut bytes = [0u8; 20];
-    bytes[0] = 0x20;
-    bytes[12..].copy_from_slice(&index.to_be_bytes());
-    Address::from_bytes(bytes)
-}
-
-/// Whether a send to `address` would leave Core for HyperEVM rather than
-/// reach a person: `0x2222…2222`, or `0x20`, zeros and a token index.
-#[must_use]
-pub fn is_system_address(address: Address) -> bool {
-    let bytes = address.bytes();
-    address == HYPE_SYSTEM || (bytes[0] == 0x20 && bytes[1..12].iter().all(|&byte| byte == 0))
-}
+/// Where a send leaves Core for HyperEVM: hl-core's, shared with hl-evm.
+pub use hl_core::{HYPE_SYSTEM, is_system_address, system_address};
 
 #[cfg(test)]
 mod tests {
@@ -103,30 +85,5 @@ mod tests {
                 .unwrap();
         assert!(known.user_exists && known.user_has_sent_tx && !known.is_sanctioned);
         assert_eq!(known.activation_fee(), None);
-    }
-
-    #[test]
-    fn system_addresses_are_the_hype_one_and_every_token_s() {
-        assert_eq!(system_address(1452).to_hex(), "0x20000000000000000000000000000000000005ac");
-        assert_eq!(system_address(0).to_hex(), "0x2000000000000000000000000000000000000000");
-        assert_eq!(HYPE_SYSTEM.to_hex(), "0x2222222222222222222222222222222222222222");
-        for system in [
-            HYPE_SYSTEM,
-            system_address(0),
-            system_address(150),
-            system_address(u64::MAX),
-            address("0x200000000000000000000000000000000000007c"),
-        ] {
-            assert!(is_system_address(system), "{system}");
-        }
-        for person in [
-            address("0x0d1d9635d0640821d15e323ac8adadfa9c111414"),
-            address("0x2000000000000000000000010000000000000001"),
-            address("0x2100000000000000000000000000000000000001"),
-            address("0x2222222222222222222222222222222222222223"),
-            Address::ZERO,
-        ] {
-            assert!(!is_system_address(person), "{person}");
-        }
     }
 }

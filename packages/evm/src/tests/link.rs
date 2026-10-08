@@ -1,6 +1,7 @@
-//! System addresses against the docs' examples (`hypercore-less-than-greater-
-//! than-hyperevm-transfers`: token 200, HYPE, PURR's decimals) and hip4-tui's
-//! (token 1452); moves back to Core against viem's transactions and calldata.
+//! Linked tokens against the docs' examples (`hypercore-less-than-greater-
+//! than-hyperevm-transfers`: HYPE, PURR's decimals); moves back to Core against
+//! viem's transactions and calldata. The system addresses themselves are
+//! hl-core's, tested there.
 
 use hl_core::Dec;
 
@@ -9,25 +10,6 @@ use crate::{fixtures, tx::Fees};
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
-}
-
-#[test]
-fn every_token_has_its_system_address() {
-    // The docs' example, and hip4-tui's.
-    assert_eq!(system_address(200).to_hex(), "0x20000000000000000000000000000000000000c8");
-    assert_eq!(system_address(1452).to_hex(), "0x20000000000000000000000000000000000005ac");
-    assert_eq!(system_address(0).to_hex(), "0x2000000000000000000000000000000000000000");
-    assert_eq!(HYPE_SYSTEM.to_hex(), "0x2222222222222222222222222222222222222222");
-    for system in [HYPE_SYSTEM, system_address(0), system_address(150), system_address(u64::MAX)] {
-        assert!(is_system_address(system), "{system}");
-    }
-    assert!(!is_system_address(Address::ZERO));
-    assert!(is_system_address(fixtures::address("0x2000000000000000000000000000000000000001")), "PURR's");
-    assert!(!is_system_address(fixtures::address("0x2100000000000000000000000000000000000001")));
-    assert!(!is_system_address(fixtures::address("0x2000000000000000000000010000000000000001")), "a stray high byte");
-    assert_eq!(system_token(system_address(1452)), Some(1452));
-    assert_eq!(system_token(HYPE_SYSTEM), None, "HYPE crosses natively, not as a token index");
-    assert_eq!(system_token(Address::ZERO), None);
 }
 
 #[test]

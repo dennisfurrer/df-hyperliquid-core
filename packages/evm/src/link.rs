@@ -23,37 +23,8 @@ use crate::{
     u256::{BadAmount, U256},
 };
 
-/// HYPE's system address: HYPE is the native coin on HyperEVM.
-pub const HYPE_SYSTEM: Address = Address::from_bytes([0x22; 20]);
-
-/// `0x20`, then the token index big-endian in the low bytes: token 200 is
-/// `0x2000…00c8`.
-#[must_use]
-pub fn system_address(index: u64) -> Address {
-    let mut bytes = [0u8; 20];
-    bytes[0] = 0x20;
-    bytes[12..].copy_from_slice(&index.to_be_bytes());
-    Address::from_bytes(bytes)
-}
-
-/// Whether a send to `address` crosses between Core and HyperEVM rather than
-/// reaching a person.
-#[must_use]
-pub fn is_system_address(address: Address) -> bool {
-    address == HYPE_SYSTEM || system_token(address).is_some()
-}
-
-/// The token index a `0x20` system address stands for.
-#[must_use]
-pub fn system_token(address: Address) -> Option<u64> {
-    let bytes = address.bytes();
-    if bytes[0] != 0x20 || bytes[1..12].iter().any(|byte| *byte != 0) {
-        return None;
-    }
-    let mut index = [0u8; 8];
-    index.copy_from_slice(&bytes[12..]);
-    Some(u64::from_be_bytes(index))
-}
+/// Where a token crosses: hl-core's, shared with hl-transfer.
+pub use hl_core::{HYPE_SYSTEM, is_system_address, system_address, system_token};
 
 /// A spot token as it is linked to HyperEVM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

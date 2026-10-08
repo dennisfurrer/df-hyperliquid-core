@@ -33,6 +33,7 @@ pub mod network;
 pub mod nonce;
 pub mod side;
 pub mod signer;
+pub mod system;
 pub mod units;
 pub mod user_signed;
 
@@ -59,5 +60,6 @@ pub use side::Side;
 #[cfg(feature = "sign")]
 pub use signer::{LocalKey, recover, verify};
 pub use signer::{SignError, Signature, Signer};
+pub use system::{HYPE_SYSTEM, is_system_address, system_address, system_token};
 pub use units::{BadUnits, cut_units, exact_units};
 pub use user_signed::{NonceKey, UserAction, UserSigned};
