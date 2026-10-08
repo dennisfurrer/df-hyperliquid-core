@@ -60,12 +60,12 @@ fn sdk(height: &str) -> BTreeMap<String, (Vec<Level>, Vec<Level>)> {
 }
 
 fn ours(assembler: &Assembler) -> BTreeMap<String, (Vec<Level>, Vec<Level>)> {
-    assembler.books().map(|(coin, book)| (coin.to_owned(), (book.levels(Side::Bid), book.levels(Side::Ask)))).collect()
+    assembler.books().map(|(coin, book)| (coin.to_owned(), (book.levels(Side::Buy), book.levels(Side::Sell)))).collect()
 }
 
 fn queue(assembler: &Assembler, px: &str) -> Vec<u64> {
     let book = assembler.book("ETH").unwrap();
-    book.queue(Side::Bid, Dec::parse(px).unwrap()).map(|order| order.oid).collect()
+    book.queue(Side::Buy, Dec::parse(px).unwrap()).map(|order| order.oid).collect()
 }
 
 #[test]
@@ -202,6 +202,6 @@ fn a_coin_the_snapshot_did_not_hold_starts_from_an_empty_book() {
     let text = B304.replace("\"ETH\"", "\"SOL\"");
     assert_eq!(assembler.block(block(&text)), Step::Applied);
     let sol = assembler.book("SOL").unwrap();
-    assert_eq!(sol.levels(Side::Bid).len(), 1);
+    assert_eq!(sol.levels(Side::Buy).len(), 1);
     assert_eq!(sol.len(), 2);
 }

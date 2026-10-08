@@ -92,8 +92,8 @@ impl Book {
     #[must_use]
     pub fn best(&self, side: Side) -> Option<Dec> {
         match side {
-            Side::Bid => self.best_bid(),
-            Side::Ask => self.best_ask(),
+            Side::Buy => self.best_bid(),
+            Side::Sell => self.best_ask(),
         }
     }
 
@@ -106,15 +106,15 @@ impl Book {
     /// One side's prices from the touch outward, each with its queue.
     fn touch_out(&self, side: Side) -> Box<dyn Iterator<Item = (&Dec, &Vec<u64>)> + '_> {
         match side {
-            Side::Bid => Box::new(self.bids.iter().rev()),
-            Side::Ask => Box::new(self.asks.iter()),
+            Side::Buy => Box::new(self.bids.iter().rev()),
+            Side::Sell => Box::new(self.asks.iter()),
         }
     }
 
     fn side_mut(&mut self, side: Side) -> &mut BTreeMap<Dec, Vec<u64>> {
         match side {
-            Side::Bid => &mut self.bids,
-            Side::Ask => &mut self.asks,
+            Side::Buy => &mut self.bids,
+            Side::Sell => &mut self.asks,
         }
     }
 
@@ -126,8 +126,8 @@ impl Book {
     /// The queue at one price, front first.
     pub fn queue(&self, side: Side, px: Dec) -> impl Iterator<Item = &Order> {
         let queue = match side {
-            Side::Bid => self.bids.get(&px),
-            Side::Ask => self.asks.get(&px),
+            Side::Buy => self.bids.get(&px),
+            Side::Sell => self.asks.get(&px),
         };
         queue.into_iter().flatten().filter_map(|oid| self.orders.get(oid))
     }
@@ -236,8 +236,8 @@ impl Book {
         while order.sz.is_positive() {
             let Some(px) = self.best(other) else { break };
             let crosses = match order.side {
-                Side::Bid => px <= order.px,
-                Side::Ask => px >= order.px,
+                Side::Buy => px <= order.px,
+                Side::Sell => px >= order.px,
             };
             if !crosses {
                 break;
@@ -281,8 +281,8 @@ pub fn levels<'a>(orders: impl IntoIterator<Item = &'a Order>, side: Side) -> Ve
     }
     let level = |(px, (sz, orders)): (Dec, (Dec, usize))| Level { px, sz, orders };
     match side {
-        Side::Bid => prices.into_iter().rev().map(level).collect(),
-        Side::Ask => prices.into_iter().map(level).collect(),
+        Side::Buy => prices.into_iter().rev().map(level).collect(),
+        Side::Sell => prices.into_iter().map(level).collect(),
     }
 }
 

@@ -66,7 +66,8 @@ fn the_frame_reads_as_the_provider_s_own_sdk_reads_it() {
     assert_eq!(read.markets.len(), markets.len());
     for (ours, theirs) in read.markets.iter().zip(markets) {
         assert_eq!(ours.coin, theirs["coin"].as_str().unwrap());
-        for (side, ours, theirs) in [(Side::Bid, &ours.bids, &theirs["bids"]), (Side::Ask, &ours.asks, &theirs["asks"])]
+        for (side, ours, theirs) in
+            [(Side::Buy, &ours.bids, &theirs["bids"]), (Side::Sell, &ours.asks, &theirs["asks"])]
         {
             let theirs = theirs.as_array().unwrap();
             assert_eq!(ours.len(), theirs.len(), "{} {side:?}", ours.len());
@@ -95,7 +96,7 @@ fn each_side_adds_up_to_the_levels_the_sdk_holds() {
     let books: Read = serde_json::from_str(BOOKS).unwrap();
     for market in &read.markets {
         let sdk = &books["books"]["782007303"][&market.coin];
-        for (side, orders, key) in [(Side::Bid, &market.bids, "bids"), (Side::Ask, &market.asks, "asks")] {
+        for (side, orders, key) in [(Side::Buy, &market.bids, "bids"), (Side::Sell, &market.asks, "asks")] {
             let expected: Vec<Level> = sdk[key]
                 .as_array()
                 .unwrap()

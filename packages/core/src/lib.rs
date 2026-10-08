@@ -31,6 +31,7 @@ pub mod limit;
 pub mod msgpack;
 pub mod network;
 pub mod nonce;
+pub mod side;
 pub mod signer;
 pub mod units;
 pub mod user_signed;
@@ -54,6 +55,7 @@ pub use limit::Spent;
 pub use msgpack::{Map, Value};
 pub use network::{L1_CHAIN_ID, MAINNET_USDC, Network, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork};
 pub use nonce::NonceClock;
+pub use side::Side;
 #[cfg(feature = "sign")]
 pub use signer::{LocalKey, recover, verify};
 pub use signer::{SignError, Signature, Signer};

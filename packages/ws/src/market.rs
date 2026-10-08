@@ -75,14 +75,8 @@ impl From<RawBbo> for Bbo {
 }
 
 /// `B` or `A`: a buy or a sell. On a trade it is the aggressor's side, on a fill the account's
-/// own, on an order the side it rests on.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
-pub enum Side {
-    #[serde(rename = "B")]
-    Buy,
-    #[serde(rename = "A")]
-    Sell,
-}
+/// own, on an order the side it rests on. hl-core's, the one an order is placed with.
+pub use hl_core::Side;
 
 /// One print on `trades`, oldest first within a frame.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

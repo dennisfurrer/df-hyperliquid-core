@@ -5,41 +5,12 @@
 
 use std::{fmt, str::FromStr};
 
-use hl_core::{Address, Asset, AssetKind, BadHex, BuilderFee, Dec, L1Action, Map, Round, Value, hex};
+use hl_core::{Address, Asset, AssetKind, BadHex, BuilderFee, Dec, L1Action, Map, Value, hex};
 use serde::{Deserialize, Deserializer, de};
 
-/// Which way an order trades.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Side {
-    Buy,
-    Sell,
-}
-
-impl Side {
-    #[must_use]
-    pub const fn is_buy(self) -> bool {
-        matches!(self, Side::Buy)
-    }
-
-    #[must_use]
-    pub const fn other(self) -> Side {
-        match self {
-            Side::Buy => Side::Sell,
-            Side::Sell => Side::Buy,
-        }
-    }
-
-    /// How a price for this side goes onto the grid: never against the
-    /// trader. A buy rounds down, so it never pays more than asked; a sell
-    /// rounds up, so it never takes less.
-    #[must_use]
-    pub const fn price_rounding(self) -> Round {
-        match self {
-            Side::Buy => Round::Down,
-            Side::Sell => Round::Up,
-        }
-    }
-}
+/// Which way an order trades. It lives in hl-core, where the sockets and the
+/// data crates read the same `B` and `A`.
+pub use hl_core::Side;
 
 /// How long an order may rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -153,17 +124,6 @@ impl fmt::Display for Cloid {
 impl<'de> Deserialize<'de> for Cloid {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         String::deserialize(deserializer)?.parse().map_err(de::Error::custom)
-    }
-}
-
-/// From the side a read writes: `B` a buy, `A` a sell (the ask side).
-impl<'de> Deserialize<'de> for Side {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        match String::deserialize(deserializer)?.as_str() {
-            "B" => Ok(Side::Buy),
-            "A" => Ok(Side::Sell),
-            other => Err(de::Error::custom(format!("`{other}` is not a side; expected B or A"))),
-        }
     }
 }
 

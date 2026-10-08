@@ -79,7 +79,7 @@ fn the_documented_l4_frame_reads_as_one_block_of_four_diffs() {
                 order: Order {
                     oid: 217_148_811_876,
                     user: address(ALICE),
-                    side: Side::Bid,
+                    side: Side::Buy,
                     px: dec("3245.5"),
                     sz: dec("1.5")
                 },
@@ -90,7 +90,7 @@ fn the_documented_l4_frame_reads_as_one_block_of_four_diffs() {
                 order: Order {
                     oid: 217_148_811_877,
                     user: address(CAROL),
-                    side: Side::Bid,
+                    side: Side::Buy,
                     px: dec("3245.5"),
                     sz: dec("0.8")
                 },
@@ -154,12 +154,12 @@ fn a_fills_frame_reads_as_each_fill_with_its_trader() {
     assert_eq!(fills.len(), 2);
     let first = &fills[0];
     assert_eq!(first.user, address("0x4ee1ece8c089c545d43661015ba8930908cdbd1e"));
-    assert_eq!((first.coin.as_str(), first.px, first.sz, first.side), ("#36020", dec("0.49501"), dec("40"), Side::Bid));
+    assert_eq!((first.coin.as_str(), first.px, first.sz, first.side), ("#36020", dec("0.49501"), dec("40"), Side::Buy));
     assert_eq!((first.time, first.tx_index, first.builder_fee), (1_789_686_702_602, 16, None));
     assert_eq!(first.builder, Some(address(BUILDER)), "the upper-case spelling is the same builder");
     assert_eq!(first.dir.as_deref(), Some("Buy"));
     let second = &fills[1];
-    assert_eq!((second.side, second.builder_fee, second.tx_index), (Side::Ask, Some(dec("0.02")), 0));
+    assert_eq!((second.side, second.builder_fee, second.tx_index), (Side::Sell, Some(dec("0.02")), 0));
 }
 
 #[test]

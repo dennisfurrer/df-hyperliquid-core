@@ -28,32 +28,9 @@ use crate::client::{Call, Error, Hydromancer};
 /// The most one market's blob may open to. A busy perp's whole book is a few megabytes.
 pub const MAX_MARKET_BYTES: u64 = 64 * 1024 * 1024;
 
-/// Which side of the book an order rests on: `B` and `A` on the wire.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Side {
-    Bid,
-    Ask,
-}
-
-impl Side {
-    /// `B` or `A`.
-    #[must_use]
-    pub fn parse(said: &str) -> Option<Side> {
-        match said {
-            "B" => Some(Side::Bid),
-            "A" => Some(Side::Ask),
-            _ => None,
-        }
-    }
-
-    #[must_use]
-    pub const fn other(self) -> Side {
-        match self {
-            Side::Bid => Side::Ask,
-            Side::Ask => Side::Bid,
-        }
-    }
-}
+/// Which side of the book an order rests on: `B` (a bid) and `A` (an ask) on the wire.
+/// hl-core's, the one an order is placed with.
+pub use hl_core::Side;
 
 /// One resting order and its owner.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -216,9 +193,9 @@ impl RawMarket {
                 })
                 .collect()
         };
-        let bids = orders(self.bids, Side::Bid, "bids")
+        let bids = orders(self.bids, Side::Buy, "bids")
             .map_err(|BadSnapshot(said)| BadSnapshot(format!("market {index}: {said}")))?;
-        let asks = orders(self.asks, Side::Ask, "asks")
+        let asks = orders(self.asks, Side::Sell, "asks")
             .map_err(|BadSnapshot(said)| BadSnapshot(format!("market {index}: {said}")))?;
         Ok(Market { coin, bids, asks })
     }
