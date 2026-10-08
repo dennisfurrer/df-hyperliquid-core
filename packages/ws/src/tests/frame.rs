@@ -150,7 +150,17 @@ fn what_an_account_may_trade_reads_both_sides() {
     assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (Margin::Cross, 40, None));
     assert_eq!(data.max_trade_szs, [dec("6.95458"), dec("8.53351")]);
     assert_eq!(data.available_to_trade, [dec("13988.094483"), dec("17163.875338")]);
-    assert_eq!(data.mark_px, Some(dec("80454.0")));
+    assert_eq!(data.mark_px, dec("80454.0"));
+}
+
+/// Every recorded `activeAssetData`, read or sent, carries the mark: one without it is refused,
+/// not read as a mark unknown.
+#[test]
+fn what_an_account_may_trade_without_the_mark_is_refused() {
+    let sent = mainnet("activeAssetData");
+    let without = sent.replace(r#","markPx":"80454.0""#, "");
+    assert_ne!(without, sent);
+    assert!(decode(&without).is_err());
 }
 
 fn rebate() -> Fill {

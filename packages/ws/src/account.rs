@@ -316,20 +316,9 @@ pub struct LeadingVault {
     pub name: String,
 }
 
-/// `activeAssetData`: what the account may trade on one perp, buy then sell.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct AssetData {
-    pub user: Address,
-    pub coin: String,
-    pub leverage: Leverage,
-    /// The largest order each way at the current leverage, in the coin.
-    pub max_trade_szs: [Dec; 2],
-    /// The margin free each way, in USD.
-    pub available_to_trade: [Dec; 2],
-    #[serde(default)]
-    pub mark_px: Option<Dec>,
-}
+/// `activeAssetData`: what the account may trade on one perp, buy then sell. hl-core's, the shape
+/// `activeAssetData` answers.
+pub use hl_core::state::ActiveAssetData as AssetData;
 
 /// `userHistoricalOrders`: orders and what became of them, the latest first.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
