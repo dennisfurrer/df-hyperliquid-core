@@ -5,33 +5,20 @@
 //! - fundings and ledger rows as hl-ws reads them;
 //! - spot balances and the mode as hl-account reads them;
 
-use hl_account::{SpotBalance, SpotState};
+use hl_account::SpotState;
 use hl_perps::UserFunding;
 use hl_ws::Funding;
 
-/// The socket's spot balances as hl-account reads them. The socket does not say whether the
-/// account is on portfolio margin, nor its ratio: those are kept from what `held` said.
+/// The socket's spot balances, which are hl-account's type already. The socket does not say
+/// whether the account is on portfolio margin, nor its ratio: where it does not, those are kept
+/// from what `held` said.
 pub(crate) fn spot_state(sent: &hl_ws::SpotState, held: Option<&SpotState>) -> SpotState {
-    SpotState {
-        balances: sent
-            .balances
-            .iter()
-            .map(|one| SpotBalance {
-                coin: one.coin.clone(),
-                token: one.token,
-                total: one.total,
-                hold: one.hold,
-                entry_ntl: one.entry_ntl.unwrap_or_default(),
-                spot_hold: one.spot_hold,
-                borrowed: one.borrowed,
-                supplied: one.supplied,
-                ltv: one.ltv,
-            })
-            .collect(),
-        portfolio_margin_enabled: held.is_some_and(|held| held.portfolio_margin_enabled),
-        portfolio_margin_ratio: held.and_then(|held| held.portfolio_margin_ratio),
-        token_to_available_after_maintenance: sent.available_after_maintenance.clone(),
-    }
+    let mut spot = sent.state.clone();
+    spot.portfolio_margin_enabled =
+        spot.portfolio_margin_enabled.or_else(|| held.and_then(|held| held.portfolio_margin_enabled));
+    spot.portfolio_margin_ratio =
+        spot.portfolio_margin_ratio.or_else(|| held.and_then(|held| held.portfolio_margin_ratio));
+    spot
 }
 
 /// A read funding row as the socket sends one: its hash is all zeros on every row.

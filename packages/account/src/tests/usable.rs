@@ -172,7 +172,7 @@ fn a_mode_not_read_is_standard_unless_spot_says_portfolio_margin() {
     assert!(!standing.pools());
     assert_eq!(usable(&standing, Surface::Perps { dex: "xyz" }).amount, dec("25"));
     if let Some(spot) = standing.spot.as_mut() {
-        spot.portfolio_margin_enabled = true;
+        spot.portfolio_margin_enabled = Some(true);
     }
     assert!(standing.pools());
     assert_eq!(standing.keeping(), Keeping::Portfolio);

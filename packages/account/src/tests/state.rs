@@ -1,3 +1,5 @@
+use hl_core::USDC_INDEX;
+
 use super::*;
 use crate::fixtures::{
     BUILDER_SPOT, PERP_UNIFIED, PERP_UNIFIED_XYZ, SPOT_PORTFOLIO_MARGIN, SPOT_STANDARD, SPOT_UNIFIED, UNIFIED, address,
@@ -18,7 +20,7 @@ fn what_is_held_is_every_row_with_something_in_it_largest_first() {
 #[test]
 fn a_pooled_spot_state_says_what_each_token_has_free_after_maintenance() {
     let spot: SpotState = read(SPOT_UNIFIED);
-    assert!(!spot.portfolio_margin_enabled);
+    assert_eq!(spot.portfolio_margin_enabled, None, "said only where it is on");
     assert_eq!(spot.available_after_maintenance(USDC_INDEX), Some(dec("1235001.99300258")));
     assert_eq!(spot.available_after_maintenance(150), None, "the venue named USDC alone");
     // 1279260.79987858 less its hold of 543038.7473040001.
@@ -27,10 +29,21 @@ fn a_pooled_spot_state_says_what_each_token_has_free_after_maintenance() {
     assert_eq!(spot.free(9_999), Dec::ZERO, "a token never held is nothing free");
 }
 
+/// Every recorded spot balance carries its entry notional: one without it is refused, not read
+/// as nothing paid.
+#[test]
+fn a_spot_balance_without_its_entry_notional_is_refused() {
+    let whole: serde_json::Value = serde_json::from_str(SPOT_STANDARD).unwrap();
+    let mut without = whole.clone();
+    without["balances"][0].as_object_mut().unwrap().remove("entryNtl");
+    assert!(serde_json::from_value::<SpotState>(whole).is_ok());
+    assert!(serde_json::from_value::<SpotState>(without).is_err());
+}
+
 #[test]
 fn portfolio_margin_reads_its_ratio_and_how_near_liquidation_it_stands() {
     let spot: SpotState = read(SPOT_PORTFOLIO_MARGIN);
-    assert!(spot.portfolio_margin_enabled);
+    assert_eq!(spot.portfolio_margin_enabled, Some(true));
     assert_eq!(spot.portfolio_margin_ratio, Some(dec("0.1460346663")));
     assert_eq!(spot.risk(), Risk::Safe);
     assert_eq!(spot.balance(150).and_then(|hype| hype.supplied), Some(dec("3.32730523")));

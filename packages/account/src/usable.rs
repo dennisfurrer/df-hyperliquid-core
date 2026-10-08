@@ -18,7 +18,7 @@ use std::collections::BTreeMap;
 
 use hl_core::{Address, Dec, USDC_INDEX};
 
-use crate::state::{Abstraction, PerpState, SpotState};
+use crate::state::{Abstraction, PerpState, SpotRisk, SpotState};
 
 /// USDC's token index: the main dex's collateral, and what portfolio margin lends.
 pub const USDC: u32 = USDC_INDEX;
@@ -121,7 +121,7 @@ impl Keeping {
             Some(Abstraction::PortfolioMargin) => Keeping::Portfolio,
             Some(Abstraction::DexAbstraction) => Keeping::Native,
             Some(_) => Keeping::Apart,
-            None if spot.is_some_and(|spot| spot.portfolio_margin_enabled) => Keeping::Portfolio,
+            None if spot.is_some_and(|spot| spot.portfolio_margin_enabled == Some(true)) => Keeping::Portfolio,
             None => Keeping::Apart,
         }
     }

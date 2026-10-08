@@ -393,6 +393,17 @@ fn an_isolated_position_without_its_raw_usd_is_refused_not_read_as_zero() {
     assert!(decode(&without).is_err());
 }
 
+/// Every recorded spot balance, sent or read, carries its entry notional: one without it is
+/// refused, not read as a cost unknown.
+#[test]
+fn a_spot_balance_without_its_entry_notional_is_refused() {
+    let sent = mainnet("spotState");
+    assert!(decode(&sent).is_ok());
+    let without = sent.replacen(r#","entryNtl":"#, r#","entry":"#, 1);
+    assert_ne!(without, sent);
+    assert!(decode(&without).is_err());
+}
+
 /// Every recorded resting order, sent or read, says its type, its trigger and whether it is a
 /// position's TP/SL: one without them is refused, not read as a plain limit.
 #[test]
@@ -422,13 +433,14 @@ fn open_orders_spot_balances_and_web_data_read_what_they_say() {
     assert!(none.orders.is_empty());
 
     let Frame::SpotState(spot) = read(&mainnet("spotState")) else { panic!("spot") };
-    assert_eq!((spot.user, spot.balances.len()), (address(FIRST), 4));
-    let usdc = &spot.balances[0];
+    assert_eq!((spot.user, spot.state.balances.len()), (address(FIRST), 4));
+    let usdc = &spot.state.balances[0];
     assert_eq!(
         (usdc.coin.as_str(), usdc.token, usdc.total, usdc.hold),
         ("USDC", Some(0), dec("19042.782306"), dec("9001.9958"))
     );
-    assert_eq!(spot.available_after_maintenance, [(0, dec("16840.184972"))]);
+    assert_eq!(spot.state.token_to_available_after_maintenance, [(0, dec("16840.184972"))]);
+    assert_eq!(spot.state.portfolio_margin_enabled, None, "the socket does not say");
 
     let Frame::WebData3(web) = read(&mainnet("webData3")) else { panic!("web data") };
     let state = &web.user_state;

@@ -152,7 +152,7 @@ fn portfolio_margin_adds_what_it_would_lend_at_the_store_s_price() {
     let user = address(STANDARD);
     let _held = store.register(Interest::State { user }).unwrap();
     let spot: SpotState = read(
-        r#"{"balances":[{"coin":"USDC","token":0,"total":"500","hold":"120"},{"coin":"USDT0","token":268,"total":"80","hold":"0"},{"coin":"HYPE","token":150,"total":"10","hold":"0"}]}"#,
+        r#"{"balances":[{"coin":"USDC","token":0,"total":"500","hold":"120","entryNtl":"0.0"},{"coin":"USDT0","token":268,"total":"80","hold":"0","entryNtl":"0.0"},{"coin":"HYPE","token":150,"total":"10","hold":"0","entryNtl":"0.0"}]}"#,
     );
     let _ = store.read(1, Read::Dexes(&dexes()));
     let _ = store.read(1, Read::SpotState { user, state: &spot });
@@ -229,8 +229,9 @@ fn several_accounts_are_counted_once() {
     let _held: Vec<Handle> =
         [depositor, vault].into_iter().map(|user| store.register(Interest::State { user }).unwrap()).collect();
     for (user, total) in [(depositor, "50"), (vault, "1000")] {
-        let spot: SpotState =
-            read(&format!(r#"{{"balances":[{{"coin":"USDC","token":0,"total":"{total}","hold":"0"}}]}}"#));
+        let spot: SpotState = read(&format!(
+            r#"{{"balances":[{{"coin":"USDC","token":0,"total":"{total}","hold":"0","entryNtl":"0.0"}}]}}"#
+        ));
         let _ = store.read(1, Read::SpotState { user, state: &spot });
         let _ = store.read(1, Read::Mode { user, mode: &Abstraction::Disabled });
     }

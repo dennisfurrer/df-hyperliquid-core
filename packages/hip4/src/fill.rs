@@ -20,14 +20,12 @@ use std::{
     str::FromStr,
 };
 
-use hl_core::{Dec, Round, order::Cloid};
-use hl_trade::Side;
-use serde::Deserialize;
-
 use crate::{
     coin::Coin,
     px::{Px, Qty, SignedQty},
 };
+use hl_core::{Dec, Round, order::Cloid};
+use hl_trade::Side;
 
 /// What a fill was, by its `dir`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -332,25 +330,11 @@ pub fn summarize(fills: &[Fill]) -> Summary {
     summary
 }
 
-/// `spotClearinghouseState`, the rows an outcome holding is read from.
-#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
-pub struct SpotBalances {
-    #[serde(default)]
-    pub balances: Vec<SpotRow>,
-}
+/// `spotClearinghouseState`, the rows an outcome holding is read from, and one
+/// row as written (outcome rows carry no `token`): hl-core's.
+pub type SpotBalances = hl_core::state::SpotState;
 
-/// One spot row as written. Outcome rows carry no `token`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotRow {
-    pub coin: String,
-    #[serde(default)]
-    pub total: Dec,
-    #[serde(default)]
-    pub hold: Dec,
-    #[serde(default)]
-    pub entry_ntl: Dec,
-}
+pub type SpotRow = hl_core::state::SpotBalance;
 
 /// One outcome side held, as the spot side reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]

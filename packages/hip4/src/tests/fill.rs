@@ -211,6 +211,15 @@ const SPOT: &str = r#"{"balances":[
     {"coin":"+27650","total":"0.0","hold":"0.0","entryNtl":"0.0"}],
     "tokenToAvailableAfterMaintenance":[]}"#;
 
+/// Every recorded spot row, read or sent, carries its total, hold and entry
+/// notional: a row without one is refused, not read as nothing held.
+#[test]
+fn a_spot_row_without_its_hold_is_refused() {
+    let without = SPOT.replacen(r#""hold":"12.0","#, "", 1);
+    assert_ne!(without, SPOT);
+    assert!(serde_json::from_str::<SpotBalances>(&without).is_err());
+}
+
 #[test]
 fn a_spot_answer_yields_outcome_holdings_and_nothing_else() {
     let state: SpotBalances = serde_json::from_str(SPOT).unwrap();

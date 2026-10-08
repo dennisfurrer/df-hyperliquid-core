@@ -114,7 +114,7 @@ fn outcome_sides_are_counted_apart_and_staked_hype_at_its_price() {
     let standing = Standing {
         mode: Some(Abstraction::Disabled),
         spot: Some(read(
-            r#"{"balances":[{"coin":"USDC","token":0,"total":"10","hold":"0"},{"coin":"+14730","total":"63","hold":"0","entryNtl":"36.8"},{"coin":"o458","total":"5","hold":"0"}]}"#,
+            r#"{"balances":[{"coin":"USDC","token":0,"total":"10","hold":"0","entryNtl":"0.0"},{"coin":"+14730","total":"63","hold":"0","entryNtl":"36.8"},{"coin":"o458","total":"5","hold":"0","entryNtl":"0.0"}]}"#,
         )),
         ..Standing::default()
     };

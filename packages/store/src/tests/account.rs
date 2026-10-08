@@ -274,7 +274,7 @@ fn spot_balances_from_the_socket_keep_what_a_read_said_of_portfolio_margin() {
         (spot.balances.len(), spot.balances[0].total, spot.balances[0].hold),
         (4, dec("19042.782306"), dec("9001.9958"))
     );
-    assert!(spot.portfolio_margin_enabled);
+    assert_eq!(spot.portfolio_margin_enabled, Some(true));
     assert_eq!(spot.portfolio_margin_ratio, Some(dec("0.1460346663")));
     assert_eq!(spot.available_after_maintenance(0), Some(dec("16840.184972")), "the socket's own");
 }

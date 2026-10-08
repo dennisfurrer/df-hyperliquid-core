@@ -61,7 +61,7 @@ pub use referral::{
 };
 pub use signers::{ActionKind, Key, Refused, Signers, Why, may_sign};
 pub use state::{
-    Abstraction, MarginSummary, PerpState, Position, Risk, SpotBalance, SpotState, abstraction_request,
+    Abstraction, MarginSummary, PerpState, Position, Risk, SpotBalance, SpotRisk, SpotState, abstraction_request,
     perp_state_on_request, perp_state_request, spot_state_request,
 };
 pub use sub_account::{

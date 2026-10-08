@@ -3,7 +3,7 @@
 
 use std::fmt;
 
-use hl_core::{Address, Dec, Json, USDC_INDEX, info_request, user_request};
+use hl_core::{Address, Dec, Json, info_request, user_request};
 use serde::{Deserialize, Deserializer, de};
 
 /// `{"type":"spotClearinghouseState","user":..}`.
@@ -34,114 +34,17 @@ pub fn abstraction_request(user: Address) -> String {
     user_request("userAbstraction", user)
 }
 
-/// `spotClearinghouseState`: the authoritative holdings. On a unified or
-/// portfolio-margin account every balance and hold of every dex is here.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotState {
-    pub balances: Vec<SpotBalance>,
-    /// Portfolio margin: said on the answer itself, whatever the mode read.
-    #[serde(default)]
-    pub portfolio_margin_enabled: bool,
-    /// Portfolio margin: the maintenance requirement over the liquidation
-    /// value. Past 0.95 the account is liquidated.
-    #[serde(default)]
-    pub portfolio_margin_ratio: Option<Dec>,
-    /// Pooled accounts: what each token, by index, has free above maintenance.
-    #[serde(default)]
-    pub token_to_available_after_maintenance: Vec<(u32, Dec)>,
+/// `spotClearinghouseState` and one token's row: hl-core's, the shapes the socket sends.
+pub use hl_core::state::{SpotBalance, SpotState};
+
+/// How near liquidation a spot state's portfolio-margin account stands: atlas's thresholds, read
+/// here and not in hl-core, where the state is.
+pub trait SpotRisk {
+    fn risk(&self) -> Risk;
 }
 
-/// One token's row. `total` already includes `hold`.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SpotBalance {
-    pub coin: String,
-    /// The token's index, a number here, not the `NAME:0x..` a transfer names.
-    /// HIP-4 rows (`+92260`, `o458`) carry none.
-    #[serde(default)]
-    pub token: Option<u32>,
-    pub total: Dec,
-    /// What open orders and margin hold. On a portfolio-margin account it can
-    /// be negative (`-268.81821068` against a `total` of `0.55817531`, live
-    /// 2026-10-06), so it is never subtracted as it stands: see [`SpotBalance::available`].
-    pub hold: Dec,
-    #[serde(default)]
-    pub entry_ntl: Dec,
-    /// Portfolio margin: what spot orders hold.
-    #[serde(default)]
-    pub spot_hold: Option<Dec>,
-    /// Portfolio margin: owed on this token.
-    #[serde(default)]
-    pub borrowed: Option<Dec>,
-    /// Portfolio margin: supplied as collateral or to lending. Part of `total`.
-    #[serde(default)]
-    pub supplied: Option<Dec>,
-    /// Portfolio margin: the loan-to-value this token counts at.
-    #[serde(default)]
-    pub ltv: Option<Dec>,
-}
-
-impl SpotBalance {
-    /// What is free to move: `total` less the larger positive hold (`hold` or
-    /// `spotHold`), never below zero and never above `total`. `None` only past
-    /// what a `Dec` counts.
-    #[must_use]
-    pub fn available(&self) -> Option<Dec> {
-        let held = [Some(self.hold), self.spot_hold].into_iter().flatten().filter(|h| h.is_positive()).max();
-        let free = self.total.checked_sub(held.unwrap_or(Dec::ZERO))?;
-        Some(free.max(Dec::ZERO).min(self.total.max(Dec::ZERO)))
-    }
-
-    /// A HIP-4 row: a side (`+92260`, `#92260`) or a question (`o458`). Never
-    /// collateral, and never a token a transfer names.
-    #[must_use]
-    pub fn is_outcome(&self) -> bool {
-        let coin = self.coin.as_str();
-        coin.starts_with(['+', '#'])
-            || coin.strip_prefix('o').is_some_and(|id| !id.is_empty() && id.bytes().all(|b| b.is_ascii_digit()))
-    }
-}
-
-impl SpotState {
-    #[must_use]
-    pub fn balance(&self, token: u32) -> Option<&SpotBalance> {
-        self.balances.iter().find(|balance| balance.token == Some(token) && !balance.is_outcome())
-    }
-
-    /// Spot USDC, by index rather than name. An account that never held any
-    /// has no row.
-    #[must_use]
-    pub fn usdc(&self) -> Option<&SpotBalance> {
-        self.balance(USDC_INDEX)
-    }
-
-    /// Every row with something in it, tokens and outcome sides alike, the
-    /// largest total first: what the venue says is held, which is the
-    /// authoritative answer (hip4-tui's D9).
-    pub fn held(&self) -> impl Iterator<Item = &SpotBalance> {
-        let mut held: Vec<&SpotBalance> = self.balances.iter().filter(|row| !row.total.is_zero()).collect();
-        held.sort_by(|a, b| b.total.cmp(&a.total).then_with(|| a.coin.cmp(&b.coin)));
-        held.into_iter()
-    }
-
-    /// [`SpotBalance::available`] of a token: nothing for a token never held,
-    /// and nothing, never more, past what a `Dec` counts.
-    #[must_use]
-    pub fn free(&self, token: u32) -> Dec {
-        self.balance(token).and_then(SpotBalance::available).unwrap_or(Dec::ZERO)
-    }
-
-    /// What a pooled account's token has free above maintenance, where the
-    /// venue says.
-    #[must_use]
-    pub fn available_after_maintenance(&self, token: u32) -> Option<Dec> {
-        self.token_to_available_after_maintenance.iter().find(|(held, _)| *held == token).map(|(_, free)| *free)
-    }
-
-    /// How near liquidation a portfolio-margin account stands.
-    #[must_use]
-    pub fn risk(&self) -> Risk {
+impl SpotRisk for SpotState {
+    fn risk(&self) -> Risk {
         Risk::of(self.portfolio_margin_ratio)
     }
 }

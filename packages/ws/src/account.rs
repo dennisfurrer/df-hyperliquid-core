@@ -221,61 +221,17 @@ pub struct OpenOrders {
 
 /// `spotState`: spot balances, outcome sides among them (`+14720`, with no token).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "RawSpotState")]
+#[serde(rename_all = "camelCase")]
 pub struct SpotState {
     pub user: Address,
-    pub balances: Vec<Balance>,
-    /// Pooled accounts: what each token (by index) has free before maintenance.
-    pub available_after_maintenance: Vec<(u32, Dec)>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RawSpotState {
-    user: Address,
-    spot_state: RawBalances,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct RawBalances {
-    balances: Vec<Balance>,
-    #[serde(default)]
-    token_to_available_after_maintenance: Vec<(u32, Dec)>,
-}
-
-impl From<RawSpotState> for SpotState {
-    fn from(raw: RawSpotState) -> Self {
-        SpotState {
-            user: raw.user,
-            balances: raw.spot_state.balances,
-            available_after_maintenance: raw.spot_state.token_to_available_after_maintenance,
-        }
-    }
+    /// hl-core's, the shape `spotClearinghouseState` answers.
+    #[serde(rename = "spotState")]
+    pub state: hl_core::state::SpotState,
 }
 
 /// One token's balance. `total` already includes `hold`; under portfolio margin a hold may be
-/// negative, room to borrow.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Balance {
-    pub coin: String,
-    /// The token's index; outcome sides have none.
-    #[serde(default)]
-    pub token: Option<u32>,
-    pub total: Dec,
-    pub hold: Dec,
-    #[serde(default)]
-    pub entry_ntl: Option<Dec>,
-    #[serde(default)]
-    pub spot_hold: Option<Dec>,
-    #[serde(default)]
-    pub ltv: Option<Dec>,
-    #[serde(default)]
-    pub supplied: Option<Dec>,
-    #[serde(default)]
-    pub borrowed: Option<Dec>,
-}
+/// negative, room to borrow. hl-core's, the row `spotClearinghouseState` answers.
+pub use hl_core::state::SpotBalance as Balance;
 
 /// `twapStates`: the account's running TWAPs on one dex, by id.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
