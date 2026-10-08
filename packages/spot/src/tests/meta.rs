@@ -60,6 +60,34 @@ fn contexts_are_keyed_by_book_name_outcome_sides_included() {
     assert_eq!(both.ctx("HYPE/USDC"), None, "the book calls it @107");
 }
 
+/// What a balance of each token is worth: its pair with USDC's mark.
+#[test]
+fn a_token_is_priced_in_usdc_by_its_pair_s_mark() {
+    let both: SpotMetaAndAssetCtxs = serde_json::from_str(&format!("[{META},{CTXS}]")).unwrap();
+    assert_eq!(both.usdc_price(150), Some(dec("91.882")));
+    assert_eq!(both.usdc_price(1), Some(dec("0.15262")));
+    assert_eq!(both.usdc_price(0), Some(Dec::ONE), "USDC is one USDC");
+    assert_eq!(both.usdc_price(197), None, "UBTC's pair has no context in this trimmed answer");
+    assert_eq!(both.usdc_price(9999), None);
+    assert_eq!(
+        both.market_ctx(107).map(|(market, ctx)| (market.display_name(), ctx.mark_px)),
+        Some(("HYPE/USDC".to_owned(), dec("91.882")))
+    );
+}
+
+#[test]
+fn a_market_is_found_by_its_book_name_or_its_asset_id() {
+    let meta = meta();
+    let hype = meta.market_named("@107").unwrap();
+    assert_eq!(hype.display_name(), "HYPE/USDC");
+    assert_eq!(meta.market_at(Asset::from_id(10_107)), Some(hype));
+    assert_eq!(meta.market_at(Asset::from_id(107)), None, "a perp id is not a pair");
+    assert_eq!(meta.market_named("PURR/USDC").map(|purr| purr.pair.index), Some(0));
+    assert_eq!(meta.usdc().map(|usdc| usdc.index), Some(0));
+    assert_eq!(meta.token_by_id("0x0d01dc56dcaaca66ad901c959b4011ec").map(|hype| hype.name.as_str()), Some("HYPE"));
+    assert_eq!(meta.token(150).and_then(|hype| hype.deployer_trading_fee_share), Some(Dec::ZERO));
+}
+
 #[test]
 fn a_spot_order_goes_out_on_the_base_s_grid() {
     let meta = meta();

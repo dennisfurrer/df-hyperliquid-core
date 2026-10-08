@@ -1,7 +1,7 @@
 //! `spotMeta` and `spotMetaAndAssetCtxs`: tokens, pairs, and what each pair
 //! is doing now. Fields the venue adds are left unread.
 
-use hl_core::{Address, ApiError, Asset, Dec, Json, Transport, info};
+use hl_core::{Address, ApiError, Asset, AssetKind, Dec, Json, SPOT_ASSET_BASE, Transport, USDC_INDEX, info};
 use hl_trade::Grid;
 use serde::Deserialize;
 
@@ -55,6 +55,9 @@ pub struct SpotToken {
     pub evm_contract: Option<EvmContract>,
     #[serde(default)]
     pub full_name: Option<String>,
+    /// The deployer's share of the fees its pairs make, 0 to 1.
+    #[serde(default)]
+    pub deployer_trading_fee_share: Option<Dec>,
 }
 
 impl SpotToken {
@@ -134,9 +137,22 @@ impl SpotMarket<'_> {
 }
 
 impl SpotMeta {
+    /// By the venue's index for it, which is not its place in the list.
     #[must_use]
     pub fn token(&self, index: u32) -> Option<&SpotToken> {
         self.tokens.iter().find(|token| token.index == index)
+    }
+
+    /// USDC, at index 0 on both networks; its token id is each network's own.
+    #[must_use]
+    pub fn usdc(&self) -> Option<&SpotToken> {
+        self.token(USDC_INDEX)
+    }
+
+    /// By token id, `0x` and 32 hex digits in either case.
+    #[must_use]
+    pub fn token_by_id(&self, token_id: &str) -> Option<&SpotToken> {
+        self.tokens.iter().find(|token| token.token_id.eq_ignore_ascii_case(token_id))
     }
 
     /// By name, as the venue spells it: `HYPE`.
@@ -182,6 +198,23 @@ impl SpotMeta {
     pub fn market_of(&self, base: &str, quote: &str) -> Option<SpotMarket<'_>> {
         let pair = self.pair_of(self.token_named(base)?.index, self.token_named(quote)?.index)?;
         self.market(pair.index)
+    }
+
+    /// A pair with its tokens, by the name the book and fills call it:
+    /// `PURR/USDC`, `@107`.
+    #[must_use]
+    pub fn market_named(&self, name: &str) -> Option<SpotMarket<'_>> {
+        self.market(self.pair_named(name)?.index)
+    }
+
+    /// A pair with its tokens, by its asset id (`10000 + index`), as an order
+    /// status or a fill names it.
+    #[must_use]
+    pub fn market_at(&self, asset: Asset) -> Option<SpotMarket<'_>> {
+        match asset.kind() {
+            AssetKind::Spot => self.market(asset.id().checked_sub(SPOT_ASSET_BASE)?),
+            _ => None,
+        }
     }
 }
 
@@ -233,6 +266,25 @@ impl SpotMetaAndAssetCtxs {
     #[must_use]
     pub fn ctx(&self, coin: &str) -> Option<&SpotCtx> {
         self.ctxs.iter().find(|ctx| ctx.coin == coin)
+    }
+
+    /// A pair with its tokens and its context, by the pair's index.
+    #[must_use]
+    pub fn market_ctx(&self, index: u32) -> Option<(SpotMarket<'_>, &SpotCtx)> {
+        let market = self.meta.market(index)?;
+        Some((market, self.ctx(&market.pair.name)?))
+    }
+
+    /// What one of a token is worth in USDC: the mark of its pair with USDC,
+    /// 1 for USDC itself. `None` for a token with no such pair, or none
+    /// trading.
+    #[must_use]
+    pub fn usdc_price(&self, token: u32) -> Option<Dec> {
+        if token == USDC_INDEX {
+            return Some(Dec::ONE);
+        }
+        let pair = self.meta.pair_of(token, USDC_INDEX)?;
+        Some(self.market_ctx(pair.index)?.1.mark_px)
     }
 }
 

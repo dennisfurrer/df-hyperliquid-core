@@ -1,6 +1,6 @@
 [package]
 name = "hl-spot"
-description = "Hyperliquid spot: token and pair meta, balances, spot orders."
+description = "Hyperliquid spot: token and pair meta, token details, deploy state, spot orders."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
