@@ -98,7 +98,7 @@ fn bbo_mids_and_candles_read_as_sent() {
 
     let Frame::Candle(candle) = read(&mainnet("candle")) else { panic!("a candle") };
     assert_eq!((candle.open_time, candle.close_time), (1_791_480_420_000, 1_791_480_479_999));
-    assert_eq!((candle.coin.as_str(), candle.interval, candle.trades), ("BTC", Interval::Min1, 241));
+    assert_eq!((candle.coin.as_str(), candle.interval, candle.trades), ("BTC", Interval::OneMinute, 241));
     assert_eq!(
         [candle.open, candle.high, candle.low, candle.close, candle.volume],
         [dec("80429.0"), dec("80470.0"), dec("80416.0"), dec("80459.0"), dec("30.8389")]

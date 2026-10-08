@@ -47,7 +47,7 @@ fn each_interest_asks_for_what_the_venue_acknowledged() {
     let first = address(FIRST);
     let cases = [
         (book("BTC"), "ack.l2Book"),
-        (Interest::Candles { coin: "BTC".to_owned(), interval: Interval::Min1 }, "ack.candle"),
+        (Interest::Candles { coin: "BTC".to_owned(), interval: Interval::OneMinute }, "ack.candle"),
         (Interest::Mids { dex: String::new() }, "ack.allMids"),
         (Interest::Mids { dex: "xyz".to_owned() }, "ack.allMids.xyz"),
         (Interest::Fills { user: first }, "ack.userFills"),
@@ -68,11 +68,12 @@ fn a_market_page_asks_for_its_book_prints_and_candles_in_order() {
     let coin = "xyz:NVDA";
     let _book = store.register(book(coin)).unwrap();
     let _trades = store.register(Interest::Trades { coin: coin.to_owned() }).unwrap();
-    let _candles = store.register(Interest::Candles { coin: coin.to_owned(), interval: Interval::Min15 }).unwrap();
+    let _candles =
+        store.register(Interest::Candles { coin: coin.to_owned(), interval: Interval::FifteenMinutes }).unwrap();
     let expected = [
         l2(coin),
         Subscription::Trades { coin: coin.to_owned() },
-        Subscription::Candle { coin: coin.to_owned(), interval: Interval::Min15 },
+        Subscription::Candle { coin: coin.to_owned(), interval: Interval::FifteenMinutes },
     ];
     assert_eq!(store.wanted(), expected);
     assert_eq!(store.changes(), subscribing(&expected));

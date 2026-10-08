@@ -7,8 +7,6 @@ use std::fmt;
 use hl_core::Dec;
 use serde::{Deserialize, Deserializer, de};
 
-use crate::subscription::Interval;
-
 /// One price level and `l2Book`, the whole visible book each frame: hl-core's, the shape the
 /// `/info` read answers too.
 pub use hl_core::book::{Book, Level};
@@ -48,33 +46,8 @@ pub use hl_core::Side;
 pub use hl_core::trade::Trade;
 
 /// `candle`: the bar of an interval as it stands, sent as it forms and then again for the next.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct Candle {
-    /// When the bar opened, milliseconds.
-    #[serde(rename = "t")]
-    pub open_time: u64,
-    /// When it closes, milliseconds.
-    #[serde(rename = "T")]
-    pub close_time: u64,
-    #[serde(rename = "s")]
-    pub coin: String,
-    #[serde(rename = "i")]
-    pub interval: Interval,
-    #[serde(rename = "o")]
-    pub open: Dec,
-    #[serde(rename = "h")]
-    pub high: Dec,
-    #[serde(rename = "l")]
-    pub low: Dec,
-    #[serde(rename = "c")]
-    pub close: Dec,
-    /// In the base asset.
-    #[serde(rename = "v")]
-    pub volume: Dec,
-    /// How many trades made the bar.
-    #[serde(rename = "n")]
-    pub trades: u64,
-}
+/// hl-core's, the shape `candleSnapshot` answers too.
+pub use hl_core::candle::Candle;
 
 /// `allMids`: every coin's mid on one perp dex, in the order sent. The first dex's (`dex` empty)
 /// also carries spot pairs (`@107`, `PURR/USDC`) and outcome sides (`#14720`).

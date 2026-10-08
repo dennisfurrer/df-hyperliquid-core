@@ -222,17 +222,17 @@ fn candles_are_kept_a_market_and_interval_each() {
     let _candles = wanting(
         &mut store,
         [
-            Interest::Candles { coin: coin("BTC"), interval: Interval::Min1 },
-            Interest::Candles { coin: coin("BTC"), interval: Interval::Hour1 },
+            Interest::Candles { coin: coin("BTC"), interval: Interval::OneMinute },
+            Interest::Candles { coin: coin("BTC"), interval: Interval::OneHour },
         ],
     );
     assert_eq!(store.apply(1_000, &frame("candle")), Folded::Changed);
     let history: Vec<hl_trade::Candle> = read(CANDLE_SNAPSHOT);
     assert_eq!(store.read(1_000, Read::Candles(&history)), Folded::Changed);
-    let minute = store.candles("BTC", Interval::Min1).unwrap();
+    let minute = store.candles("BTC", Interval::OneMinute).unwrap();
     assert_eq!((minute.len(), minute[0].open_time, minute[0].close), (1, 1791480420000, dec("80459.0")));
     let hours: Vec<(u64, Dec)> =
-        store.candles("BTC", Interval::Hour1).unwrap().iter().map(|one| (one.open_time, one.close)).collect();
+        store.candles("BTC", Interval::OneHour).unwrap().iter().map(|one| (one.open_time, one.close)).collect();
     assert_eq!(
         hours,
         [
@@ -242,7 +242,7 @@ fn candles_are_kept_a_market_and_interval_each() {
             (1791478800000, dec("80867.0")),
         ]
     );
-    assert!(store.candles("BTC", Interval::Min5).is_none());
+    assert!(store.candles("BTC", Interval::FiveMinutes).is_none());
 }
 
 /// hip4-tui: the history read when a market comes on screen goes under what the socket already
@@ -250,10 +250,10 @@ fn candles_are_kept_a_market_and_interval_each() {
 #[test]
 fn history_goes_under_what_the_socket_already_sent() {
     let mut store = store();
-    let _candles = wanting(&mut store, [Interest::Candles { coin: coin("BTC"), interval: Interval::Hour1 }]);
+    let _candles = wanting(&mut store, [Interest::Candles { coin: coin("BTC"), interval: Interval::OneHour }]);
     let history: Vec<hl_trade::Candle> = read(CANDLE_SNAPSHOT);
     let live = Candle {
-        interval: Interval::Hour1,
+        interval: Interval::OneHour,
         open_time: 1791478800000,
         close_time: 1791482399999,
         close: dec("80999.0"),
@@ -261,7 +261,7 @@ fn history_goes_under_what_the_socket_already_sent() {
     };
     let _ = store.apply(1_000, &Frame::Candle(live));
     let _ = store.read(2_000, Read::Candles(&history));
-    let closes: Vec<Dec> = store.candles("BTC", Interval::Hour1).unwrap().iter().map(|one| one.close).collect();
+    let closes: Vec<Dec> = store.candles("BTC", Interval::OneHour).unwrap().iter().map(|one| one.close).collect();
     assert_eq!(closes, [dec("82678.0"), dec("81009.0"), dec("80929.0"), dec("80999.0")]);
 }
 

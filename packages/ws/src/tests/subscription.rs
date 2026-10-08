@@ -45,11 +45,11 @@ fn sent() -> Vec<(Subscription, String)> {
             format!(r#"{{"type":"openOrders","user":"{FIRST}","dex":""}}"#),
         ),
         (
-            Subscription::Candle { coin: coin("BTC"), interval: Interval::Min1 },
+            Subscription::Candle { coin: coin("BTC"), interval: Interval::OneMinute },
             r#"{"type":"candle","coin":"BTC","interval":"1m"}"#.to_owned(),
         ),
         (
-            Subscription::Candle { coin: coin("ETH"), interval: Interval::Month1 },
+            Subscription::Candle { coin: coin("ETH"), interval: Interval::OneMonth },
             r#"{"type":"candle","coin":"ETH","interval":"1M"}"#.to_owned(),
         ),
         (book("BTC"), r#"{"type":"l2Book","coin":"BTC"}"#.to_owned()),
@@ -174,7 +174,7 @@ fn what_the_venue_echoes_reads_back_to_the_same_subscription() {
             Subscription::L2Book { coin: coin("ETH"), n_sig_figs: Some(5), mantissa: Some(2), fast: false },
         ),
         ("ack.l2Book.fast", Subscription::L2Book { coin: coin("SOL"), n_sig_figs: None, mantissa: None, fast: true }),
-        ("ack.candle", Subscription::Candle { coin: coin("BTC"), interval: Interval::Min1 }),
+        ("ack.candle", Subscription::Candle { coin: coin("BTC"), interval: Interval::OneMinute }),
         ("ack.activeAssetData", Subscription::ActiveAssetData { user: a, coin: coin("BTC") }),
         ("ack.clearinghouseState", Subscription::ClearinghouseState { user: a, dex: String::new() }),
         ("ack.twapStates", Subscription::TwapStates { user: b, dex: String::new() }),
@@ -185,7 +185,7 @@ fn what_the_venue_echoes_reads_back_to_the_same_subscription() {
         // Sent with the address in capitals; echoed lowercase.
         ("ack.userEvents", Subscription::UserEvents { user: b }),
         ("ack.unsubscribe", Subscription::Trades { coin: coin("@107") }),
-        ("ack.unsubscribe.candle", Subscription::Candle { coin: coin("ETH"), interval: Interval::Month1 }),
+        ("ack.unsubscribe.candle", Subscription::Candle { coin: coin("ETH"), interval: Interval::OneMonth }),
     ];
     for (name, expected) in cases {
         let Ok(Frame::Ack(ack)) = decode(&mainnet(name)) else { panic!("{name} is an ack") };
@@ -201,7 +201,7 @@ fn a_subscription_reads_from_its_own_object_whatever_the_key_order() {
     let shuffled = Json::parse(r#"{"interval":"1M","coin":"ETH","type":"candle"}"#).unwrap();
     assert_eq!(
         Subscription::parse(&shuffled),
-        Ok(Subscription::Candle { coin: coin("ETH"), interval: Interval::Month1 })
+        Ok(Subscription::Candle { coin: coin("ETH"), interval: Interval::OneMonth })
     );
 }
 
@@ -224,9 +224,9 @@ fn what_is_not_a_subscription_is_refused_by_name() {
 #[test]
 fn every_interval_the_docs_list_reads_and_writes_back() {
     let listed = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "8h", "12h", "1d", "3d", "1w", "1M"];
-    assert_eq!(Interval::ALL.map(Interval::as_str), listed);
+    assert_eq!(Interval::ALL.map(Interval::wire), listed);
     for text in listed {
-        assert_eq!(Interval::parse(text).map(Interval::as_str), Some(text));
+        assert_eq!(Interval::parse(text).map(Interval::wire), Some(text));
     }
     for refused in ["7m", "1M ", "1H", "", "60m"] {
         assert_eq!(Interval::parse(refused), None, "{refused:?}");

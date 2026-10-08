@@ -2,10 +2,10 @@
 //! `recentTrades` and `allMids`. A coin is `BTC`, `xyz:XYZ100` on a HIP-3
 //! dex, `@107` or `PURR/USDC` for a pair, `#14730` for an outcome side.
 
-use std::{collections::BTreeMap, fmt, str::FromStr};
+use std::collections::BTreeMap;
 
 use hl_core::{ApiError, Dec, Transport, info};
-use serde::{Deserialize, Deserializer, de};
+use serde::Deserialize;
 
 use crate::request::{body, dex, number, text};
 
@@ -45,142 +45,8 @@ pub use hl_core::book::Level;
 /// `l2Book`: at most twenty levels a side, best first. hl-core's, the shape the socket sends.
 pub type L2Book = hl_core::book::Book;
 
-/// A candle's width, as `candleSnapshot` names it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Interval {
-    OneMinute,
-    ThreeMinutes,
-    FiveMinutes,
-    FifteenMinutes,
-    ThirtyMinutes,
-    OneHour,
-    TwoHours,
-    FourHours,
-    EightHours,
-    TwelveHours,
-    OneDay,
-    ThreeDays,
-    OneWeek,
-    OneMonth,
-}
-
-const MINUTE_MS: u64 = 60_000;
-
-impl Interval {
-    /// Every interval the venue takes, finest first.
-    pub const ALL: [Interval; 14] = [
-        Interval::OneMinute,
-        Interval::ThreeMinutes,
-        Interval::FiveMinutes,
-        Interval::FifteenMinutes,
-        Interval::ThirtyMinutes,
-        Interval::OneHour,
-        Interval::TwoHours,
-        Interval::FourHours,
-        Interval::EightHours,
-        Interval::TwelveHours,
-        Interval::OneDay,
-        Interval::ThreeDays,
-        Interval::OneWeek,
-        Interval::OneMonth,
-    ];
-
-    #[must_use]
-    pub const fn wire(self) -> &'static str {
-        match self {
-            Interval::OneMinute => "1m",
-            Interval::ThreeMinutes => "3m",
-            Interval::FiveMinutes => "5m",
-            Interval::FifteenMinutes => "15m",
-            Interval::ThirtyMinutes => "30m",
-            Interval::OneHour => "1h",
-            Interval::TwoHours => "2h",
-            Interval::FourHours => "4h",
-            Interval::EightHours => "8h",
-            Interval::TwelveHours => "12h",
-            Interval::OneDay => "1d",
-            Interval::ThreeDays => "3d",
-            Interval::OneWeek => "1w",
-            Interval::OneMonth => "1M",
-        }
-    }
-
-    /// Its width in milliseconds; a month counts thirty days.
-    #[must_use]
-    pub const fn ms(self) -> u64 {
-        let minutes = match self {
-            Interval::OneMinute => 1,
-            Interval::ThreeMinutes => 3,
-            Interval::FiveMinutes => 5,
-            Interval::FifteenMinutes => 15,
-            Interval::ThirtyMinutes => 30,
-            Interval::OneHour => 60,
-            Interval::TwoHours => 120,
-            Interval::FourHours => 240,
-            Interval::EightHours => 480,
-            Interval::TwelveHours => 720,
-            Interval::OneDay => 1_440,
-            Interval::ThreeDays => 4_320,
-            Interval::OneWeek => 10_080,
-            Interval::OneMonth => 43_200,
-        };
-        minutes * MINUTE_MS
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("`{0}` is not an interval; the venue takes 1m 3m 5m 15m 30m 1h 2h 4h 8h 12h 1d 3d 1w 1M")]
-pub struct UnknownInterval(pub String);
-
-impl FromStr for Interval {
-    type Err = UnknownInterval;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        Interval::ALL
-            .into_iter()
-            .find(|interval| interval.wire() == text)
-            .ok_or_else(|| UnknownInterval(text.to_owned()))
-    }
-}
-
-impl fmt::Display for Interval {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.wire())
-    }
-}
-
-impl<'de> Deserialize<'de> for Interval {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer)?.parse().map_err(de::Error::custom)
-    }
-}
-
-/// One candle, `t` to `T` inclusive.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct Candle {
-    #[serde(rename = "t")]
-    pub open_time: u64,
-    /// The last millisecond inside it, not the next one's open.
-    #[serde(rename = "T")]
-    pub close_time: u64,
-    #[serde(rename = "s")]
-    pub coin: String,
-    #[serde(rename = "i")]
-    pub interval: Interval,
-    #[serde(rename = "o")]
-    pub open: Dec,
-    #[serde(rename = "c")]
-    pub close: Dec,
-    #[serde(rename = "h")]
-    pub high: Dec,
-    #[serde(rename = "l")]
-    pub low: Dec,
-    /// In the base.
-    #[serde(rename = "v")]
-    pub volume: Dec,
-    #[serde(rename = "n")]
-    pub trades: u64,
-}
+/// A candle and its width: hl-core's, the shape the socket sends.
+pub use hl_core::candle::{Candle, Interval, UnknownInterval};
 
 /// A print: `side` is the aggressor's. hl-core's, the shape the socket sends.
 pub type MarketTrade = hl_core::trade::Trade;

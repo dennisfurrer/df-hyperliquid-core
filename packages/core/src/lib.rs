@@ -25,6 +25,7 @@ pub mod auction;
 pub mod body;
 pub mod book;
 pub mod builder_fee;
+pub mod candle;
 pub mod client;
 pub mod dec;
 pub mod dex;

@@ -15,88 +15,12 @@
 //! here is held as the value the venue reads it as, and an echo reads back ([`Subscription::parse`])
 //! to the subscription that was sent.
 
-use std::{borrow::Cow, fmt};
+use std::fmt;
 
 use hl_core::{Address, Json};
-use serde::{Deserialize, Deserializer, de};
 
-/// A candle interval, every one the docs list.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Interval {
-    Min1,
-    Min3,
-    Min5,
-    Min15,
-    Min30,
-    Hour1,
-    Hour2,
-    Hour4,
-    Hour8,
-    Hour12,
-    Day1,
-    Day3,
-    Week1,
-    Month1,
-}
-
-impl Interval {
-    pub const ALL: [Interval; 14] = [
-        Interval::Min1,
-        Interval::Min3,
-        Interval::Min5,
-        Interval::Min15,
-        Interval::Min30,
-        Interval::Hour1,
-        Interval::Hour2,
-        Interval::Hour4,
-        Interval::Hour8,
-        Interval::Hour12,
-        Interval::Day1,
-        Interval::Day3,
-        Interval::Week1,
-        Interval::Month1,
-    ];
-
-    /// As the venue spells it: `1m` is a minute, `1M` a month.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Interval::Min1 => "1m",
-            Interval::Min3 => "3m",
-            Interval::Min5 => "5m",
-            Interval::Min15 => "15m",
-            Interval::Min30 => "30m",
-            Interval::Hour1 => "1h",
-            Interval::Hour2 => "2h",
-            Interval::Hour4 => "4h",
-            Interval::Hour8 => "8h",
-            Interval::Hour12 => "12h",
-            Interval::Day1 => "1d",
-            Interval::Day3 => "3d",
-            Interval::Week1 => "1w",
-            Interval::Month1 => "1M",
-        }
-    }
-
-    /// Only the venue's own spellings; anything else is no interval.
-    #[must_use]
-    pub fn parse(text: &str) -> Option<Interval> {
-        Interval::ALL.into_iter().find(|interval| interval.as_str() == text)
-    }
-}
-
-impl fmt::Display for Interval {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for Interval {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let text = <Cow<'de, str>>::deserialize(deserializer)?;
-        Interval::parse(&text).ok_or_else(|| de::Error::custom(format!("`{text}` is not an interval the docs list")))
-    }
-}
+/// A candle interval, every one the docs list: hl-core's, the one `candleSnapshot` takes.
+pub use hl_core::candle::Interval;
 
 /// One feed. A coin is spelled as the venue spells it: `BTC`, `xyz:SP500` (HIP-3), `@107` or
 /// `PURR/USDC` (spot), `#14720` (an outcome side). A `dex` of `""` is the first perp dex.
@@ -355,7 +279,7 @@ impl Subscription {
             }
             Subscription::Candle { coin, interval } => {
                 fields.push(("coin", text(coin)));
-                fields.push(("interval", text(interval.as_str())));
+                fields.push(("interval", text(interval.wire())));
             }
             Subscription::L2Book { coin, n_sig_figs, mantissa, fast } => {
                 fields.push(("coin", text(coin)));
