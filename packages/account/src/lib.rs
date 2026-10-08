@@ -56,8 +56,8 @@ pub use readiness::{
     Approved, BUILDER_MINIMUM, Clearance, NotReady, Readiness, builder_readiness, clearance, readiness,
 };
 pub use referral::{
-    BadCode, LONGEST_CODE, Referral, ReferralState, ReferredBy, ReferrerData, ReferrerState, SetReferrer, referral,
-    referral_request,
+    BadCode, LONGEST_CODE, Referral, ReferralState, ReferredBy, ReferrerData, ReferrerState, SetReferrer, TokenRewards,
+    referral, referral_request,
 };
 pub use signers::{ActionKind, Key, Refused, Signers, Why, may_sign};
 pub use state::{

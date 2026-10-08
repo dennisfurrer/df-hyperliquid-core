@@ -42,8 +42,9 @@ pub async fn referral(transport: &impl Transport, user: Address) -> Result<Refer
     info(transport, referral_request(user)).await
 }
 
-/// Who referred an account, and its own standing as a referrer. Reward
-/// history and per-referral rows are left unread.
+/// Who referred an account, and its own standing as a referrer. The top
+/// level's figures are USDC's; each quote token's are in `token_to_state`.
+/// Reward history is left unread.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Referral {
@@ -55,6 +56,20 @@ pub struct Referral {
     #[serde(default)]
     pub builder_rewards: Dec,
     pub referrer_state: ReferrerState,
+    /// Each quote token's figures, by the token's index (`0` USDC). Every
+    /// recorded answer lists them; hip4-tui's trimmed ones do not.
+    #[serde(default)]
+    pub token_to_state: Option<Vec<(u32, TokenRewards)>>,
+}
+
+/// What an account traded and was paid in one quote token.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TokenRewards {
+    pub cum_vlm: Dec,
+    pub unclaimed_rewards: Dec,
+    pub claimed_rewards: Dec,
+    pub builder_rewards: Dec,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -103,6 +118,12 @@ pub struct ReferralState {
 }
 
 impl Referral {
+    /// One quote token's figures, by its index.
+    #[must_use]
+    pub fn token(&self, index: u32) -> Option<&TokenRewards> {
+        self.token_to_state.as_deref()?.iter().find(|(token, _)| *token == index).map(|(_, state)| state)
+    }
+
     /// The account's own code, once it has made one.
     #[must_use]
     pub fn own_code(&self) -> Option<&str> {
