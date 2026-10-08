@@ -6,6 +6,11 @@
 //!   ([`Side`]), spot tokens (USDC and HYPE on each network), asset ids, the perp dex and HIP-3
 //!   coins ([`dex`]), builder fees, integer amounts, system addresses ([`system`]), the deploy
 //!   auction ([`GasAuction`]), and the few floats the venue writes, kept as their digits;
+//! - the venue's shapes, one type each whether `/info` answers them or the socket sends them,
+//!   every price and size an exact decimal: books ([`book`]), prints ([`trade`]), candles and
+//!   their intervals ([`candle`]), mids ([`mids`]), asset contexts ([`context`]), fills
+//!   ([`fill`]), orders and the words they are placed with ([`order`]), clearinghouse and spot
+//!   state ([`state`]) and ledger rows ([`ledger`]); what a crate does with them stays with it;
 //! - who may sign what: every action kind and whether an agent may sign it ([`signers`]);
 //! - wire: msgpack in insertion order for L1 actions, and JSON that keeps the same order;
 //! - signing: L1 actions (phantom agent) and user-signed EIP-712 actions, the typed data a browser
