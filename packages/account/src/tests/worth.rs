@@ -12,15 +12,30 @@ use crate::{
     usable::DexState,
 };
 
+/// The recorded mids read as exact decimals, as a store holds them.
 #[derive(Deserialize)]
 struct Recorded {
     pairs: BTreeMap<String, String>,
-    mids: BTreeMap<String, String>,
+    mids: BTreeMap<String, Dec>,
 }
 
 fn prices() -> Prices {
     let recorded: Recorded = read(PRICES);
     Prices::of(&recorded.pairs, &recorded.mids)
+}
+
+/// A token at its pair's mid, an outcome side at its own; a mid of nothing is no price.
+#[test]
+fn prices_come_from_the_pairs_and_exact_mids() {
+    let mut mids: BTreeMap<String, Dec> = BTreeMap::new();
+    mids.insert("@107".to_owned(), dec("83.4515"));
+    mids.insert("#14730".to_owned(), dec("0.584"));
+    mids.insert("@142".to_owned(), Dec::ZERO);
+    let pairs: BTreeMap<String, String> =
+        [("HYPE", "@107"), ("UBTC", "@142")].map(|(token, pair)| (token.to_owned(), pair.to_owned())).into();
+    let prices = Prices::of(&pairs, &mids);
+    assert_eq!((prices.price("HYPE"), prices.price("+14730")), (Some(dec("83.4515")), Some(dec("0.584"))));
+    assert_eq!((prices.price("UBTC"), prices.price("USDC")), (None, Some(Dec::ONE)));
 }
 
 fn standing(spot: &str, main: &str, xyz: &str, mode: Abstraction) -> Standing {

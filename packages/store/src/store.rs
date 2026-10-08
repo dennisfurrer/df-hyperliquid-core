@@ -1,7 +1,7 @@
 //! The store: one network's live state, the interests that keep it live, and the views a page
 //! reads.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use hl_account::{Abstraction, Beside, Collateral, Prices, Standing, Surface, Usable, Worth, combined};
 use hl_core::{Address, Dec, Network, USDC_INDEX, split_coin};
@@ -617,26 +617,22 @@ impl Store {
         mid(&meta.pair_of(meta.token_named(name)?.index, USDC_INDEX)?.name)
     }
 
-    /// Every price [`Store::price`] knows, as hl-account's `Prices` (what `Prices::of` makes of
-    /// spot meta's pairs and the first dex's mids).
+    /// Every price [`Store::price`] knows, as hl-account's `Prices`: `Prices::of` over each
+    /// token's first pair with USDC (as spot meta's `pair_of` finds it) and the first dex's mids.
     #[must_use]
     pub fn prices(&self) -> Prices {
-        let mut prices = Prices::new();
-        let Some(mids) = self.markets.mids.get("") else { return prices };
-        for (side, mid) in mids.iter().filter(|(coin, mid)| coin.starts_with('#') && mid.is_positive()) {
-            prices = prices.with(side, *mid);
-        }
-        let Some(meta) = self.markets.spot_meta.as_ref() else { return prices };
-        let names: BTreeMap<u32, &str> = meta.tokens.iter().map(|token| (token.index, token.name.as_str())).collect();
-        let mut priced: BTreeSet<u32> = BTreeSet::new();
-        // A token's first pair with USDC, as `pair_of` finds it.
-        for pair in meta.universe.iter().filter(|pair| pair.quote() == USDC_INDEX) {
-            let Some(name) = names.get(&pair.base()).filter(|_| priced.insert(pair.base())) else { continue };
-            if let Some(mid) = mids.get(&pair.name).filter(|mid| mid.is_positive()) {
-                prices = prices.with(name, *mid);
+        let Some(mids) = self.markets.mids.get("") else { return Prices::new() };
+        let mut pairs: BTreeMap<String, String> = BTreeMap::new();
+        if let Some(meta) = self.markets.spot_meta.as_ref() {
+            let names: BTreeMap<u32, &str> =
+                meta.tokens.iter().map(|token| (token.index, token.name.as_str())).collect();
+            for pair in meta.universe.iter().filter(|pair| pair.quote() == USDC_INDEX) {
+                if let Some(name) = names.get(&pair.base()) {
+                    pairs.entry((*name).to_owned()).or_insert_with(|| pair.name.clone());
+                }
             }
         }
-        prices
+        Prices::of(&pairs, mids)
     }
 
     /// What `user` is worth, counted once (hl-account's worth). `beside` is what other crates

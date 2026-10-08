@@ -45,18 +45,19 @@ impl Prices {
     }
 
     /// From each token's USDC pair (`HYPE` is `@107`, as `spotMeta` lists the
-    /// pairs) and `allMids`: a token at its pair's mid, and an outcome side's
-    /// mid (`#14730`) as it is quoted. A mid that does not read is left out.
+    /// pairs) and the first dex's mids, exact (`allMids`, read or sent): a
+    /// token at its pair's mid, and an outcome side's mid (`#14730`) as it is
+    /// quoted. A mid of nothing is no price.
     #[must_use]
-    pub fn of(pairs: &BTreeMap<String, String>, mids: &BTreeMap<String, String>) -> Prices {
-        let read = |mid: &String| Dec::parse(mid).ok().filter(|price| price.is_positive());
+    pub fn of(pairs: &BTreeMap<String, String>, mids: &BTreeMap<String, Dec>) -> Prices {
+        let priced = |mid: &Dec| Some(*mid).filter(|price| price.is_positive());
         let mut prices: BTreeMap<String, Dec> = mids
             .iter()
             .filter(|(name, _)| name.starts_with('#'))
-            .filter_map(|(name, mid)| Some((name.clone(), read(mid)?)))
+            .filter_map(|(name, mid)| Some((name.clone(), priced(mid)?)))
             .collect();
         for (token, pair) in pairs {
-            if let Some(price) = mids.get(pair).and_then(read) {
+            if let Some(price) = mids.get(pair).and_then(priced) {
                 prices.insert(token.clone(), price);
             }
         }
