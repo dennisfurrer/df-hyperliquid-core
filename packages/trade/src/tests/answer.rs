@@ -71,6 +71,19 @@ fn every_order_status_the_venue_sends_is_read_as_itself() {
 
 /// An average between two ticks is the venue's figure, kept exactly: never
 /// brought onto a grid, never through a float.
+/// The whole `response.data` is kept beside the statuses read from it, so a
+/// field the statuses do not carry is still there to read.
+#[test]
+fn an_accepted_answer_keeps_its_data_as_the_venue_wrote_it() {
+    let resting = accepted(&answer("order_resting"));
+    assert_eq!(resting.data, Some(serde_json::json!({"statuses": [{"resting": {"oid": 77_738_308}}]})));
+    let data = resting.data.as_ref().unwrap();
+    assert_eq!(data["statuses"][0]["resting"]["oid"].as_u64(), Some(77_738_308));
+    let twap = accepted(&answer("twap_running"));
+    assert_eq!(twap.data, Some(serde_json::json!({"status": {"running": {"twapId": 77_738_308}}})));
+    assert_eq!(accepted(&answer("default")).data, None, "a default answer has no data");
+}
+
 #[test]
 fn an_average_price_is_kept_exactly() {
     let Ok(OrderAnswer::Filled { avg_px, total_sz, .. }) = OrderAnswer::read(&status("filled_between_ticks")) else {

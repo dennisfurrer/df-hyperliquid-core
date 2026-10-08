@@ -183,6 +183,9 @@ pub struct Accepted {
     pub kind: String,
     /// `response.data.statuses`, or `response.data.status` alone, when present.
     pub statuses: Vec<Status>,
+    /// `response.data` whole, as the venue wrote it; `None` when there is none
+    /// (`"default"`). Some answers carry more than their statuses.
+    pub data: Option<Value>,
 }
 
 /// One item of an accepted answer.
@@ -220,7 +223,7 @@ impl ExchangeResponse {
                     (None, Some(one)) => vec![status_of(one)],
                     (None, None) => Vec::new(),
                 };
-                Ok(ExchangeResponse::Ok(Accepted { kind, statuses }))
+                Ok(ExchangeResponse::Ok(Accepted { kind, statuses, data: data.cloned() }))
             }
             Some(_) => Ok(ExchangeResponse::Err(text_of(&response))),
             None => Err(bad(format!("no status in {}", text.chars().take(300).collect::<String>()))),

@@ -116,9 +116,19 @@ fn an_info_read_posts_to_info_and_reads_the_answer() {
 fn a_transfer_accepted_answers_default_with_no_statuses() {
     let transport = Recorded::answering(r#"{"status":"ok","response":{"type":"default"}}"#);
     let accepted = block_on(exchange(&transport, "{}".to_owned())).unwrap();
-    assert_eq!(accepted, Accepted { kind: "default".to_owned(), statuses: Vec::new() });
+    assert_eq!(accepted, Accepted { kind: "default".to_owned(), statuses: Vec::new(), data: None });
     assert_eq!(accepted.errors().count(), 0);
     assert_eq!(transport.sent.borrow()[0].0, "/exchange");
+}
+
+#[test]
+fn an_answer_s_data_is_kept_whole_beside_its_statuses() {
+    let text = r#"{"status":"ok","response":{"type":"order","data":{"statuses":[{"resting":{"oid":7}}],"oid":7}}}"#;
+    let ExchangeResponse::Ok(accepted) = ExchangeResponse::parse(text).unwrap() else { panic!("refused") };
+    assert_eq!(accepted.statuses, [Status::Ok(serde_json::json!({"resting": {"oid": 7}}))]);
+    let data = accepted.data.unwrap();
+    assert_eq!(data["oid"].as_u64(), Some(7), "more than the statuses");
+    assert_eq!(data["statuses"][0]["resting"]["oid"].as_u64(), Some(7));
 }
 
 #[test]

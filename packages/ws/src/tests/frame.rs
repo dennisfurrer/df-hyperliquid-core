@@ -575,7 +575,8 @@ fn post_answers_are_matched_by_id_and_keep_what_was_answered() {
             id: 256,
             answer: Answer::Action(ExchangeResponse::Ok(Accepted {
                 kind: "order".to_owned(),
-                statuses: vec![Status::Ok(resting)]
+                statuses: vec![Status::Ok(resting.clone())],
+                data: Some(serde_json::json!({"statuses": [resting]})),
             })),
         })
     );
