@@ -1,0 +1,78 @@
+[workspace]
+resolver = "3"
+members = [
+  # hl-core is the backbone; every other crate builds on it.
+  "packages/core",
+  "packages/account",
+  "packages/transfer",
+  "packages/trade",
+  "packages/perps",
+  "packages/spot",
+  "packages/hip3",
+  "packages/hip4",
+  "packages/lend",
+  "packages/stake",
+  "packages/vault",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+publish = false
+license = "BUSL-1.1"
+
+# Pins follow coreserve (verified in atlas on 2026-09-28). Crates take only what they use.
+[workspace.dependencies]
+hl-core = { path = "packages/core" }
+hl-account = { path = "packages/account" }
+hl-transfer = { path = "packages/transfer" }
+hl-trade = { path = "packages/trade" }
+hl-perps = { path = "packages/perps" }
+hl-spot = { path = "packages/spot" }
+hl-hip3 = { path = "packages/hip3" }
+hl-hip4 = { path = "packages/hip4" }
+hl-lend = { path = "packages/lend" }
+hl-stake = { path = "packages/stake" }
+hl-vault = { path = "packages/vault" }
+
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.21"
+k256 = { version = "0.13.4", features = ["ecdsa"] }
+# The keccak-f1600 permutation alone (ARMv8.2 SHA3 when native). No `parallel`: one lane is all
+# signing needs, and without it the crate is no_std and builds for wasm32 as is.
+keccak = "0.2.2"
+zeroize = "1.9.0"
+# k256 0.13 reaches getrandom 0.2; on wasm32 it needs the js backend.
+getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "deny"
+unused_must_use = "deny"
+
+[workspace.lints.clippy]
+# Prices and sizes are exact decimals on this venue; a float anywhere is a bug.
+float_arithmetic = "deny"
+# A panic in a Worker kills the isolate; in the browser it kills the app.
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+float_cmp = "warn"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+
+# Browser and Worker wasm: size first. `cargo build --profile wasm`.
+[profile.wasm]
+inherits = "release"
+opt-level = "s"
+lto = "fat"
+panic = "abort"
+strip = "debuginfo"
