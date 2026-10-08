@@ -10,51 +10,9 @@ use serde_json::value::RawValue;
 
 use crate::market::Side;
 
-/// One fill of the account's, as `userFills`, `userEvents` and the TWAP feeds send it.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Fill {
-    pub coin: String,
-    pub px: Dec,
-    pub sz: Dec,
-    /// The account's side.
-    pub side: Side,
-    /// Milliseconds.
-    pub time: u64,
-    /// The account's position in the coin before this fill, signed.
-    pub start_position: Dec,
-    /// For display: `Open Long`, `Close Short`, `Buy`, `Settlement` and the like.
-    pub dir: String,
-    pub closed_pnl: Dec,
-    /// The L1 transaction hash; all zeros for a TWAP slice.
-    pub hash: String,
-    pub oid: u64,
-    /// Took liquidity.
-    pub crossed: bool,
-    /// Negative is a rebate. Includes `builder_fee`.
-    pub fee: Dec,
-    pub tid: u64,
-    #[serde(default)]
-    pub cloid: Option<String>,
-    pub fee_token: String,
-    #[serde(default)]
-    pub builder_fee: Option<Dec>,
-    #[serde(default)]
-    pub liquidation: Option<FillLiquidation>,
-    #[serde(default)]
-    pub twap_id: Option<u64>,
-}
-
-/// On a fill that was part of a liquidation, on either side of it.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FillLiquidation {
-    #[serde(default)]
-    pub liquidated_user: Option<Address>,
-    pub mark_px: Dec,
-    /// `market` or `backstop`.
-    pub method: String,
-}
+/// One fill of the account's, as `userFills`, `userEvents` and the TWAP feeds send it, and a TWAP
+/// slice's: hl-core's, the shapes `userFills` and `userTwapSliceFills` answer.
+pub use hl_core::fill::{Fill, FillLiquidation, TwapSliceFill};
 
 /// `userFills`: the last fills first (`is_snapshot`), then each new one as it happens.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -463,14 +421,6 @@ pub struct TwapState {
     pub randomize: bool,
     /// When it started, milliseconds.
     pub timestamp: u64,
-}
-
-/// One slice of a TWAP that filled.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TwapSliceFill {
-    pub fill: Fill,
-    pub twap_id: u64,
 }
 
 /// `userTwapSliceFills`: past slices first (`is_snapshot`), then each as it fills.

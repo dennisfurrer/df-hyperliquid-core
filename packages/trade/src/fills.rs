@@ -4,50 +4,10 @@
 use hl_core::{Address, ApiError, Dec, Json, Transport, info};
 use serde::Deserialize;
 
-use crate::{
-    order::{Cloid, Side},
-    request::{body, number, user},
-};
+use crate::request::{body, number, user};
 
-/// One fill. `fee` is everything the fill cost, a builder's share included,
-/// in `fee_token`: USDC, or on a spot buy the token bought.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Fill {
-    pub coin: String,
-    pub px: Dec,
-    pub sz: Dec,
-    pub side: Side,
-    pub time: u64,
-    /// The position before the fill, signed.
-    pub start_position: Dec,
-    /// `Open Long`, `Close Short`, `Buy`, `Sell`, `Spot Dust Conversion`...
-    pub dir: String,
-    pub closed_pnl: Dec,
-    /// All zeros on a TWAP slice.
-    pub hash: String,
-    pub oid: u64,
-    /// Took liquidity.
-    pub crossed: bool,
-    pub fee: Dec,
-    pub fee_token: String,
-    /// What the order's builder took; the venue leaves it out when nothing.
-    #[serde(default)]
-    pub builder_fee: Option<Dec>,
-    pub tid: u64,
-    #[serde(default)]
-    pub cloid: Option<Cloid>,
-    #[serde(default)]
-    pub twap_id: Option<u64>,
-}
-
-/// A fill of one of a TWAP's slices.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TwapSliceFill {
-    pub fill: Fill,
-    pub twap_id: u64,
-}
+/// One fill and a TWAP slice's: hl-core's, the shapes the socket sends.
+pub use hl_core::fill::{Fill, FillLiquidation, TwapSliceFill};
 
 /// `userFees`: the account's own rates, as fractions of a fill's value
 /// (`0.00045` is 4.5 basis points), its recent volume and the schedule.

@@ -13,21 +13,23 @@ fn dec(text: &str) -> Dec {
 fn raw(coin: &str, side: &str, sz: &str, start: &str, dir: &str, time: u64) -> RawFill {
     RawFill {
         coin: coin.to_owned(),
-        px: "0.5".to_owned(),
-        sz: sz.to_owned(),
-        side: side.to_owned(),
+        px: dec("0.5"),
+        sz: dec(sz),
+        side: Side::parse(side).unwrap(),
         time,
-        start_position: start.to_owned(),
+        start_position: dec(start),
         dir: dir.to_owned(),
-        closed_pnl: "0.0".to_owned(),
+        closed_pnl: Dec::ZERO,
         hash: "0x".to_owned(),
         oid: 1,
         crossed: true,
-        fee: "0.0".to_owned(),
+        fee: Dec::ZERO,
         tid: 1,
-        fee_token: None,
-        builder_fee: None,
         cloid: None,
+        fee_token: "USDC".to_owned(),
+        builder_fee: None,
+        liquidation: None,
+        twap_id: None,
     }
 }
 
@@ -60,7 +62,7 @@ fn an_unknown_direction_survives_verbatim() {
 #[test]
 fn a_perp_fill_in_the_same_answer_is_skipped_rather_than_refused() {
     let mut perp = raw("BTC", "B", "0.5", "0", "Open Long", 1);
-    perp.px = "118435.0".to_owned();
+    perp.px = dec("118435.0");
     let fills = read(&[perp, raw("#12100", "B", "10", "0", "Buy", 2)]);
     assert_eq!(fills.len(), 1);
     assert_eq!(fills[0].coin.to_string(), "#12100");
@@ -86,9 +88,23 @@ fn a_live_fill_reads_every_field_the_venue_sent() {
     assert_eq!(fill.fee, dec("0.00181466"));
     assert_eq!(fill.builder_fee, Some(fill.fee));
     assert_eq!(fill.venue_fee(), Some(Dec::ZERO));
-    assert_eq!(fill.fee_token.as_deref(), Some("USDC"));
+    assert_eq!(fill.fee_token, "USDC");
     assert_eq!(fill.notional(), dec("7.25866"));
     assert_eq!((fill.at_ms, fill.oid, fill.tid), (1_789_233_746_112, 543_204_924_246, 881_794_509_642_454));
+}
+
+/// Every recorded fill, read or sent, carries its fee token and whether it
+/// crossed: a row without them is refused, not read as no token and resting.
+#[test]
+fn a_fill_without_its_fee_token_or_crossed_is_refused() {
+    let text = r##"{"coin": "#12270", "px": "0.21349", "sz": "34.0", "side": "B",
+        "time": 1789233746112, "startPosition": "1355.0", "dir": "Buy", "closedPnl": "0.0",
+        "hash": "0x3263f9", "oid": 543204924246, "crossed": true, "fee": "0.00181466",
+        "tid": 881794509642454, "feeToken": "USDC"}"##;
+    assert!(serde_json::from_str::<RawFill>(text).is_ok());
+    for gone in [r#", "feeToken": "USDC""#, r#""crossed": true, "#] {
+        assert!(serde_json::from_str::<RawFill>(&text.replace(gone, "")).is_err(), "without {gone}");
+    }
 }
 
 /// A structural fill prices at `1/n`, finer than the grid: it is read, not
@@ -96,7 +112,7 @@ fn a_live_fill_reads_every_field_the_venue_sent() {
 #[test]
 fn a_structural_fill_off_the_grid_is_still_read() {
     let mut negate = raw("#12101", "B", "3", "0", "Negate Outcome", 1);
-    negate.px = "0.333333".to_owned();
+    negate.px = dec("0.333333");
     let fill = Fill::read(&negate).unwrap();
     assert!(fill.direction.is_structural());
     assert_eq!(fill.price, dec("0.333333"));
@@ -161,11 +177,11 @@ fn structural_notional_is_kept_out_of_traded_volume() {
 #[test]
 fn realized_pnl_and_fees_sum_exactly_across_a_window() {
     let mut win = raw("#12100", "A", "7", "7", "Settlement", 1_000);
-    win.closed_pnl = "1.96".to_owned();
-    win.fee = "0.009408".to_owned();
+    win.closed_pnl = dec("1.96");
+    win.fee = dec("0.009408");
     let mut loss = raw("#12100", "A", "7", "7", "Sell", 2_000);
-    loss.closed_pnl = "-7.32006081".to_owned();
-    loss.fee = "0.00181466".to_owned();
+    loss.closed_pnl = dec("-7.32006081");
+    loss.fee = dec("0.00181466");
     let fills = read(&[win, loss]);
     let summary = summarize(&fills);
     assert_eq!(summary.realized_pnl, dec("-5.36006081"));

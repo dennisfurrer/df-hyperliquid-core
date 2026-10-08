@@ -32,6 +32,7 @@ pub mod dec;
 pub mod dex;
 pub mod eip712;
 pub mod figure;
+pub mod fill;
 pub mod hex;
 pub mod json;
 pub mod keccak;

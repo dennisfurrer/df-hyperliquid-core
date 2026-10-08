@@ -51,7 +51,7 @@ fn a_fill_s_fee_is_estimated_from_what_it_was() {
     let sell = Fill::read(
         &serde_json::from_str(
             r##"{"coin":"#12270","px":"0.5","sz":"200.0","side":"A","time":1,"startPosition":"200.0","dir":"Sell",
-        "closedPnl":"0.0","hash":"0x","oid":1,"crossed":false,"fee":"0.0768","tid":1}"##,
+        "closedPnl":"0.0","hash":"0x","oid":1,"crossed":false,"fee":"0.0768","tid":1,"feeToken":"USDC"}"##,
         )
         .unwrap(),
     )

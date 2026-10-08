@@ -117,32 +117,9 @@ fn side_of(text: &str) -> Option<Side> {
     }
 }
 
-/// One row of `userFills` or `userFillsByTime`, as written. Perp and spot
-/// rows come in the same answer; [`Fill::read`] skips them.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct RawFill {
-    pub coin: String,
-    pub px: String,
-    pub sz: String,
-    pub side: String,
-    pub time: u64,
-    pub start_position: String,
-    pub dir: String,
-    pub closed_pnl: String,
-    pub hash: String,
-    pub oid: u64,
-    #[serde(default)]
-    pub crossed: bool,
-    pub fee: String,
-    pub tid: u64,
-    #[serde(default)]
-    pub fee_token: Option<String>,
-    #[serde(default)]
-    pub builder_fee: Option<String>,
-    #[serde(default)]
-    pub cloid: Option<String>,
-}
+/// One row of `userFills` or `userFillsByTime`, as written: hl-core's. Perp
+/// and spot rows come in the same answer; [`Fill::read`] skips them.
+pub type RawFill = hl_core::fill::Fill;
 
 /// One outcome fill, read.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,7 +137,7 @@ pub struct Fill {
     pub closed_pnl: Dec,
     /// Everything billed, the builder's fee included.
     pub fee: Dec,
-    pub fee_token: Option<String>,
+    pub fee_token: String,
     pub builder_fee: Option<Dec>,
     /// True for an order that took, false for a resting one that was taken.
     pub crossed: bool,
@@ -178,30 +155,25 @@ impl Fill {
             return None;
         }
         let coin = Coin::parse(&raw.coin)?;
-        let side = side_of(&raw.side)?;
-        let size = Qty::parse(&raw.sz).ok()?;
-        let start_position = SignedQty::parse(&raw.start_position).ok()?;
-        let moved = match side {
+        let size = Qty::from_dec(raw.sz).ok()?;
+        let start_position = SignedQty::from_dec(raw.start_position).ok()?;
+        let moved = match raw.side {
             Side::Buy => SignedQty::long(size),
             Side::Sell => SignedQty::short(size),
         };
-        let builder_fee = match raw.builder_fee.as_deref() {
-            Some(text) => Some(Dec::parse(text).ok()?),
-            None => None,
-        };
         Some(Fill {
             coin,
-            side,
+            side: raw.side,
             direction: Direction::read(&raw.dir),
-            price: Dec::parse(&raw.px).ok()?,
+            price: raw.px,
             size,
             at_ms: raw.time,
             start_position,
             position: start_position.saturating_add(moved),
-            closed_pnl: Dec::parse(&raw.closed_pnl).ok()?,
-            fee: Dec::parse(&raw.fee).ok()?,
+            closed_pnl: raw.closed_pnl,
+            fee: raw.fee,
             fee_token: raw.fee_token.clone(),
-            builder_fee,
+            builder_fee: raw.builder_fee,
             crossed: raw.crossed,
             oid: raw.oid,
             tid: raw.tid,

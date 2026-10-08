@@ -282,10 +282,8 @@ impl Store {
             }
             Read::Mode { user, mode } => self.fold_mode(now, user, mode.clone()),
             Read::Orders { user, dex, orders } => self.fold_orders(now, user, dex, orders.to_vec()),
-            Read::Fills { user, fills } => self.fold_fills(now, user, fills.iter().map(convert::fill).collect(), true),
-            Read::MoreFills { user, fills } => {
-                self.fold_fills(now, user, fills.iter().rev().map(convert::fill).collect(), false)
-            }
+            Read::Fills { user, fills } => self.fold_fills(now, user, fills.to_vec(), true),
+            Read::MoreFills { user, fills } => self.fold_fills(now, user, fills.iter().rev().cloned().collect(), false),
             Read::Fundings { user, fundings } => {
                 let wanted = Subscription::UserFundings { user };
                 let newest = fundings.iter().rev().map(convert::funding).collect();

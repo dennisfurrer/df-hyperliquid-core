@@ -2,7 +2,7 @@
 //! things in the types of different crates; each piece is kept in the one every source reads
 //! into without losing what it said:
 //!
-//! - fills, fundings and ledger rows as hl-ws reads them;
+//! - fundings and ledger rows as hl-ws reads them;
 //! - a dex's clearinghouse as hl-perps reads it, and from it hl-account's, which usable
 //!   balances and worth are read from;
 //! - spot balances and the mode as hl-account reads them;
@@ -14,7 +14,7 @@ use hl_account::{
 };
 use hl_perps::{AssetPosition, ClearinghouseState, CumFunding, Leverage, MarginSummary, Position, UserFunding};
 use hl_trade::{FrontendOrder, OrderKind};
-use hl_ws::{Fill, Funding, Margin};
+use hl_ws::{Funding, Margin};
 use serde::{Deserialize, de::IntoDeserializer};
 
 /// The socket's clearinghouse as hl-perps reads one. An isolated position always carries its
@@ -149,30 +149,6 @@ pub(crate) fn order(sent: &hl_ws::OpenOrder) -> FrontendOrder {
         orig_sz: sent.orig_sz,
         tif: sent.tif.clone(),
         cloid: sent.cloid.as_deref().and_then(|cloid| cloid.parse().ok()),
-    }
-}
-
-/// A read fill as the socket sends one. The read never carries a liquidation.
-pub(crate) fn fill(read: &hl_trade::Fill) -> Fill {
-    Fill {
-        coin: read.coin.clone(),
-        px: read.px,
-        sz: read.sz,
-        side: read.side,
-        time: read.time,
-        start_position: read.start_position,
-        dir: read.dir.clone(),
-        closed_pnl: read.closed_pnl,
-        hash: read.hash.clone(),
-        oid: read.oid,
-        crossed: read.crossed,
-        fee: read.fee,
-        tid: read.tid,
-        cloid: read.cloid.map(hl_trade::Cloid::to_hex),
-        fee_token: read.fee_token.clone(),
-        builder_fee: read.builder_fee,
-        liquidation: None,
-        twap_id: read.twap_id,
     }
 }
 

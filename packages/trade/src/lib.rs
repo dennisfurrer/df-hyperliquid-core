@@ -43,7 +43,8 @@ pub use builder::{Approval, ApprovalRefused, Approved, BuilderSetting, FeeRule, 
 pub use cancel::{Cancel, CancelByCloid};
 pub use error::TradeError;
 pub use fills::{
-    DailyVolume, FeeSchedule, FeeTiers, Fill, MakerTier, StakingDiscount, TwapSliceFill, UserFees, VolumeTier,
+    DailyVolume, FeeSchedule, FeeTiers, Fill, FillLiquidation, MakerTier, StakingDiscount, TwapSliceFill, UserFees,
+    VolumeTier,
 };
 pub use grid::{Grid, MAX_SLIPPAGE, MINIMUM_ORDER_VALUE, PERP_PRICE_PLACES, SIGNIFICANT_FIGURES, SPOT_PRICE_PLACES};
 pub use hl_core::{Asset, AssetKind, BuilderFee, L1Action};

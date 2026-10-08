@@ -558,6 +558,13 @@ impl SignedQty {
         Ok(SignedQty(if negative { -contracts } else { contracts }))
     }
 
+    /// A decimal that is a whole number of contracts, either side of zero.
+    pub fn from_dec(value: Dec) -> Result<SignedQty, BadSignedQty> {
+        let size = Qty::from_dec(value.abs())?;
+        let contracts = i64::try_from(size.0).map_err(|_| BadSignedQty::TooLarge(value.to_string()))?;
+        Ok(SignedQty(if value.is_negative() { -contracts } else { contracts }))
+    }
+
     #[must_use]
     pub fn to_wire(self) -> String {
         self.0.to_string()
