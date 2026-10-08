@@ -527,6 +527,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "hl-ws"
+version = "0.1.0"
+dependencies = [
+ "hl-core",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

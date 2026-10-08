@@ -1,0 +1,7 @@
+{
+ "source": "Hyperliquid docs, for-developers/api/websocket/post-requests, read 2026-10-08: the sample answer to an order posted over the websocket, whitespace as printed. The page writes `\"oid\": 88383,` with a trailing comma; that comma is dropped.",
+ "frames": {
+  "post.action.ok": "{\n  \"channel\": \"post\",\n  \"data\": {\n    \"id\": 256,\n    \"response\": {\n      \"type\":\"action\",\n      \"payload\": {\n        \"status\": \"ok\",\n        \"response\": {\n          \"type\": \"order\",\n          \"data\": {\n            \"statuses\": [\n              {\n                \"resting\": {\n                  \"oid\": 88383\n                }\n              }\n            ]\n          }\n        }\n      }\n    }\n  }\n}"
+ },
+ "notes": {}
+}

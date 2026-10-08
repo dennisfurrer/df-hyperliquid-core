@@ -1,0 +1,18 @@
+[package]
+name = "hl-ws"
+description = "Hyperliquid's public websocket, sans-IO: every subscription, the frames to send, typed decoding of what comes back, and the connection's state machine (resubscribe, ping, silence, reconnect delay, the venue's limits)."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+serde.workspace = true
+# raw_value: a frame's `data` is read where it lies, and an unknown channel keeps it as written.
+serde_json = { workspace = true, features = ["raw_value"] }
+thiserror.workspace = true
+
+[lints]
+workspace = true

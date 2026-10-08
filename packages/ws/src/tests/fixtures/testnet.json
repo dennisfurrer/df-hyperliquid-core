@@ -1,0 +1,9 @@
+{
+ "source": "Recorded from wss://api.hyperliquid-testnet.xyz/ws on 2026-10-08 by the same client. post.action.err answers an order action with no orders and a made-up signature, which the venue refused. Byte for byte as received.",
+ "frames": {
+  "ack.outcomeMetaUpdates": "{\"channel\":\"subscriptionResponse\",\"data\":{\"method\":\"subscribe\",\"subscription\":{\"type\":\"outcomeMetaUpdates\"}}}",
+  "outcomeMetaUpdates": "{\"channel\":\"outcomeMetaUpdates\",\"data\":[{\"outcomeSettled\":23205}]}",
+  "post.action.err": "{\"channel\":\"post\",\"data\":{\"id\":22,\"response\":{\"type\":\"action\",\"payload\":{\"status\":\"err\",\"response\":\"User or API Wallet 0xf9414817e74c92ea33b3e8614efcc3ed198df423 does not exist.\"}}}}"
+ },
+ "notes": {}
+}

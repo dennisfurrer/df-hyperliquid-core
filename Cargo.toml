@@ -17,6 +17,7 @@ members = [
   "packages/native",
   "packages/web",
   "packages/hydromancer",
+  "packages/ws",
 ]
 
 [workspace.package]
@@ -43,6 +44,7 @@ hl-vault = { path = "packages/vault" }
 hl-native = { path = "packages/native" }
 hl-web = { path = "packages/web" }
 hl-hydromancer = { path = "packages/hydromancer" }
+hl-ws = { path = "packages/ws" }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
