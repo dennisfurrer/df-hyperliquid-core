@@ -73,20 +73,44 @@ fn a_clearinghouse_state_reads_every_position_and_its_margin() {
     assert_eq!(btc.entry_px, Some(dec("81134.2")));
     assert_eq!(btc.unrealized_pnl, dec("5812.516083"));
     assert_eq!(btc.liquidation_px, Some(dec("136313.4115825814")));
-    assert_eq!((btc.leverage.kind.as_str(), btc.leverage.value), ("cross", 5));
+    assert_eq!((btc.leverage.mode(), btc.leverage.value()), (MarginMode::Cross, 5));
     assert!(perp.is_used());
     let xyz: PerpState = read(PERP_UNIFIED_XYZ);
     assert!(!xyz.is_used(), "a dex never traded on");
     assert_eq!(xyz.positions().count(), 0);
 }
 
+/// Every recorded clearinghouse, read or sent, carries its cross summary, its cross maintenance
+/// and each position's value and leverage whole: one without them is refused, not read as zero.
+#[test]
+fn a_clearinghouse_missing_what_every_recording_carries_is_refused() {
+    let whole: serde_json::Value = serde_json::from_str(PERP_UNIFIED).unwrap();
+    assert!(serde_json::from_value::<PerpState>(whole.clone()).is_ok());
+    for gone in ["crossMarginSummary", "crossMaintenanceMarginUsed"] {
+        let mut without = whole.clone();
+        without.as_object_mut().unwrap().remove(gone);
+        assert!(serde_json::from_value::<PerpState>(without).is_err(), "without {gone}");
+    }
+    for gone in ["positionValue", "maxLeverage"] {
+        let mut without = whole.clone();
+        without["assetPositions"][0]["position"].as_object_mut().unwrap().remove(gone);
+        assert!(serde_json::from_value::<PerpState>(without).is_err(), "without {gone}");
+    }
+    let mut isolated = whole;
+    isolated["assetPositions"][0]["position"]["leverage"] = serde_json::json!({"type": "isolated", "value": 5});
+    assert!(serde_json::from_value::<PerpState>(isolated).is_err(), "an isolated leverage without its rawUsd");
+}
+
+/// A flat leg, made by hand in the venue's whole shape. A figure left out was once read as
+/// nothing; every recorded state carries them all, so now it is refused.
 #[test]
 fn a_flat_leg_is_not_a_position() {
-    let perp: PerpState = read(
-        r#"{"marginSummary":{"accountValue":"1.0"},"withdrawable":"1.0","assetPositions":[{"type":"oneWay","position":{"coin":"BTC","szi":"0.0","leverage":{"type":"cross","value":5},"entryPx":null,"positionValue":"0.0","unrealizedPnl":"0.0","marginUsed":"0.0","maxLeverage":40}}]}"#,
-    );
+    let flat = r#"{"marginSummary":{"accountValue":"1.0","totalNtlPos":"0.0","totalRawUsd":"1.0","totalMarginUsed":"0.0"},"crossMarginSummary":{"accountValue":"1.0","totalNtlPos":"0.0","totalRawUsd":"1.0","totalMarginUsed":"0.0"},"crossMaintenanceMarginUsed":"0.0","withdrawable":"1.0","assetPositions":[{"type":"oneWay","position":{"coin":"BTC","szi":"0.0","leverage":{"type":"cross","value":5},"entryPx":null,"positionValue":"0.0","unrealizedPnl":"0.0","marginUsed":"0.0","maxLeverage":40}}]}"#;
+    let perp: PerpState = read(flat);
     assert_eq!(perp.positions().count(), 0);
-    assert_eq!(perp.margin_summary.total_ntl_pos, Dec::ZERO, "a figure left out reads as nothing");
+    assert!(perp.is_used(), "it holds a dollar");
+    let left_out = flat.replace(r#""totalNtlPos":"0.0","#, "");
+    assert!(serde_json::from_str::<PerpState>(&left_out).is_err(), "a figure left out is refused, not read as nothing");
 }
 
 #[test]

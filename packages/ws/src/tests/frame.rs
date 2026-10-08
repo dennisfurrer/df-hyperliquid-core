@@ -2,7 +2,7 @@ use hl_core::{Accepted, Address, Dec, ExchangeResponse, Json, Status, order::Clo
 
 use super::*;
 use crate::{
-    account::{Fill, FillLiquidation, Margin, TwapState, UserEvent},
+    account::{Fill, FillLiquidation, Leverage, Margin, TwapState, UserEvent},
     fixtures::{all, docs, hip4_tui, mainnet, testnet},
     market::{Book, Level, Side},
     subscription::{Interval, Subscription},
@@ -147,7 +147,7 @@ fn the_contexts_of_every_dex_one_dex_and_spot_read_alike() {
 fn what_an_account_may_trade_reads_both_sides() {
     let Frame::AssetData(data) = read(&mainnet("activeAssetData")) else { panic!("asset data") };
     assert_eq!((data.user, data.coin.as_str()), (address(FIRST), "BTC"));
-    assert_eq!((data.leverage.margin, data.leverage.value, data.leverage.raw_usd), (Margin::Cross, 40, None));
+    assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (Margin::Cross, 40, None));
     assert_eq!(data.max_trade_szs, [dec("6.95458"), dec("8.53351")]);
     assert_eq!(data.available_to_trade, [dec("13988.094483"), dec("17163.875338")]);
     assert_eq!(data.mark_px, Some(dec("80454.0")));
@@ -353,7 +353,7 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     );
     assert_eq!(
         (house.cross_maintenance_margin_used, house.withdrawable, house.time),
-        (dec("12150.990399"), Dec::ZERO, 1_791_480_487_027)
+        (dec("12150.990399"), Dec::ZERO, Some(1_791_480_487_027))
     );
     assert_eq!(house.asset_positions.len(), 1);
     let position = &house.asset_positions[0].position;
@@ -361,9 +361,9 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
         (house.asset_positions[0].kind.as_str(), position.coin.as_str(), position.szi),
         ("oneWay", "BTC", dec("-12.07087"))
     );
-    assert_eq!((position.leverage.margin, position.leverage.value, position.max_leverage), (Margin::Cross, 11, 40));
+    assert_eq!((position.leverage.mode(), position.leverage.value(), position.max_leverage), (Margin::Cross, 11, 40));
     assert_eq!((position.entry_px, position.liquidation_px), (Some(dec("81063.7")), Some(dec("87657.4305040273"))));
-    assert_eq!(position.cum_funding.all_time, dec("-12707.648999"));
+    assert_eq!(position.cum_funding.as_ref().map(|paid| paid.all_time), Some(dec("-12707.648999")));
 
     let Frame::AllDexsClearinghouseState(every) = read(&mainnet("allDexsClearinghouseState")) else { panic!("states") };
     let dexes: Vec<&str> = every.states.iter().map(|(dex, _)| dex.as_str()).collect();
@@ -376,12 +376,21 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     };
     assert_eq!(older.user, address("0x8d1548a936241928cef288a1c377919a5d511f7a"));
     let btc = &older.states[0].1.asset_positions[0].position;
-    assert_eq!(
-        (btc.leverage.margin, btc.leverage.value, btc.leverage.raw_usd),
-        (Margin::Isolated, 4, Some(dec("-3828.81778")))
-    );
+    assert_eq!(btc.leverage, Leverage::Isolated { value: 4, raw_usd: dec("-3828.81778") });
+    assert_eq!(btc.leverage.mode(), Margin::Isolated);
     assert_eq!(older.states[0].1.margin_summary.account_value, dec("8456.677271"));
     assert_eq!(older.states[1].0, "xyz");
+}
+
+/// An isolated position always carries its `rawUsd` (hip4-tui's recording, as every isolated
+/// position recorded by hl-perps): one without it is refused, never read as none put up.
+#[test]
+fn an_isolated_position_without_its_raw_usd_is_refused_not_read_as_zero() {
+    let sent = hip4_tui("allDexsClearinghouseState");
+    assert!(decode(&sent).is_ok());
+    let without = sent.replace(r#","rawUsd":"-3828.81778""#, "");
+    assert_ne!(without, sent);
+    assert!(decode(&without).is_err());
 }
 
 /// Every recorded resting order, sent or read, says its type, its trigger and whether it is a

@@ -196,12 +196,11 @@ impl Store {
                 self.fold_spot_ctxs(now, ctxs.iter().map(|ctx| (ctx.coin.clone(), ctx.clone())))
             }
             Frame::ClearinghouseState(one) => {
-                let state = convert::clearinghouse(&one.state);
+                let state = one.state.clone();
                 self.with_state(one.user, |account| account.set_dex(now, &one.dex, state))
             }
             Frame::AllDexsClearinghouseState(all) => {
-                let states =
-                    all.states.iter().map(|(dex, state)| (dex.clone(), convert::clearinghouse(state))).collect();
+                let states = all.states.clone();
                 self.with_state(all.user, |account| account.set_dexes(now, states))
             }
             Frame::SpotState(spot) => {

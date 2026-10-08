@@ -41,7 +41,7 @@ fn a_cross_position_reads_every_figure_as_sent() {
     assert_eq!(btc.entry_px, Some(dec("82511.5")));
     assert_eq!(btc.position_value, dec("60635.2144"));
     assert_eq!(btc.unrealized_pnl, dec("-1334.284132"));
-    assert_eq!(btc.return_on_equity, dec("-0.4306260866"));
+    assert_eq!(btc.return_on_equity, Some(dec("-0.4306260866")));
     assert_eq!(btc.liquidation_px, None, "a vault this well margined has none");
     assert_eq!(btc.margin_used, dec("3031.76072"));
     assert_eq!(btc.leverage, Leverage::Cross { value: 20 });
@@ -92,7 +92,7 @@ fn the_margin_summaries_and_withdrawable_read_as_sent() {
     assert_eq!(state.cross_margin_summary, state.margin_summary, "all of it cross");
     assert_eq!(state.cross_maintenance_margin_used, dec("37350.071885"));
     assert_eq!(state.withdrawable, dec("2799666.6320639998"));
-    assert_eq!(state.time, 1_791_480_567_359);
+    assert_eq!(state.time, Some(1_791_480_567_359));
 }
 
 /// An isolated position carries `rawUsd`, and what it uses is its value plus
@@ -132,6 +132,19 @@ fn a_flat_leg_is_not_a_position() {
     assert_eq!(held, ["HYPE"]);
     let btc = &state.asset_positions[1].position;
     assert_eq!((btc.entry_px, btc.cum_funding.is_none(), btc.mark(), btc.closing_side()), (None, true, None, None));
+}
+
+/// hip4-tui's subaccount recording (hl-account's `SUBS`) carries no `time`, nor each position's
+/// `returnOnEquity`: a state without them reads, and says it does not know, never 1970 or zero.
+#[test]
+fn a_state_without_its_time_or_return_on_equity_says_so() {
+    let mut text: serde_json::Value = serde_json::from_str(XYZ_EMPTY).unwrap();
+    text.as_object_mut().unwrap().remove("time");
+    assert_eq!(serde_json::from_value::<ClearinghouseState>(text).unwrap().time, None);
+    let mut text: serde_json::Value = serde_json::from_str(ISOLATED).unwrap();
+    text["assetPositions"][0]["position"].as_object_mut().unwrap().remove("returnOnEquity");
+    let state: ClearinghouseState = serde_json::from_value(text).unwrap();
+    assert_eq!(state.asset_positions[0].position.return_on_equity, None);
 }
 
 #[test]

@@ -233,7 +233,7 @@ impl Account {
             dexes: self
                 .dexes
                 .iter()
-                .map(|(dex, state)| DexState { dex: dex.clone(), state: crate::convert::perp_state(state) })
+                .map(|(dex, state)| DexState { dex: dex.clone(), state: state.value.clone() })
                 .collect(),
             spot: self.spot.as_ref().map(|spot| spot.value.clone()),
             heard: self.state_heard(),

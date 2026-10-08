@@ -173,96 +173,10 @@ impl Risk {
 
 /// `clearinghouseState`: one perp dex's margin and positions. On a unified
 /// or portfolio-margin account the figures are not a balance of their own:
-/// the money is in spot.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct PerpState {
-    pub margin_summary: MarginSummary,
-    #[serde(default)]
-    pub cross_margin_summary: Option<MarginSummary>,
-    #[serde(default)]
-    pub cross_maintenance_margin_used: Dec,
-    /// What can leave the perp balance now.
-    pub withdrawable: Dec,
-    #[serde(default)]
-    pub asset_positions: Vec<AssetPosition>,
-    /// Milliseconds.
-    #[serde(default)]
-    pub time: Option<u64>,
-}
+/// the money is in spot. hl-core's, the shape every crate reads.
+pub type PerpState = hl_core::state::Clearinghouse;
 
-impl PerpState {
-    /// The positions held, a flat leg left out.
-    pub fn positions(&self) -> impl Iterator<Item = &Position> {
-        self.asset_positions.iter().map(|one| &one.position).filter(|position| !position.szi.is_zero())
-    }
-
-    /// Whether anything is on this dex: value or a position.
-    #[must_use]
-    pub fn is_used(&self) -> bool {
-        !self.margin_summary.account_value.is_zero() || self.positions().next().is_some()
-    }
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MarginSummary {
-    pub account_value: Dec,
-    #[serde(default)]
-    pub total_ntl_pos: Dec,
-    #[serde(default)]
-    pub total_raw_usd: Dec,
-    #[serde(default)]
-    pub total_margin_used: Dec,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct AssetPosition {
-    pub position: Position,
-}
-
-/// One position as the venue states it. Funding and return on equity are
-/// left unread.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Position {
-    /// `BTC` on the main dex, `xyz:XYZ100` on a HIP-3 one.
-    pub coin: String,
-    /// Signed: negative is short.
-    pub szi: Dec,
-    #[serde(default)]
-    pub entry_px: Option<Dec>,
-    #[serde(default)]
-    pub position_value: Dec,
-    #[serde(default)]
-    pub unrealized_pnl: Dec,
-    #[serde(default)]
-    pub margin_used: Dec,
-    #[serde(default)]
-    pub liquidation_px: Option<Dec>,
-    pub leverage: Leverage,
-    #[serde(default)]
-    pub max_leverage: Option<u32>,
-}
-
-impl Position {
-    #[must_use]
-    pub const fn is_short(&self) -> bool {
-        self.szi.is_negative()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Leverage {
-    /// `cross` or `isolated`.
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub value: u32,
-    /// Isolated: the margin put up.
-    #[serde(default)]
-    pub raw_usd: Option<Dec>,
-}
+pub use hl_core::state::{AssetPosition, CumFunding, Leverage, MarginMode, MarginSummary, Position};
 
 /// How an account's balances are kept, as `userAbstraction` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

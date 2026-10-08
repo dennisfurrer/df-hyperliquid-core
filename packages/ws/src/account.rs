@@ -185,84 +185,12 @@ fn json<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Json, D::Error> {
     Json::parse(raw.get()).map_err(de::Error::custom)
 }
 
-/// One dex's clearinghouse: the account's margin and positions there.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Clearinghouse {
-    pub margin_summary: MarginSummary,
-    pub cross_margin_summary: MarginSummary,
-    pub cross_maintenance_margin_used: Dec,
-    pub withdrawable: Dec,
-    pub asset_positions: Vec<AssetPosition>,
-    /// Milliseconds.
-    pub time: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct MarginSummary {
-    pub account_value: Dec,
-    pub total_ntl_pos: Dec,
-    pub total_raw_usd: Dec,
-    pub total_margin_used: Dec,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct AssetPosition {
-    /// `oneWay`.
-    #[serde(rename = "type")]
-    pub kind: String,
-    pub position: Position,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Position {
-    pub coin: String,
-    /// Signed size.
-    pub szi: Dec,
-    pub leverage: Leverage,
-    #[serde(default)]
-    pub entry_px: Option<Dec>,
-    pub position_value: Dec,
-    pub unrealized_pnl: Dec,
-    pub return_on_equity: Dec,
-    #[serde(default)]
-    pub liquidation_px: Option<Dec>,
-    pub margin_used: Dec,
-    pub max_leverage: u32,
-    #[serde(default)]
-    pub cum_funding: CumFunding,
-}
-
-/// A position's leverage, or what the account has set on a coin.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Leverage {
-    #[serde(rename = "type")]
-    pub margin: Margin,
-    pub value: u32,
-    /// An isolated position's own USD.
-    #[serde(default)]
-    pub raw_usd: Option<Dec>,
-}
-
-/// Whether a position shares the account's balance.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Margin {
-    Cross,
-    Isolated,
-}
-
-/// Funding paid (positive) or received on a position.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "camelCase", default)]
-pub struct CumFunding {
-    pub all_time: Dec,
-    pub since_open: Dec,
-    pub since_change: Dec,
-}
+/// One dex's clearinghouse, its margin and positions, a position's leverage (or what the account
+/// has set on a coin) and whether it shares the account's balance: hl-core's, the shapes
+/// `clearinghouseState` answers.
+pub use hl_core::state::{
+    AssetPosition, Clearinghouse, CumFunding, Leverage, MarginMode as Margin, MarginSummary, Position,
+};
 
 /// `clearinghouseState`: one dex's clearinghouse (`dex` empty for the first).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

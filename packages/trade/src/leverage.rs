@@ -4,14 +4,8 @@ use hl_core::{Asset, BadUnits, Dec, L1Action, Map, Round};
 
 use crate::{error::TradeError, order::Side};
 
-/// How a position is margined.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum MarginMode {
-    /// Shares the account's perp balance.
-    Cross,
-    /// Margined on its own.
-    Isolated,
-}
+/// How a position is margined: hl-core's, the mode a position read back says.
+pub use hl_core::state::MarginMode;
 
 /// `updateLeverage`: `{type, asset, isCross, leverage}`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

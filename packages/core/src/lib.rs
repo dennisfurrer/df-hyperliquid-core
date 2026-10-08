@@ -46,6 +46,7 @@ pub mod order;
 pub mod side;
 pub mod signer;
 pub mod signers;
+pub mod state;
 pub mod system;
 pub mod trade;
 pub mod units;

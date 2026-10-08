@@ -190,7 +190,10 @@ fn a_dex_s_clearinghouse_gives_its_positions() {
     let positions = store.positions(second());
     let btc = positions[0];
     assert_eq!((btc.coin.as_str(), btc.szi, btc.entry_px), ("BTC", dec("-12.07087"), Some(dec("81063.7"))));
-    assert_eq!((btc.return_on_equity, btc.leverage.clone()), (dec("0.0722953617"), Leverage::Cross { value: 11 }));
+    assert_eq!(
+        (btc.return_on_equity, btc.leverage.clone()),
+        (Some(dec("0.0722953617")), Leverage::Cross { value: 11 })
+    );
     assert_eq!(btc.cum_funding.as_ref().map(|funding| funding.since_open), Some(dec("-973.335874")));
     let read_later: ClearinghouseState = read(&answered("post.info.clearinghouseState"));
     let told = Read::Clearinghouse { user: second(), dex: "", state: &read_later };
@@ -224,7 +227,7 @@ fn an_isolated_position_keeps_the_margin_put_up() {
     let btc = store.positions(tui)[0].clone();
     assert_eq!(btc.leverage, Leverage::Isolated { value: 4, raw_usd: dec("-3828.81778") });
     let held = &store.account(tui).unwrap().standing().dex("").unwrap().asset_positions[0].position;
-    assert_eq!((held.leverage.kind.as_str(), held.leverage.raw_usd), ("isolated", Some(dec("-3828.81778"))));
+    assert_eq!(held.leverage, btc.leverage, "hl-account's view holds the one type");
 }
 
 /// Resting orders as `openOrders` sends them, typed as hl-trade reads `frontendOpenOrders`; an
