@@ -13,6 +13,8 @@ members = [
   "packages/lend",
   "packages/stake",
   "packages/vault",
+  # transports: the wire an app plugs into hl-core, one per platform
+  "packages/native",
 ]
 
 [workspace.package]
@@ -36,6 +38,7 @@ hl-hip4 = { path = "packages/hip4" }
 hl-lend = { path = "packages/lend" }
 hl-stake = { path = "packages/stake" }
 hl-vault = { path = "packages/vault" }
+hl-native = { path = "packages/native" }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -47,6 +50,10 @@ keccak = "0.2.2"
 zeroize = "1.9.0"
 # k256 0.13 reaches getrandom 0.2; on wasm32 it needs the js backend.
 getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
+
+# hl-native only: one HTTP client on rustls, and the runtime it needs. Pins follow hip4-tui.
+reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "http2"] }
+tokio = { version = "1.53.1", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

@@ -1,0 +1,18 @@
+[package]
+name = "hl-native"
+description = "hl-core's wire for native programs: HTTP through reqwest on rustls, and the system clock."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+reqwest.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true
