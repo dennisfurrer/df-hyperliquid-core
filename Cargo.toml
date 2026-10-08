@@ -15,6 +15,7 @@ members = [
   "packages/vault",
   # transports: the wire an app plugs into hl-core, one per platform
   "packages/native",
+  "packages/web",
 ]
 
 [workspace.package]
@@ -39,6 +40,7 @@ hl-lend = { path = "packages/lend" }
 hl-stake = { path = "packages/stake" }
 hl-vault = { path = "packages/vault" }
 hl-native = { path = "packages/native" }
+hl-web = { path = "packages/web" }
 
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -54,6 +56,14 @@ getrandom02 = { package = "getrandom", version = "0.2.17", features = ["js"] }
 # hl-native only: one HTTP client on rustls, and the runtime it needs. Pins follow hip4-tui.
 reqwest = { version = "0.12.28", default-features = false, features = ["rustls-tls", "http2"] }
 tokio = { version = "1.53.1", default-features = false }
+
+# hl-web only. wasm-bindgen is exact: its test runner and the apps' wasm-bindgen CLI (coreserve, atlas)
+# must match it. The test crate is the one released with it.
+wasm-bindgen = "=0.2.129"
+wasm-bindgen-futures = "0.4.79"
+js-sys = "0.3.106"
+web-sys = "0.3.106"
+wasm-bindgen-test = "=0.3.79"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

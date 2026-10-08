@@ -1,0 +1,21 @@
+[package]
+name = "hl-web"
+description = "hl-core's wire for the browser and Workers: HTTP through the global fetch, and Date.now as the clock."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+hl-core.workspace = true
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+js-sys.workspace = true
+web-sys = { workspace = true, features = ["Headers", "RequestInit", "Response"] }
+
+[dev-dependencies]
+wasm-bindgen-test.workspace = true
+
+[lints]
+workspace = true
