@@ -69,3 +69,7 @@ required-features = ["markets", "native"]
 
 [lints]
 workspace = true
+
+[[example]]
+name = "testnet_rules"
+required-features = ["markets", "native", "sign"]
