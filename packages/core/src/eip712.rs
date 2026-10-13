@@ -1,5 +1,6 @@
-//! EIP-712 for the flat structs Hyperliquid signs: hashing, and the typed
-//! data a browser wallet's `eth_signTypedData_v4` is handed.
+//! EIP-712 for the flat structs Hyperliquid signs, and HyperEVM contracts that
+//! take the same kind (one level, `uint256[]` the only array): hashing, and the
+//! typed data a browser wallet's `eth_signTypedData_v4` is handed.
 
 use crate::{
     address::Address,
@@ -68,6 +69,25 @@ pub enum Field<'a> {
     Uint64(u64),
     Bytes32([u8; 32]),
     Bool(bool),
+    Uint32(u32),
+    Uint128(u128),
+    /// The big-endian word; [`uint256`] makes one from a smaller number.
+    Uint256([u8; 32]),
+    /// Each element's big-endian word, in order.
+    Uint256Array(&'a [[u8; 32]]),
+}
+
+/// The `uint256` word of a number that fits 128 bits.
+#[must_use]
+pub const fn uint256(value: u128) -> [u8; 32] {
+    let bytes = value.to_be_bytes();
+    let mut word = [0u8; 32];
+    let mut index = 0;
+    while index < 16 {
+        word[16 + index] = bytes[index];
+        index += 1;
+    }
+    word
 }
 
 impl Field<'_> {
@@ -79,22 +99,35 @@ impl Field<'_> {
             Field::Uint64(_) => "uint64",
             Field::Bytes32(_) => "bytes32",
             Field::Bool(_) => "bool",
+            Field::Uint32(_) => "uint32",
+            Field::Uint128(_) => "uint128",
+            Field::Uint256(_) => "uint256",
+            Field::Uint256Array(_) => "uint256[]",
         }
     }
 
+    /// The field's word in the struct hash. An array's is the keccak of its
+    /// elements' words, as EIP-712 encodes one.
     #[must_use]
     pub fn encode(&self) -> [u8; 32] {
         match self {
             Field::String(text) => keccak256(text.as_bytes()),
             Field::Address(address) => address_word(*address),
             Field::Uint64(number) => word(*number),
-            Field::Bytes32(bytes) => *bytes,
+            Field::Bytes32(bytes) | Field::Uint256(bytes) => *bytes,
             Field::Bool(value) => word(u64::from(*value)),
+            Field::Uint32(number) => word(u64::from(*number)),
+            Field::Uint128(number) => uint256(*number),
+            Field::Uint256Array(words) => {
+                words.iter().fold(Keccak256::new(), |sponge, element| sponge.chain(element)).finalize()
+            }
         }
     }
 
     /// The value as a wallet's `message` carries it: numbers as JSON numbers,
-    /// as viem passes them, bools as JSON bools, the rest as strings.
+    /// as viem passes them, bools as JSON bools, the rest as strings. A
+    /// `uint128` or `uint256` is a decimal string, as viem sends a bigint:
+    /// JavaScript reads a JSON number past 2^53 inexactly.
     #[must_use]
     pub fn to_json(&self) -> Json {
         match self {
@@ -103,10 +136,17 @@ impl Field<'_> {
             Field::Uint64(number) => Json::Number(number.to_string()),
             Field::Bytes32(bytes) => Json::String(hex::encode_prefixed(bytes)),
             Field::Bool(value) => Json::Bool(*value),
+            Field::Uint32(number) => Json::Number(number.to_string()),
+            Field::Uint128(number) => Json::String(number.to_string()),
+            Field::Uint256(bytes) => Json::String(word_decimal(bytes)),
+            Field::Uint256Array(words) => {
+                Json::Array(words.iter().map(|element| Json::String(word_decimal(element))).collect())
+            }
         }
     }
 
-    /// The value as the posted action carries it: addresses lowercase.
+    /// The value as the posted action carries it: addresses lowercase. A
+    /// number past 64 bits is its decimal string, as no msgpack integer holds it.
     #[must_use]
     pub fn to_wire(&self) -> Value {
         match self {
@@ -115,8 +155,72 @@ impl Field<'_> {
             Field::Uint64(number) => Value::Uint(*number),
             Field::Bytes32(bytes) => Value::from(hex::encode_prefixed(bytes)),
             Field::Bool(value) => Value::Bool(*value),
+            Field::Uint32(number) => Value::Uint(u64::from(*number)),
+            Field::Uint128(number) => Value::from(number.to_string()),
+            Field::Uint256(bytes) => Value::from(word_decimal(bytes)),
+            Field::Uint256Array(words) => {
+                Value::Array(words.iter().map(|element| Value::from(word_decimal(element))).collect())
+            }
         }
     }
+}
+
+/// A big-endian word as its decimal digits.
+#[must_use]
+pub fn word_decimal(bytes: &[u8; 32]) -> String {
+    // Nineteen digits at a time: 10^19 is the largest power of ten under 2^64.
+    const GROUP: u128 = 10_000_000_000_000_000_000;
+    let mut limbs = [0u64; 4];
+    for (limb, chunk) in limbs.iter_mut().zip(bytes.chunks_exact(8)) {
+        let mut eight = [0u8; 8];
+        eight.copy_from_slice(chunk);
+        *limb = u64::from_be_bytes(eight);
+    }
+    let mut groups = Vec::new();
+    while limbs.iter().any(|limb| *limb != 0) {
+        let mut remainder = 0u128;
+        for limb in &mut limbs {
+            let value = (remainder << 64) | u128::from(*limb);
+            // The remainder is under 10^19, so the quotient is under 2^64.
+            *limb = (value / GROUP) as u64;
+            remainder = value % GROUP;
+        }
+        groups.push(remainder as u64);
+    }
+    let Some((first, rest)) = groups.split_last() else {
+        return "0".to_owned();
+    };
+    let mut text = first.to_string();
+    for group in rest.iter().rev() {
+        text.push_str(&format!("{group:019}"));
+    }
+    text
+}
+
+/// Decimal digits as a big-endian word; `None` for anything else or past 2^256.
+#[must_use]
+pub fn decimal_word(digits: &str) -> Option<[u8; 32]> {
+    if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
+        return None;
+    }
+    let mut limbs = [0u64; 4];
+    for byte in digits.bytes() {
+        let mut carry = u128::from(byte - b'0');
+        for limb in limbs.iter_mut().rev() {
+            let value = u128::from(*limb) * 10 + carry;
+            // The low 64 bits stay in the limb; the rest carries up.
+            *limb = value as u64;
+            carry = value >> 64;
+        }
+        if carry != 0 {
+            return None;
+        }
+    }
+    let mut word = [0u8; 32];
+    for (chunk, limb) in word.chunks_exact_mut(8).zip(limbs) {
+        chunk.copy_from_slice(&limb.to_be_bytes());
+    }
+    Some(word)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -298,11 +402,19 @@ fn encode_json(kind: &str, value: &Json) -> Option<[u8; 32]> {
         ("address", Json::String(text)) => text.parse().ok().map(address_word),
         ("bool", Json::Bool(flag)) => Some(word(u64::from(*flag))),
         ("bytes32", Json::String(text)) => hex::decode_array(text).ok(),
-        ("uint64" | "uint256", Json::Number(digits)) => {
-            let number: u128 = digits.parse().ok()?;
-            let mut bytes = [0u8; 32];
-            bytes[16..].copy_from_slice(&number.to_be_bytes());
-            Some(bytes)
+        ("uint256[]", Json::Array(items)) => {
+            let mut sponge = Keccak256::new();
+            for item in items {
+                sponge = sponge.chain(&encode_json("uint256", item)?);
+            }
+            Some(sponge.finalize())
+        }
+        // A wallet takes a number either way: a JSON number or its decimal string.
+        (_, Json::Number(digits) | Json::String(digits)) => {
+            let bits: usize = kind.strip_prefix("uint")?.parse().ok()?;
+            let value = decimal_word(digits)?;
+            let spare = 256usize.checked_sub(bits)? / 8;
+            value[..spare].iter().all(|byte| *byte == 0).then_some(value)
         }
         _ => None,
     }
