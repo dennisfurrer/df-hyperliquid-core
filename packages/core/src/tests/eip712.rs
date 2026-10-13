@@ -193,7 +193,7 @@ fn an_approve_agent_signs_as_the_sdk_did_with_the_hardhat_key() {
 /// The wider numbers HyperEVM contracts sign: their words, how a wallet is
 /// handed them (a `uint128` or `uint256` as a decimal string, as viem sends a
 /// bigint), and a `uint256[]` as the keccak of its words. Each is checked
-/// against viem in hl-papertrade's vectors (`vectors/papertrade_viem.json`).
+/// against viem in hl-papertrade's vectors (papertrade-rust's `vectors/papertrade_viem.json`).
 #[test]
 fn the_wide_numbers_encode_as_solidity_does() {
     assert_eq!(Field::Uint32(7).encode(), uint256(7));

@@ -7,7 +7,6 @@
 //! - money: [`account`], [`transfer`], [`lend`], [`stake`], [`vault`];
 //! - data and chains: [`ws`], [`hydromancer`], [`evm`];
 //! - composites: [`store`] (live state a page reads) and [`analytics`];
-//! - venues on HyperEVM: [`papertrade`];
 //! - wires: [`native`] or [`web`].
 //!
 //! A [`Client`] is one network: every crate's reads take it, since it is a
@@ -36,8 +35,6 @@ pub use hl_hydromancer as hydromancer;
 pub use hl_lend as lend;
 #[cfg(feature = "native")]
 pub use hl_native as native;
-#[cfg(feature = "papertrade")]
-pub use hl_papertrade as papertrade;
 #[cfg(feature = "perps")]
 pub use hl_perps as perps;
 #[cfg(feature = "spot")]
