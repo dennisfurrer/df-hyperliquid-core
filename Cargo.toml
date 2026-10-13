@@ -26,6 +26,9 @@ members = [
   "packages/analytics",
   # Papertrade, a venue on HyperEVM built from hl-core and hl-evm.
   "packages/papertrade",
+  # Papertrade for an app: the session key's life, the writes and deposits, on the protocol above
+  # and hl-transfer.
+  "packages/papertrade-client",
   # transports: the wire an app plugs into hl-core, one per platform.
   "packages/native",
   "packages/web",
@@ -62,6 +65,7 @@ hl-evm = { path = "packages/evm" }
 hl-store = { path = "packages/store" }
 hl-analytics = { path = "packages/analytics" }
 hl-papertrade = { path = "packages/papertrade" }
+hl-papertrade-client = { path = "packages/papertrade-client" }
 hl = { path = "packages/hl" }
 
 serde = { version = "1.0.229", features = ["derive"] }

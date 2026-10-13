@@ -543,6 +543,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "hl-papertrade-client"
+version = "0.1.0"
+dependencies = [
+ "hl-core",
+ "hl-evm",
+ "hl-papertrade",
+ "hl-transfer",
+ "serde_json",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
 name = "hl-perps"
 version = "0.1.0"
 dependencies = [
