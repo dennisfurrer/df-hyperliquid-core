@@ -24,6 +24,8 @@ members = [
   # keeps, and who builds and deploys, computed from what an app read.
   "packages/store",
   "packages/analytics",
+  # Papertrade, a venue on HyperEVM built from hl-core and hl-evm.
+  "packages/papertrade",
   # transports: the wire an app plugs into hl-core, one per platform.
   "packages/native",
   "packages/web",
@@ -59,6 +61,7 @@ hl-ws = { path = "packages/ws" }
 hl-evm = { path = "packages/evm" }
 hl-store = { path = "packages/store" }
 hl-analytics = { path = "packages/analytics" }
+hl-papertrade = { path = "packages/papertrade" }
 hl = { path = "packages/hl" }
 
 serde = { version = "1.0.229", features = ["derive"] }

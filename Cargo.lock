@@ -410,6 +410,7 @@ dependencies = [
  "hl-hydromancer",
  "hl-lend",
  "hl-native",
+ "hl-papertrade",
  "hl-perps",
  "hl-spot",
  "hl-stake",
@@ -527,6 +528,18 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-tungstenite",
+]
+
+[[package]]
+name = "hl-papertrade"
+version = "0.1.0"
+dependencies = [
+ "hl-core",
+ "hl-evm",
+ "hl-papertrade",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]
