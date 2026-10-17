@@ -1,30 +1,64 @@
 [package]
-name = "hl-core"
-description = "Hyperliquid backbone: vocabulary, exact decimals, asset ids, the venue's shapes (books, prints, candles, mids, contexts, fills, orders, account state, ledger rows) read once, who may sign what, msgpack wire, L1 and user-signed signing, nonces, the info and exchange client behind a transport trait, rate-limit weights."
+name = "df-hyperliquid-core"
+description = "Hyperliquid SDK for Rust: markets, account, trading, transfers, earn and deploy, with exact decimals and signing. Native and wasm."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish.workspace = true
 license.workspace = true
+authors.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+exclude = ["examples/testnet_rules.rs"]
 
 [dependencies]
 serde.workspace = true
-# raw_value: a float the venue writes (a vault's `apr`) is read as its digits, never through an f64.
 serde_json = { workspace = true, features = ["raw_value"] }
 thiserror.workspace = true
 keccak.workspace = true
 k256 = { workspace = true, optional = true }
 zeroize = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["rt", "sync", "time", "macros", "net"] }
+tokio-tungstenite = { workspace = true, optional = true }
+futures-util = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true, optional = true }
+js-sys = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true, features = ["CloseEvent", "Headers", "MessageEvent", "RequestInit", "Response", "WebSocket"] }
 
-# k256 reaches getrandom 0.2 through rand_core's std feature; wasm32 needs its js backend.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom02 = { workspace = true, optional = true }
 
 [features]
-default = ["sign"]
-# The curve: recovering and checking signatures, reading a wallet's, and a key held in memory.
-# Without it everything still hashes and builds what would be signed; nothing can sign or check.
+default = ["sign", "native"]
+# Signing and recovery. Without it, actions build and hash but nothing signs.
 sign = ["dep:k256", "dep:zeroize", "dep:getrandom02"]
+# HTTP and websocket for native programs (reqwest, tokio-tungstenite).
+native = ["dep:reqwest", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util"]
+# HTTP and websocket for the browser and Workers (fetch, WebSocket).
+web = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
+
+[dev-dependencies]
+serde_json.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+wasm-bindgen-test.workspace = true
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+
+[[example]]
+name = "perps_page"
+required-features = ["native"]
+
+[[example]]
+name = "testnet_rules"
+required-features = ["native", "sign"]

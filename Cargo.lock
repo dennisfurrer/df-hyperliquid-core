@@ -178,6 +178,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "df-hyperliquid-core"
+version = "0.0.8-beta"
+dependencies = [
+ "futures-util",
+ "getrandom 0.2.17",
+ "js-sys",
+ "k256",
+ "keccak",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tokio-tungstenite",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "wasm-bindgen-test",
+ "web-sys",
+ "zeroize",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -395,240 +417,6 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
-
-[[package]]
-name = "hl"
-version = "0.1.0"
-dependencies = [
- "hl",
- "hl-account",
- "hl-analytics",
- "hl-core",
- "hl-evm",
- "hl-hip3",
- "hl-hip4",
- "hl-hydromancer",
- "hl-lend",
- "hl-native",
- "hl-perps",
- "hl-spot",
- "hl-stake",
- "hl-store",
- "hl-trade",
- "hl-transfer",
- "hl-vault",
- "hl-web",
- "hl-ws",
- "thiserror",
- "tokio",
-]
-
-[[package]]
-name = "hl-account"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-analytics"
-version = "0.1.0"
-dependencies = [
- "hl-account",
- "hl-core",
- "hl-hip3",
- "hl-hip4",
- "hl-hydromancer",
- "serde",
- "serde_json",
- "sha2",
- "thiserror",
-]
-
-[[package]]
-name = "hl-core"
-version = "0.1.0"
-dependencies = [
- "getrandom 0.2.17",
- "k256",
- "keccak",
- "serde",
- "serde_json",
- "thiserror",
- "zeroize",
-]
-
-[[package]]
-name = "hl-evm"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-evm",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-hip3"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-trade",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-hip4"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-trade",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-hydromancer"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "rmp-serde",
- "ruzstd",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-lend"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-native"
-version = "0.1.0"
-dependencies = [
- "futures-util",
- "hl-core",
- "hl-ws",
- "reqwest",
- "thiserror",
- "tokio",
- "tokio-tungstenite",
-]
-
-[[package]]
-name = "hl-perps"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-trade",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-spot"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-trade",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "hl-stake"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-store"
-version = "0.1.0"
-dependencies = [
- "hl-account",
- "hl-core",
- "hl-hip3",
- "hl-perps",
- "hl-spot",
- "hl-trade",
- "hl-ws",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-trade"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-transfer"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-vault"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
-
-[[package]]
-name = "hl-web"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "hl-ws",
- "js-sys",
- "thiserror",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "wasm-bindgen-test",
- "web-sys",
-]
-
-[[package]]
-name = "hl-ws"
-version = "0.1.0"
-dependencies = [
- "hl-core",
- "serde",
- "serde_json",
- "thiserror",
-]
 
 [[package]]
 name = "hmac"
@@ -1242,25 +1030,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rmp"
-version = "0.8.15"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba8be72d372b2c9b35542551678538b562e7cf86c3315773cae48dfbfe7790c"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "rmp-serde"
-version = "1.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72f81bee8c8ef9b577d1681a70ebbc962c232461e397b22c208c43c04b67a155"
-dependencies = [
- "rmp",
- "serde",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "2.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1306,15 +1075,6 @@ name = "rustversion"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
-
-[[package]]
-name = "ruzstd"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a252f5e20f038fe7b4ea53e073e65398d652c864cc162fc77c56c2f13717b888"
-dependencies = [
- "twox-hash",
-]
 
 [[package]]
 name = "ryu"
@@ -1713,12 +1473,6 @@ dependencies = [
  "sha1",
  "thiserror",
 ]
-
-[[package]]
-name = "twox-hash"
-version = "2.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86a801b3cea342a06d468c8710662aa29e5e05e4f5c0d62f00bbb7f2ad7941c2"
 
 [[package]]
 name = "typenum"

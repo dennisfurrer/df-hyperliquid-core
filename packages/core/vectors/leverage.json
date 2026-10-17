@@ -1,0 +1,218 @@
+{
+  "source": "Leverage cases, each a session after the two approvals of desk.json (nonces from NOW + 2), sorted and signed by @nktkas/hyperliquid 0.24.3 (actionSorter, signL1Action) with the agent's private key.",
+  "agent": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "cases": {
+    "flat_untouched": [
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.001",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            }
+          ],
+          "grouping": "na",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0xaa521bc86c37f9fb8117ac1e9827ebf501a3102c55662446193966c5fbf00b08",
+          "s": "0x00f494a438a26eb180de96f03fb841fecb345ee25c233f3039c3d4864d93b349",
+          "v": 28
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.001\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"}],\"grouping\":\"na\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000002,\"signature\":{\"r\":\"0xaa521bc86c37f9fb8117ac1e9827ebf501a3102c55662446193966c5fbf00b08\",\"s\":\"0x00f494a438a26eb180de96f03fb841fecb345ee25c233f3039c3d4864d93b349\",\"v\":28}}"
+      }
+    ],
+    "flat_chosen": [
+      {
+        "name": "leverage",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "updateLeverage",
+          "asset": 0,
+          "isCross": true,
+          "leverage": 5
+        },
+        "signature": {
+          "r": "0x795b7609c4ae5675ad40590503ba25d64d30c1bb8d03b760c2e9024e26c13517",
+          "s": "0x1eeb73bb059a8646e53607d4a7a4c367d7583f92269906be027e906d5919e74d",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"updateLeverage\",\"asset\":0,\"isCross\":true,\"leverage\":5},\"nonce\":1790000000002,\"signature\":{\"r\":\"0x795b7609c4ae5675ad40590503ba25d64d30c1bb8d03b760c2e9024e26c13517\",\"s\":\"0x1eeb73bb059a8646e53607d4a7a4c367d7583f92269906be027e906d5919e74d\",\"v\":27}}"
+      },
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000003,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.001",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            }
+          ],
+          "grouping": "na",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0xe31c88d7bdd52886ace31379eeb1343a91aa145c5dac68b1081ed9a695b4a129",
+          "s": "0x6680b698ca98543a469945ed84a422ce6003e4762445bdfa7010051e0263eb8e",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.001\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"}],\"grouping\":\"na\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000003,\"signature\":{\"r\":\"0xe31c88d7bdd52886ace31379eeb1343a91aa145c5dac68b1081ed9a695b4a129\",\"s\":\"0x6680b698ca98543a469945ed84a422ce6003e4762445bdfa7010051e0263eb8e\",\"v\":27}}"
+      }
+    ],
+    "held_same": [
+      {
+        "name": "order_untouched",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.001",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            }
+          ],
+          "grouping": "na",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0xaa521bc86c37f9fb8117ac1e9827ebf501a3102c55662446193966c5fbf00b08",
+          "s": "0x00f494a438a26eb180de96f03fb841fecb345ee25c233f3039c3d4864d93b349",
+          "v": 28
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.001\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"}],\"grouping\":\"na\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000002,\"signature\":{\"r\":\"0xaa521bc86c37f9fb8117ac1e9827ebf501a3102c55662446193966c5fbf00b08\",\"s\":\"0x00f494a438a26eb180de96f03fb841fecb345ee25c233f3039c3d4864d93b349\",\"v\":28}}"
+      },
+      {
+        "name": "order_chosen_same",
+        "by": "agent",
+        "nonce": 1790000000003,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.001",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000002"
+            }
+          ],
+          "grouping": "na",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0x66ad6e5eaddbf377b74ba1d6d31cf766bfaad8d789cfd904d371c9e340e7a790",
+          "s": "0x4559f4e588e07c4c53b0e540245f0cf0bc453d23614fd7d33a93fefdbe5a1e7d",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.001\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000002\"}],\"grouping\":\"na\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000003,\"signature\":{\"r\":\"0x66ad6e5eaddbf377b74ba1d6d31cf766bfaad8d789cfd904d371c9e340e7a790\",\"s\":\"0x4559f4e588e07c4c53b0e540245f0cf0bc453d23614fd7d33a93fefdbe5a1e7d\",\"v\":27}}"
+      }
+    ],
+    "held_changed": [
+      {
+        "name": "leverage",
+        "by": "agent",
+        "nonce": 1790000000002,
+        "action": {
+          "type": "updateLeverage",
+          "asset": 0,
+          "isCross": true,
+          "leverage": 5
+        },
+        "signature": {
+          "r": "0x795b7609c4ae5675ad40590503ba25d64d30c1bb8d03b760c2e9024e26c13517",
+          "s": "0x1eeb73bb059a8646e53607d4a7a4c367d7583f92269906be027e906d5919e74d",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"updateLeverage\",\"asset\":0,\"isCross\":true,\"leverage\":5},\"nonce\":1790000000002,\"signature\":{\"r\":\"0x795b7609c4ae5675ad40590503ba25d64d30c1bb8d03b760c2e9024e26c13517\",\"s\":\"0x1eeb73bb059a8646e53607d4a7a4c367d7583f92269906be027e906d5919e74d\",\"v\":27}}"
+      },
+      {
+        "name": "order",
+        "by": "agent",
+        "nonce": 1790000000003,
+        "action": {
+          "type": "order",
+          "orders": [
+            {
+              "a": 0,
+              "b": true,
+              "p": "80400",
+              "s": "0.001",
+              "r": false,
+              "t": {
+                "limit": {
+                  "tif": "FrontendMarket"
+                }
+              },
+              "c": "0x70657270000000000000000000000001"
+            }
+          ],
+          "grouping": "na",
+          "builder": {
+            "b": "0x6967d7acd1ec5f210e9590666498e0cc5d13a843",
+            "f": 100
+          }
+        },
+        "signature": {
+          "r": "0xe31c88d7bdd52886ace31379eeb1343a91aa145c5dac68b1081ed9a695b4a129",
+          "s": "0x6680b698ca98543a469945ed84a422ce6003e4762445bdfa7010051e0263eb8e",
+          "v": 27
+        },
+        "body": "{\"action\":{\"type\":\"order\",\"orders\":[{\"a\":0,\"b\":true,\"p\":\"80400\",\"s\":\"0.001\",\"r\":false,\"t\":{\"limit\":{\"tif\":\"FrontendMarket\"}},\"c\":\"0x70657270000000000000000000000001\"}],\"grouping\":\"na\",\"builder\":{\"b\":\"0x6967d7acd1ec5f210e9590666498e0cc5d13a843\",\"f\":100}},\"nonce\":1790000000003,\"signature\":{\"r\":\"0xe31c88d7bdd52886ace31379eeb1343a91aa145c5dac68b1081ed9a695b4a129\",\"s\":\"0x6680b698ca98543a469945ed84a422ce6003e4762445bdfa7010051e0263eb8e\",\"v\":27}}"
+      }
+    ]
+  }
+}

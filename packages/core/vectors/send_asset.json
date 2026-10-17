@@ -1,0 +1,87 @@
+{
+  "source": "Moves between the owner's own ledgers as the agent signs them, by @nktkas/hyperliquid 0.33.1 `agentSendAsset` (first in 0.33.0) over a transport that records the body.",
+  "agent": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "owner": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "cases": [
+    {
+      "name": "spot_to_perps",
+      "nonce": 1790000000000,
+      "action": {
+        "type": "agentSendAsset",
+        "destination": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "sourceDex": "spot",
+        "destinationDex": "",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "96.73",
+        "fromSubAccount": "",
+        "nonce": 1790000000000
+      },
+      "signature": {
+        "r": "0x00791d9ca1298f2c86089d2df814e1182487421ba41c37e5960406ce1fe963d9",
+        "s": "0x31271092a354a1416bceea1cc97aab81c50a586f80bacd6fa194288f87fcdac6",
+        "v": 27
+      },
+      "body": "{\"action\":{\"type\":\"agentSendAsset\",\"destination\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"sourceDex\":\"spot\",\"destinationDex\":\"\",\"token\":\"USDC:0x6d1e7cde53ba9467b783cb7c530ce054\",\"amount\":\"96.73\",\"fromSubAccount\":\"\",\"nonce\":1790000000000},\"signature\":{\"r\":\"0x00791d9ca1298f2c86089d2df814e1182487421ba41c37e5960406ce1fe963d9\",\"s\":\"0x31271092a354a1416bceea1cc97aab81c50a586f80bacd6fa194288f87fcdac6\",\"v\":27},\"nonce\":1790000000000}"
+    },
+    {
+      "name": "perps_to_spot",
+      "nonce": 1790000000001,
+      "action": {
+        "type": "agentSendAsset",
+        "destination": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "sourceDex": "",
+        "destinationDex": "spot",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "12.5",
+        "fromSubAccount": "",
+        "nonce": 1790000000001
+      },
+      "signature": {
+        "r": "0x5b2d99ae345fec785530b9cc485328b2552d553bfad0ec7faf3ddf09d5140e1e",
+        "s": "0x524ff634ef653ff64d8efd0b4eada713172e293cbbe8bcf1a00e1fabf591b759",
+        "v": 28
+      },
+      "body": "{\"action\":{\"type\":\"agentSendAsset\",\"destination\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"sourceDex\":\"\",\"destinationDex\":\"spot\",\"token\":\"USDC:0x6d1e7cde53ba9467b783cb7c530ce054\",\"amount\":\"12.5\",\"fromSubAccount\":\"\",\"nonce\":1790000000001},\"signature\":{\"r\":\"0x5b2d99ae345fec785530b9cc485328b2552d553bfad0ec7faf3ddf09d5140e1e\",\"s\":\"0x524ff634ef653ff64d8efd0b4eada713172e293cbbe8bcf1a00e1fabf591b759\",\"v\":28},\"nonce\":1790000000001}"
+    },
+    {
+      "name": "spot_to_xyz",
+      "nonce": 1790000000002,
+      "action": {
+        "type": "agentSendAsset",
+        "destination": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "sourceDex": "spot",
+        "destinationDex": "xyz",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "25",
+        "fromSubAccount": "",
+        "nonce": 1790000000002
+      },
+      "signature": {
+        "r": "0xf4843d8e623a837652a36fe9ad6746cb0bf250e37e88b99fa977822047e54a70",
+        "s": "0x22cb490bfac2c392198d4d647a203c09d2a2e282e53bb01f803b340a503c40cb",
+        "v": 27
+      },
+      "body": "{\"action\":{\"type\":\"agentSendAsset\",\"destination\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"sourceDex\":\"spot\",\"destinationDex\":\"xyz\",\"token\":\"USDC:0x6d1e7cde53ba9467b783cb7c530ce054\",\"amount\":\"25\",\"fromSubAccount\":\"\",\"nonce\":1790000000002},\"signature\":{\"r\":\"0xf4843d8e623a837652a36fe9ad6746cb0bf250e37e88b99fa977822047e54a70\",\"s\":\"0x22cb490bfac2c392198d4d647a203c09d2a2e282e53bb01f803b340a503c40cb\",\"v\":27},\"nonce\":1790000000002}"
+    },
+    {
+      "name": "xyz_to_perps",
+      "nonce": 1790000000003,
+      "action": {
+        "type": "agentSendAsset",
+        "destination": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "sourceDex": "xyz",
+        "destinationDex": "",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "1.5",
+        "fromSubAccount": "",
+        "nonce": 1790000000003
+      },
+      "signature": {
+        "r": "0x69e409755b2ad8543cc78a52000723b2a878be179fa01967415625e7f87f8526",
+        "s": "0x7147359330c3f0af47ae0fd5cb3b0082993c4aa721d425b39c1cc5258766dd9a",
+        "v": 28
+      },
+      "body": "{\"action\":{\"type\":\"agentSendAsset\",\"destination\":\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\",\"sourceDex\":\"xyz\",\"destinationDex\":\"\",\"token\":\"USDC:0x6d1e7cde53ba9467b783cb7c530ce054\",\"amount\":\"1.5\",\"fromSubAccount\":\"\",\"nonce\":1790000000003},\"signature\":{\"r\":\"0x69e409755b2ad8543cc78a52000723b2a878be179fa01967415625e7f87f8526\",\"s\":\"0x7147359330c3f0af47ae0fd5cb3b0082993c4aa721d425b39c1cc5258766dd9a\",\"v\":28},\"nonce\":1790000000003}"
+    }
+  ]
+}

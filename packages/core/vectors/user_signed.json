@@ -1,0 +1,59 @@
+{
+  "source": "@nktkas/hyperliquid 0.24.3 signUserSignedAction with the private key; signing hash from viem hashTypedData over the agent approval typed data, cross-checked against a second implementation.",
+  "key": "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+  "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+  "agentAddress": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+  "cases": [
+    {
+      "name": "approve_agent_named",
+      "action": {
+        "type": "approveAgent",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "agentAddress": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "agentName": "globeli",
+        "nonce": 1790000000000
+      },
+      "signingHash": "0x47449c3d7573a7bae22b7c7e63ee5dac9eb3d62e26994d1ab5fe336b7176efbb",
+      "signature": {
+        "r": "0xf8c6a1ca4acd448da6154085b6b273cf3c9539d0ace4431b2edec9ed4bcc2a0e",
+        "s": "0x42b374aecc1c70b44df5106ee801c65fe44bdfa258d68b5c1e7087b15369c4f4",
+        "v": 28
+      }
+    },
+    {
+      "name": "approve_agent_unnamed",
+      "action": {
+        "type": "approveAgent",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "agentAddress": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "agentName": null,
+        "nonce": 1790000000001
+      },
+      "signingHash": "0x8fa75e395039188dea2edb76df074b18736fd3370aaec3cf556f7e4aae783db2",
+      "signature": {
+        "r": "0x8e3f00c23e78bc17f419c73b320c6f80cfb659749e2710987da23c0bcf2b2665",
+        "s": "0x4fcf9b1f6b63548ad5d98cc316cd2aca69f20e1f0dee8500137af6af6c490674",
+        "v": 27
+      }
+    },
+    {
+      "name": "approve_builder_fee",
+      "action": {
+        "type": "approveBuilderFee",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "maxFeeRate": "0.1%",
+        "builder": "0xabc0000000000000000000000000000000000001",
+        "nonce": 1790000000002
+      },
+      "signingHash": "0x14aa0eecf6d438e7e38c1331db5abddbeb78cc1346caa3e6b4c2e504d7c89e5f",
+      "signature": {
+        "r": "0xaa26b514e65dcf8ce38c0d260d553deae5d56ec526fa2e7d171ac215d4049422",
+        "s": "0x7c1b2edbf20495829298651d8c21aeb8a49a006af8147a02ea94451ec6324be4",
+        "v": 28
+      }
+    }
+  ]
+}

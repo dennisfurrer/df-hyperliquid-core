@@ -1,0 +1,659 @@
+{
+  "source": "Made by @nktkas/hyperliquid 0.33.2 itself, its own action functions with the key below and a recording transport; digests are viem hashTypedData over the SDK's EIP-712 types, L1 hashes the SDK's createL1ActionHash.",
+  "key": "0x0123456789012345678901234567890123456789012345678901234567890123",
+  "nonce": 1790412105001,
+  "userSigned": [
+    {
+      "name": "usdClassTransfer",
+      "isTestnet": false,
+      "action": {
+        "type": "usdClassTransfer",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "amount": "12.5",
+        "toPerp": true,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xba62924d6d47cc0d43658f10c6ac3967b714968a44cabfcffafa320e1cc62b9e",
+      "signature": {
+        "r": "0xace29947ac808dffad68f296903b5385a996a47146c80b8c26035b798148f7c3",
+        "s": "0x65f57493988af9c6dbcc96a96fdebf0d2451f51c3aac8640410273ef22e5889a",
+        "v": 27
+      }
+    },
+    {
+      "name": "usdSend",
+      "isTestnet": false,
+      "action": {
+        "type": "usdSend",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "amount": "7",
+        "time": 1790412105001
+      },
+      "signingHash": "0x1e017ef7c0e62cec3881e381829d61d20397dd7c3e8883ead2ae2f5c3fc0860d",
+      "signature": {
+        "r": "0x80fd99805788b66a4d1b210cb716898e5a6984675eeeb3ed140b2c86f6b72f74",
+        "s": "0x759d1987b09a7f5f77161a3538be62e8e6e79e6fd8789f5981909584c9ba8673",
+        "v": 27
+      }
+    },
+    {
+      "name": "spotSend",
+      "isTestnet": false,
+      "action": {
+        "type": "spotSend",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "0.5",
+        "time": 1790412105001
+      },
+      "signingHash": "0xa4ba0ab820ba7a125552808b0a94dd8873651f23254b49ff616d0f5d1a514a36",
+      "signature": {
+        "r": "0xa94f0aaadf851c107ab6933b609808973134ac509ce54f41928b72d92bee2f72",
+        "s": "0x6a1a8f9b652a9706d4a43ef1ae3a9cce490a219161561a19b202c40eec2ed1eb",
+        "v": 28
+      }
+    },
+    {
+      "name": "sendAsset",
+      "isTestnet": false,
+      "action": {
+        "type": "sendAsset",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "destination": "0x2222222222222222222222222222222222222222",
+        "sourceDex": "spot",
+        "destinationDex": "spot",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "1.25",
+        "fromSubAccount": "",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x1c3638895ab8e3af7a5b80e5d4559c7dd785234db8bbb9b244c4f9001c3ad01c",
+      "signature": {
+        "r": "0x3bb51363bd34911a924b348552ca77ab2cec97636fc2041a6ac26e871aec950d",
+        "s": "0x73237f95de58344ba61f4de55300936b2394e02573c93b8c8b6e3b79c065ab45",
+        "v": 28
+      }
+    },
+    {
+      "name": "withdraw3",
+      "isTestnet": false,
+      "action": {
+        "type": "withdraw3",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "destination": "0x14791697260e4c9a71f18484c9f997b308e59325",
+        "amount": "25",
+        "time": 1790412105001
+      },
+      "signingHash": "0xeecd9c81fc6b341775776975171d22445742a202e4ceaa2b9b4a71adc89809e1",
+      "signature": {
+        "r": "0xe526e1053384258551b936f6ac802e188a4d1549e08f672df386e92ffdbe5e5c",
+        "s": "0x4883250dcd34fbbf77985e0a6bf4090eee753d1b59c33dab5fc5ff697cce9e05",
+        "v": 27
+      }
+    },
+    {
+      "name": "cDeposit",
+      "isTestnet": false,
+      "action": {
+        "type": "cDeposit",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "wei": 10000000000,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xe9028833624165f8c7be25dd0648b988d785c4868a69f246014fa0a3b7e26cbe",
+      "signature": {
+        "r": "0xc752399304fc5710ec176378f205ecb80f9328d6b38c9b53e9390a7208545742",
+        "s": "0x124f5cce673bdf9c96dda1c02c81ac31217530b887b1f2eaa63ca92fb9f25c9f",
+        "v": 28
+      }
+    },
+    {
+      "name": "cWithdraw",
+      "isTestnet": false,
+      "action": {
+        "type": "cWithdraw",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "wei": 150000000,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xbe21b1ffb1fb8db3fa86b46af3b85e9d670328d2b037500aeff4bd9193f97f99",
+      "signature": {
+        "r": "0x6deb112b9bcf76957078d90b6a01c87bd4014da1962aa32aa933c2425ecc2b2a",
+        "s": "0x4170b2d08d6c116c3c8a3edf92591c5d9bbbc474b85d7564c6f3d410a8dfa3e7",
+        "v": 28
+      }
+    },
+    {
+      "name": "tokenDelegate",
+      "isTestnet": false,
+      "action": {
+        "type": "tokenDelegate",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "validator": "0x000000000056f99d36b6f2e0c51fd41496bbacb8",
+        "wei": 10000000000,
+        "isUndelegate": false,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x79557483c9b9eb10a6c716ce4c95ef0702198e39cbbe22ca971c3fb04c39e0e7",
+      "signature": {
+        "r": "0x333c687bae155d0538ef4e5467c0be1f8c791a3707d3f8a77b4d5003cd625225",
+        "s": "0x7aad82cb325a35ef6cfb600bbd5ef5174f4cbcfa7a0f3d52a19e985141e327cd",
+        "v": 27
+      }
+    },
+    {
+      "name": "approveAgent",
+      "isTestnet": false,
+      "action": {
+        "type": "approveAgent",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "agentAddress": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "agentName": "desk",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xd676ad87f3f37a39d32e797ce2ba89da0bf4eca73d9c98e2a64a2fec71bf85b5",
+      "signature": {
+        "r": "0x6a1a6cd321a1af0111b66e782714a4b161ac8176fa82f4c486e3d1769f5bc815",
+        "s": "0x107a93402d51f74c1df3bc2422dbe23e143247e84770311a29311c1e1b307afe",
+        "v": 28
+      }
+    },
+    {
+      "name": "approveBuilderFee",
+      "isTestnet": false,
+      "action": {
+        "type": "approveBuilderFee",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "maxFeeRate": "0.1%",
+        "builder": "0xab5dbc057628bc18523c4cdfc0e1e2ebdbecb704",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xacfad0d935ae970190a2e80b68c3cc6fe863d6c443edd603422e68936fb24fc0",
+      "signature": {
+        "r": "0x44a09a627e50111bcef2feb06f29d44b81336d8573fa56bb2e9fcd887c6eb717",
+        "s": "0x1fb6aa5a81d7e346b36e8ec8336407c533c934faef530b3a130990afd7302b0b",
+        "v": 28
+      }
+    },
+    {
+      "name": "userSetAbstraction",
+      "isTestnet": false,
+      "action": {
+        "type": "userSetAbstraction",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "user": "0x14791697260e4c9a71f18484c9f997b308e59325",
+        "abstraction": "unifiedAccount",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x98ad9b3d0fd3195cd0722d4e84a945b8bc267b00cb04cf30a6c0f228a0ce7743",
+      "signature": {
+        "r": "0xa1a455ef05e9c261662771fdf3e6770c2e0b69bd755d6e56637a5310a9e13e15",
+        "s": "0x40c514a0e8ea87adce9f3233db619acfaf2ec6037ab4359cfbe2626a926a4737",
+        "v": 27
+      }
+    },
+    {
+      "name": "usdClassTransfer",
+      "isTestnet": true,
+      "action": {
+        "type": "usdClassTransfer",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "amount": "12.5",
+        "toPerp": true,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x2becea07b712cd97a12649c5dfd8777e9e1adea34874c2fd021ed9de74f9d3a9",
+      "signature": {
+        "r": "0x0b0e8b1c38a26f6f895c54c275dc48b90e3a0102d1dd5f4963ea675b9b6686ae",
+        "s": "0x27cdab912b286506fd568746646c4e7eb72f236e33afd2096be0bf311d306914",
+        "v": 27
+      }
+    },
+    {
+      "name": "usdSend",
+      "isTestnet": true,
+      "action": {
+        "type": "usdSend",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "amount": "7",
+        "time": 1790412105001
+      },
+      "signingHash": "0xa26f57d03f00cf14abd95a6eefbef01155a44a78e7c332ed1413c9f28eba5c32",
+      "signature": {
+        "r": "0x0a932041fbe7434a6591ecd3387d0840dbcafde26c3ddd689d51c0e7f010597c",
+        "s": "0x6f4c60380e9337f4812fa31eb29afc1af7e530202496b2f8783c86d9c578c511",
+        "v": 28
+      }
+    },
+    {
+      "name": "spotSend",
+      "isTestnet": true,
+      "action": {
+        "type": "spotSend",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "0.5",
+        "time": 1790412105001
+      },
+      "signingHash": "0x02cadaa66c9d8beef60aeac06782c8f0ea39f568eb311dffd9b0906d80df506b",
+      "signature": {
+        "r": "0xef9e36cb876a9ef7f6010ad949f1fa10cbab39727b34ff676257b5e1e05d7fd9",
+        "s": "0x21690fd9cc1abeffb5e2bace4a65d40b18f8b27abdfd634bb380f26e6374ee9c",
+        "v": 28
+      }
+    },
+    {
+      "name": "sendAsset",
+      "isTestnet": true,
+      "action": {
+        "type": "sendAsset",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "destination": "0x2222222222222222222222222222222222222222",
+        "sourceDex": "spot",
+        "destinationDex": "spot",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "1.25",
+        "fromSubAccount": "",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x7f967693f2acbc3af0fb1d81bbfb67104d089c1c617fd6cb62fe597e9916cb0b",
+      "signature": {
+        "r": "0xfe2af407b6f5fb693513deb9664dfd52a1a01626801fb23ecf24a9932981dae1",
+        "s": "0x42c325cbee3fd9b146e26a63bc6fe08f2ceb650309e5592ddb43722e3742d539",
+        "v": 27
+      }
+    },
+    {
+      "name": "withdraw3",
+      "isTestnet": true,
+      "action": {
+        "type": "withdraw3",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "destination": "0x14791697260e4c9a71f18484c9f997b308e59325",
+        "amount": "25",
+        "time": 1790412105001
+      },
+      "signingHash": "0x01bc7d77900020bc214fba89ad10a78cf39a9bb1a79790ba9b73ebc2facfb4f6",
+      "signature": {
+        "r": "0x86e3aa053053227aadf4cce81f0229540403e6024e73ea001a45f3bb63c0b9f3",
+        "s": "0x0033b4850bbe8fa0af3758bd7b5ae85c22c522044c9469211da0e006e370f048",
+        "v": 27
+      }
+    },
+    {
+      "name": "cDeposit",
+      "isTestnet": true,
+      "action": {
+        "type": "cDeposit",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "wei": 10000000000,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x219eb21915e12321cbd124ffcd40089e8596c6ad8ba80e9f1ddbc91b60445af0",
+      "signature": {
+        "r": "0x2df3a068ec1afe883c761e31fa5909086ef5b6cced3631d7b957ff50cb475dff",
+        "s": "0x059eed2984fd1f00c48fe1e7861918687efff0fc050b88f3713507537d598cfb",
+        "v": 27
+      }
+    },
+    {
+      "name": "cWithdraw",
+      "isTestnet": true,
+      "action": {
+        "type": "cWithdraw",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "wei": 150000000,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x6d5e33fc977646814548b9078814afae3d12adc551f35701da026a0ba400abbc",
+      "signature": {
+        "r": "0xe9ec5400be1b23efa5f69af7eb7961176509b167de6a05578a6fe688ada6cfda",
+        "s": "0x615168c34a51c9867546c73f544cb39ccd1735949fea6e8220b5bdfe6a4dbb56",
+        "v": 28
+      }
+    },
+    {
+      "name": "tokenDelegate",
+      "isTestnet": true,
+      "action": {
+        "type": "tokenDelegate",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "validator": "0x000000000056f99d36b6f2e0c51fd41496bbacb8",
+        "wei": 10000000000,
+        "isUndelegate": false,
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x32b6b9136e00f1d8151bb96527521604b591f131cf140deaf8a65603f5f3162b",
+      "signature": {
+        "r": "0x5a50ca187b676fe3a5aeb8e0cbc1e8f2be005ca1476ddf9275c582800db93036",
+        "s": "0x1eb28728754ed6e04790014bda08882599513f7e8902b59f0bc113fd99b8cab5",
+        "v": 28
+      }
+    },
+    {
+      "name": "approveAgent",
+      "isTestnet": true,
+      "action": {
+        "type": "approveAgent",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "agentAddress": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "agentName": "desk",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x1bd4473c7852ae97cddfdd4815b406146ab5f122ef93ac7606a62ef0907452d7",
+      "signature": {
+        "r": "0x02b64c872890f1276b4fdf349075bf3b08564a17d268323e39bbaa50146957e4",
+        "s": "0x0a1122b9855573a314e67771a97a1788d044a41beb6b89003fbecbe014f90931",
+        "v": 27
+      }
+    },
+    {
+      "name": "approveBuilderFee",
+      "isTestnet": true,
+      "action": {
+        "type": "approveBuilderFee",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "maxFeeRate": "0.1%",
+        "builder": "0xab5dbc057628bc18523c4cdfc0e1e2ebdbecb704",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x10043e904f60695c459bcc61b48dc14476b20d62fbc0e6948efcfba50047b099",
+      "signature": {
+        "r": "0xa0fa118ed9b33e60e4f23f353980ef88ccd7b5c3ec9f2ddb9f20e948bca717a6",
+        "s": "0x7250b0d07151388b02b1432b92b4001f8503c95d435d7f988c81d8d33d14d44c",
+        "v": 27
+      }
+    },
+    {
+      "name": "userSetAbstraction",
+      "isTestnet": true,
+      "action": {
+        "type": "userSetAbstraction",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "user": "0x14791697260e4c9a71f18484c9f997b308e59325",
+        "abstraction": "unifiedAccount",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x227875459aca05852a3a68ed0f10dc0894128d711febed958a7991d5d6e82ad6",
+      "signature": {
+        "r": "0x3e08ec78f94f25d2d52206dd9eab5f30cf663e86cc00dbc02866ffe13664aa5a",
+        "s": "0x48ecee95715434a38794eb58eb8f093f3f6d5d1c351faf0abced880fd9be17b1",
+        "v": 27
+      }
+    }
+  ],
+  "l1": [
+    {
+      "name": "setReferrer",
+      "isTestnet": false,
+      "action": {
+        "type": "setReferrer",
+        "code": "DFU"
+      },
+      "actionHash": "0x6020d822959359822facb2e4d90f972a1a45480e1c1ac34a94e1db7c5a165e16",
+      "signature": {
+        "r": "0x5d01b040c4418b288a586b63599802875c52cfa5ff02ab45823f0494c1d19e2f",
+        "s": "0x616124723cfe7fff68046f9b13c2f2a688b819d41e33d34d03fecab507cef863",
+        "v": 28
+      }
+    },
+    {
+      "name": "setReferrer",
+      "isTestnet": true,
+      "action": {
+        "type": "setReferrer",
+        "code": "DFU"
+      },
+      "actionHash": "0x6020d822959359822facb2e4d90f972a1a45480e1c1ac34a94e1db7c5a165e16",
+      "signature": {
+        "r": "0x2a1996ba44e97b5c68f082933cb945ab33a4e9a351b38bd1212b88aa4ead0e48",
+        "s": "0x1f1fb592582fb1358f1f1a7ae9534040657896edb1155a185b48e085b52d5ca8",
+        "v": 27
+      }
+    },
+    {
+      "name": "vaultTransfer",
+      "isTestnet": false,
+      "action": {
+        "type": "vaultTransfer",
+        "vaultAddress": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+        "isDeposit": true,
+        "usd": 10000000
+      },
+      "actionHash": "0x58a49fb2e400641875c0df3c98fd48f61210198012623c24f1ce8cc748c6e57a",
+      "signature": {
+        "r": "0xd7b57bb7650ca10752a733ed62df2a5a8931e1c4f7290e0a143bcf96b22ad1fb",
+        "s": "0x63045ef3dfa4f14c26ac85dc03a76b4c332bbca837fb52ea4f9cf84bfcabe450",
+        "v": 28
+      }
+    },
+    {
+      "name": "borrowLend",
+      "isTestnet": false,
+      "action": {
+        "type": "borrowLend",
+        "operation": "supply",
+        "token": 0,
+        "amount": "100.5"
+      },
+      "actionHash": "0x1d8d7b38e50758c4781c5cc17e2bb64dcd31c7e1870293da248ebb3ad9743730",
+      "signature": {
+        "r": "0x165ca9fe188b157c2203f6d8e1ebd2204d7b939652d29c0626d0c4ca642e662f",
+        "s": "0x1e22b483499c2d5f0ccaf2773bfd22cde99cb372f3f437bbf125d636e294edfd",
+        "v": 28
+      }
+    },
+    {
+      "name": "borrowLend",
+      "isTestnet": false,
+      "action": {
+        "type": "borrowLend",
+        "operation": "repay",
+        "token": 150,
+        "amount": null
+      },
+      "actionHash": "0xa43161edaad13340450e7eb286453bbe1aca5ec7e278baefb171120a4a7e26f4",
+      "signature": {
+        "r": "0xf0e249f385d377f2748b79f88ac039feebd4c458012bacd8e09839ea5d725585",
+        "s": "0x7fec0e9e5ab28c4f79e28c2b2c27fd8d3f02db82de777fa1cd6bf1019b45830b",
+        "v": 27
+      }
+    },
+    {
+      "name": "agentSetAbstraction",
+      "isTestnet": false,
+      "action": {
+        "type": "agentSetAbstraction",
+        "abstraction": "u"
+      },
+      "actionHash": "0x95dce6a763ef2d03a3c0676975653e9f9a50d21d0d84a0bd8031963755ac2b6e",
+      "signature": {
+        "r": "0xaecc6129cb70a5038fd06b0bce922916269a8aa18cab91c5c2ecef2934d57404",
+        "s": "0x4ea79dffc7df259b9d0b9f90096458433e142de2b2f0e6a7d82c7867e63b064c",
+        "v": 27
+      }
+    },
+    {
+      "name": "subAccountTransfer",
+      "isTestnet": false,
+      "action": {
+        "type": "subAccountTransfer",
+        "subAccountUser": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "isDeposit": true,
+        "usd": 5000000
+      },
+      "actionHash": "0x417526f238ce301e19185b8e27065a05653860da13dc9cf83f6e3c215233e517",
+      "signature": {
+        "r": "0x643814229fe0d4a63062c5b22739208cf3f3d5330517532862e3d9c55cb19c17",
+        "s": "0x2f19c56fd551f12b52f936a48af534ce6f6729610748ed7dd76e6b4c3bd4c245",
+        "v": 28
+      }
+    },
+    {
+      "name": "subAccountSpotTransfer",
+      "isTestnet": false,
+      "action": {
+        "type": "subAccountSpotTransfer",
+        "subAccountUser": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "isDeposit": false,
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "2"
+      },
+      "actionHash": "0x8cc2183c2669e33bad291bb2fab75daccd4c04333622a71fc163b0ce703e023b",
+      "signature": {
+        "r": "0x6ea3154fd55d4d71003230ae7e3920f72113bf2080605ba533e330b4323fdeca",
+        "s": "0x53bc81017f9b0a9ca8dc56f39fb09c3f7741c2f045f2e364579e9809f7118b08",
+        "v": 28
+      }
+    },
+    {
+      "name": "createSubAccount",
+      "isTestnet": false,
+      "action": {
+        "type": "createSubAccount",
+        "name": "desk two"
+      },
+      "actionHash": "0x177b724675c47ff53996f70bf3efbaf8c29b5b4aa44c51f68aff11c1c1568f74",
+      "signature": {
+        "r": "0xc00068d100fb500f8ce9e91bf4c11a2b6e92f0ebc9a6e4171c182282e59f354b",
+        "s": "0x59cef5622e8ac0615470a71e7f4602b779486b5fef50c7527d58db5a7b399169",
+        "v": 28
+      }
+    },
+    {
+      "name": "vaultTransfer",
+      "isTestnet": true,
+      "action": {
+        "type": "vaultTransfer",
+        "vaultAddress": "0xdfc24b077bc1425ad1dea75bcb6f8158e10df303",
+        "isDeposit": true,
+        "usd": 10000000
+      },
+      "actionHash": "0x58a49fb2e400641875c0df3c98fd48f61210198012623c24f1ce8cc748c6e57a",
+      "signature": {
+        "r": "0x2518bed820c51be6c38934e845c115e6e32195f6bf522618d866399e90974a70",
+        "s": "0x5c4f8470c97a5e01c5add34e7e5c941e0db4c9b9a701ada5ff3d7a38c11154a5",
+        "v": 28
+      }
+    },
+    {
+      "name": "borrowLend",
+      "isTestnet": true,
+      "action": {
+        "type": "borrowLend",
+        "operation": "supply",
+        "token": 0,
+        "amount": "100.5"
+      },
+      "actionHash": "0x1d8d7b38e50758c4781c5cc17e2bb64dcd31c7e1870293da248ebb3ad9743730",
+      "signature": {
+        "r": "0x43ca38a26f11306d76cae3f9ec5e42cf0b59342353ccaa6339cf2d8fe67acfd7",
+        "s": "0x2340647fdcb7773ad16e5fffcb94bfd5e1178d2527d1a8f9f218c9cc123cd350",
+        "v": 27
+      }
+    },
+    {
+      "name": "borrowLend",
+      "isTestnet": true,
+      "action": {
+        "type": "borrowLend",
+        "operation": "repay",
+        "token": 150,
+        "amount": null
+      },
+      "actionHash": "0xa43161edaad13340450e7eb286453bbe1aca5ec7e278baefb171120a4a7e26f4",
+      "signature": {
+        "r": "0xa05619ef5548e0a25b70f92197cd0d6df64746e55d971153c91d8b6c091002a4",
+        "s": "0x2bb7e6dfb8a295f31abdd3d1d531ac85fc008c2ac3fa78307dd8295d380c4f03",
+        "v": 28
+      }
+    },
+    {
+      "name": "agentSetAbstraction",
+      "isTestnet": true,
+      "action": {
+        "type": "agentSetAbstraction",
+        "abstraction": "u"
+      },
+      "actionHash": "0x95dce6a763ef2d03a3c0676975653e9f9a50d21d0d84a0bd8031963755ac2b6e",
+      "signature": {
+        "r": "0x750a35aa60b20179330bd781c9e3d6adad68200f790914ccbcab23afa025a2ba",
+        "s": "0x3753ce15276a30c2e5af8d8ed97d9b9a8d1e62e83323f79e6e19799055de9e87",
+        "v": 28
+      }
+    },
+    {
+      "name": "subAccountTransfer",
+      "isTestnet": true,
+      "action": {
+        "type": "subAccountTransfer",
+        "subAccountUser": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "isDeposit": true,
+        "usd": 5000000
+      },
+      "actionHash": "0x417526f238ce301e19185b8e27065a05653860da13dc9cf83f6e3c215233e517",
+      "signature": {
+        "r": "0x6a24bf790145513729af8f61dcc6b5aaf404f62bce01af9e4f11b5b0f9977bb6",
+        "s": "0x4bc72a8abf43e9e0ab6144563ae0e1dd31b7c681ce9b6f45326c4344805656ed",
+        "v": 27
+      }
+    },
+    {
+      "name": "subAccountSpotTransfer",
+      "isTestnet": true,
+      "action": {
+        "type": "subAccountSpotTransfer",
+        "subAccountUser": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "isDeposit": false,
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "2"
+      },
+      "actionHash": "0x8cc2183c2669e33bad291bb2fab75daccd4c04333622a71fc163b0ce703e023b",
+      "signature": {
+        "r": "0x56a245556f358e80736543552c6970d5def6b4100e4331b85e9c89660a6ead50",
+        "s": "0x73714516fcebb2cad6ffbe4c9bfc343f0fb565676377c73b84af664489102099",
+        "v": 27
+      }
+    },
+    {
+      "name": "createSubAccount",
+      "isTestnet": true,
+      "action": {
+        "type": "createSubAccount",
+        "name": "desk two"
+      },
+      "actionHash": "0x177b724675c47ff53996f70bf3efbaf8c29b5b4aa44c51f68aff11c1c1568f74",
+      "signature": {
+        "r": "0x23d2f37e76e26470944cb1c9223ea2fb65c2d7ff57545eda9ab202aef4409c39",
+        "s": "0x0fdf61c2cdb44b34818ec0e6ea2e59096e68c8cc457c59f514d65c4cf1151022",
+        "v": 28
+      }
+    }
+  ]
+}

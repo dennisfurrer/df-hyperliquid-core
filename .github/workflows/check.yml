@@ -1,7 +1,5 @@
 name: check
 
-# `just check`, the gate before every commit, on every push to main and every pull request:
-# fmt, clippy native and wasm, every test, the browser wire in Node, and the feature check.
 on:
   push:
     branches: [main]
@@ -17,15 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # rust-toolchain.toml pins 1.94.1 with clippy, rustfmt and wasm32; this action honours it.
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
 
-      # hl-web's tests run as wasm in Node 22 (fetch and WebSocket as globals), through
-      # wasm-bindgen's runner, which must match the wasm-bindgen pinned in Cargo.toml.
+      # Browser transport tests run as wasm in Node 22.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
