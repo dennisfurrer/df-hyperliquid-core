@@ -1,5 +1,5 @@
-//! An outcome side, and the grid its orders sit on: prices in ticks of 0.00001 from 0.00001 to
-//! 0.99999, sizes in whole contracts.
+//! An outcome side (`#<encoding>`), its asset id, and the orders on it: an [`Order`] built from a
+//! grid price ([`Px`]) and whole contracts ([`Qty`]).
 
 use std::{fmt, str::FromStr};
 
@@ -7,16 +7,10 @@ use crate::markets::outcomes::error::OutcomeError;
 use crate::markets::outcomes::px::{Px, Qty};
 use crate::trade::{Order, Side, Tif};
 use crate::utils::MAX_SLIPPAGE;
-use crate::utils::{Asset, Dec, OutcomeSide, Round};
+use crate::utils::{Asset, Dec, OutcomeSide};
 
 /// Places an outcome price keeps: a tick is 0.00001.
 pub const PRICE_PLACES: u32 = 5;
-
-/// The lowest price an outcome order may name; a market sell goes at it.
-pub const MIN_PRICE: Dec = Dec::lit::<PRICE_PLACES>(1);
-
-/// The highest price an outcome order may name; a market buy goes at it.
-pub const MAX_PRICE: Dec = Dec::lit::<PRICE_PLACES>(99_999);
 
 /// One side of an outcome: `10 * outcome + side`, spelled `#<encoding>` in info and on the
 /// websocket and `+<encoding>` in spot balances.
@@ -90,25 +84,19 @@ impl Coin {
         Some(Coin { outcome: u32::try_from(encoding / 10).ok()?, side })
     }
 
-    /// A limit order on this side, its price on the grid for `side` (a buy rounds down, a sell up)
-    /// and its size cut to whole contracts.
-    pub fn limit(self, side: Side, price: Dec, size: Dec, tif: Tif) -> Result<Order, OutcomeError> {
-        let asset = self.asset().ok_or(OutcomeError::NoAsset(self))?;
-        let price = outcome_price(price, side).ok_or(OutcomeError::Price(price))?;
-        let size = outcome_size(size).ok_or(OutcomeError::Size(size))?;
-        Ok(Order::limit(asset, side, price, size, tif))
-    }
-
     /// A market order: `FrontendMarket` at the edge of the range, 0.99999 to buy and 0.00001 to
-    /// sell, so it crosses whatever the book holds and never rests. Never `Gtc`.
-    pub fn market(self, side: Side, size: Dec) -> Result<Order, OutcomeError> {
+    /// sell, so it crosses whatever the book holds and never rests. Never `Gtc`. Zero contracts is
+    /// refused.
+    pub fn market(self, side: Side, size: Qty) -> Result<Order, OutcomeError> {
         let asset = self.asset().ok_or(OutcomeError::NoAsset(self))?;
-        let size = outcome_size(size).ok_or(OutcomeError::Size(size))?;
+        if size.is_zero() {
+            return Err(OutcomeError::Size(Dec::ZERO));
+        }
         let bound = match side {
-            Side::Buy => MAX_PRICE,
-            Side::Sell => MIN_PRICE,
+            Side::Buy => Px::MAX_QUOTE,
+            Side::Sell => Px::MIN_QUOTE,
         };
-        Ok(Order::market(asset, side, bound, size))
+        Ok(Order::market(asset, side, bound.to_dec(), size.to_dec()))
     }
 
     /// A limit order at a price already on the grid. A price of 0 or 1, or zero contracts, is
@@ -145,24 +133,6 @@ impl Coin {
         let bound = Px::on_grid(moved, side.price_rounding()).unwrap_or(past).clamp_to_quotable();
         Ok(Order::market(asset, side, bound.to_dec(), size.to_dec()))
     }
-
-    /// Reads `#12100`, `+12100` or a bare `12100`, as a person types one. Venue data always carries
-    /// its prefix: read it with [`Coin::parse`].
-    #[must_use]
-    pub fn lookup(text: &str) -> Option<Coin> {
-        let text = text.trim();
-        match text.starts_with(['#', '+']) {
-            true => Coin::parse(text),
-            false => Coin::parse(&format!("#{text}")),
-        }
-    }
-
-    /// Whether `needle` appears in the encoding, a leading `#` or `+` aside.
-    #[must_use]
-    pub fn matches(self, needle: &str) -> bool {
-        let needle = needle.strip_prefix(['#', '+']).unwrap_or(needle);
-        self.encoding().to_string().contains(needle)
-    }
 }
 
 /// `#12100`, as info and the websocket name it.
@@ -178,21 +148,6 @@ impl FromStr for Coin {
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         Coin::parse(text).ok_or_else(|| format!("`{text}` is not an outcome coin; expected `#12100`"))
     }
-}
-
-/// A price for `side` on the outcome grid, never against the trader; `None` outside 0.00001 to
-/// 0.99999.
-#[must_use]
-pub fn outcome_price(price: Dec, side: Side) -> Option<Dec> {
-    let kept = price.round(PRICE_PLACES, side.price_rounding());
-    (MIN_PRICE..=MAX_PRICE).contains(&kept).then_some(kept)
-}
-
-/// A size cut toward zero to whole contracts; `None` when none are left.
-#[must_use]
-pub fn outcome_size(size: Dec) -> Option<Dec> {
-    let kept = size.round(0, Round::Down);
-    kept.is_positive().then_some(kept)
 }
 
 #[cfg(test)]

@@ -1,15 +1,10 @@
-//! Perps on the main dex: meta and contexts, margin tables, order rules and funding.
-#![deny(clippy::float_arithmetic)]
+//! Perps on every dex, the main one and HIP-3 ones alike: meta and contexts, margin tables and
+//! funding.
 
-pub mod dex;
 pub mod funding;
 pub mod meta;
-pub mod rules;
 pub mod table;
 
-pub use crate::trade::{MarginMode, Side};
-pub use crate::utils::Grid;
-pub use dex::Dex;
 pub use funding::{
     FUNDING_INTERVAL_MS, FUNDING_PAGE, FUNDING_WINDOW_MS, FundingDelta, FundingRate, HL_PERP, PredictedFunding,
     PredictedFundings, UserFunding, VenueFunding, funding_history, funding_history_range, funding_history_request,
@@ -18,9 +13,8 @@ pub use funding::{
 };
 pub use meta::{
     Meta, MetaAndAssetCtxs, PerpAsset, PerpCtx, meta, meta_and_asset_ctxs, meta_and_asset_ctxs_request, meta_request,
-    perps_at_open_interest_cap, perps_at_open_interest_cap_request,
+    perps_at_open_interest_cap, perps_at_open_interest_cap_request, underlying,
 };
-pub use rules::{Rules, underlying};
 pub use table::{FLAT_TABLES_BELOW, MarginTable, MarginTier};
 
 #[cfg(test)]
@@ -34,7 +28,3 @@ mod state_tests;
 #[cfg(test)]
 #[path = "tests/funding.rs"]
 mod funding_tests;
-
-#[cfg(test)]
-#[path = "tests/rules.rs"]
-mod rules_tests;

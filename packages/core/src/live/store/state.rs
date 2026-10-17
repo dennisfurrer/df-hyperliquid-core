@@ -15,13 +15,9 @@ use crate::live::store::interest::{Changes, Handle, Interest, Interests};
 use crate::live::store::market::{BARS, Context, Markets, fold_bar, fold_prints};
 use crate::live::store::stamp::Stamped;
 use crate::live::{Frame, Limits, Refused, Session, Subscription};
-use crate::markets::Mids;
-use crate::markets::book::{Book, Level};
-use crate::markets::candle::{Candle, Interval};
 use crate::markets::perps::{MetaAndAssetCtxs, PerpCtx, UserFunding};
-use crate::markets::split_coin;
 use crate::markets::spot::{SpotCtx, SpotMeta, SpotMetaAndAssetCtxs};
-use crate::markets::trades::Trade;
+use crate::markets::{Book, Candle, Interval, Level, Mids, Trade, split_coin};
 use crate::utils::{Address, Dec};
 
 /// A typed `/info` answer for the store to fold.
@@ -38,7 +34,7 @@ pub enum Read<'a> {
     /// `metaAndAssetCtxs`: the first dex's universe, collateral and contexts.
     Perps(&'a MetaAndAssetCtxs),
     /// `metaAndAssetCtxs` with a HIP-3 `dex`.
-    Dex { dex: &'a str, read: &'a crate::markets::dexes::DexMetaAndAssetCtxs },
+    Dex { dex: &'a str, read: &'a MetaAndAssetCtxs },
     /// `perpDexs` with `allPerpMetas`: every dex's universe and collateral.
     Dexes(&'a crate::markets::dexes::Dexes),
     /// `spotMetaAndAssetCtxs`.

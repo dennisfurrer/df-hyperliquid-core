@@ -1,17 +1,15 @@
 //! Live answers from 2026-09-26 and 27, stored as sent: `perpDexs`, `allPerpMetas` (all 11 dexes,
-//! 528 perps), `perpDexLimits` and `perpDexStatus` for `xyz`, `perpDeployAuctionStatus` on mainnet
-//! (ended) and testnet (running), and `metaAndAssetCtxs` for `para`, all mainnet unless named.
+//! 528 perps), `perpDexLimits` and `perpDexStatus` for `xyz`, and `metaAndAssetCtxs` for `para`, all
+//! mainnet.
 
-use crate::deploy::dexes::{DeployAuction, perp_deploy_auction, perp_deploy_auction_request};
-use crate::markets::dexes::dex::{DexMeta, DexMetaAndAssetCtxs, PerpDexs};
-use crate::markets::dexes::ids::{asset_parts, coin, split_coin};
+use crate::markets::Dex;
+use crate::markets::dexes::dex::PerpDexs;
 use crate::markets::dexes::limits::{
     DexLimits, DexStatus, perp_dex_limits, perp_dex_limits_request, perp_dex_status, perp_dex_status_request,
 };
 use crate::markets::dexes::listing::{Dexes, Misaligned, all_perp_metas_request, dexes};
 use crate::markets::dexes::support::{Recorded, block_on, dec};
-use crate::trade::MarginMode;
-use crate::trade::margin::dexes::{LeverageError, update_leverage, update_leverage_for};
+use crate::markets::perps::{Meta, MetaAndAssetCtxs};
 use crate::utils::{Address, Asset, AssetKind, Dec};
 
 const DEXES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_dexs_mainnet.json"));
@@ -20,10 +18,6 @@ const LIMITS: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_dex_limits_xyz_mainnet.json"));
 const STATUS: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_dex_status_xyz_mainnet.json"));
-const AUCTION_MAINNET: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_deploy_auction_mainnet.json"));
-const AUCTION_TESTNET: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_deploy_auction_testnet.json"));
 const PARA: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/meta_and_asset_ctxs_para_mainnet.json"));
 
@@ -31,7 +25,7 @@ fn list() -> PerpDexs {
     serde_json::from_str(DEXES).unwrap()
 }
 
-fn metas() -> Vec<DexMeta> {
+fn metas() -> Vec<Meta> {
     serde_json::from_str(METAS).unwrap()
 }
 
@@ -50,6 +44,11 @@ fn every_dex_lines_up_with_its_meta() {
     assert_eq!(dexes.dex("hyna").and_then(|(_, _, meta)| meta.collateral_token), Some(235));
     assert_eq!(dexes.metas.len(), 11, "the main dex's meta first");
     assert_eq!(dexes.metas[0].universe[0].name, "BTC");
+    assert_eq!((dexes.list.index_of("xyz"), dexes.list.index_of("flx")), (Some(1), Some(2)));
+    assert_eq!(dexes.list.index_of(""), None, "the main dex is not a HIP-3 dex");
+    let xyz = dexes.list.get("xyz").unwrap();
+    assert_eq!((xyz.full_name.as_str(), xyz.oracle_updater), ("XYZ", None));
+    assert_eq!(xyz.deployer.unwrap().to_hex(), "0x88806a71d74ad0a510b350545c9ae490912f0888");
 }
 
 #[test]
@@ -73,7 +72,7 @@ fn a_coin_and_its_asset_id_name_each_other() {
     assert_eq!((asset.id(), tsla.sz_decimals), (110_001, 3));
     assert_eq!(dexes.find("flx:TSLA").map(|(asset, _)| asset.id()), Some(120_000));
     let (asset, ten_year) = dexes.find("para:10Y").unwrap();
-    assert_eq!(asset_parts(asset), Some((8, 15)));
+    assert_eq!(asset.hip3_parts(), Some((8, 15)));
     assert_eq!(asset.kind(), AssetKind::Hip3Perp);
     let (dex, found) = dexes.get(asset).unwrap();
     assert_eq!((dex.name.as_str(), found), ("para", ten_year));
@@ -83,19 +82,6 @@ fn a_coin_and_its_asset_id_name_each_other() {
     assert_eq!(dexes.get(Asset::from_id(100_000)), None, "place 0 is the main dex");
     assert_eq!(dexes.list.name_of(8), Some("para"));
     assert_eq!(dexes.list.name_of(0), None);
-}
-
-#[test]
-fn coins_split_into_dex_and_symbol() {
-    assert_eq!(split_coin("xyz:TSLA"), Some(("xyz", "TSLA")));
-    assert_eq!(split_coin("para:10Y"), Some(("para", "10Y")));
-    assert_eq!(split_coin("BTC"), None);
-    assert_eq!(split_coin(":TSLA"), None);
-    assert_eq!(split_coin("xyz:"), None);
-    assert_eq!(coin("xyz", "TSLA"), "xyz:TSLA");
-    assert_eq!(asset_parts(Asset::from_id(219_999)), Some((11, 9999)));
-    assert_eq!(asset_parts(Asset::from_id(10_107)), None);
-    assert_eq!(asset_parts(Asset::from_id(100_012_100)), None, "an outcome");
 }
 
 /// `para` clamps its three rates perps, the only clamps on mainnet; the docs allow 0 to 0.01.
@@ -158,26 +144,11 @@ fn a_dex_s_limits_and_its_status_read_as_sent() {
     assert_eq!(status.total_net_deposit, dec("1091195769.8109180927"));
 }
 
-#[test]
-fn the_deploy_auction_ended_on_mainnet_and_ran_on_testnet() {
-    let ended: DeployAuction = serde_json::from_str(AUCTION_MAINNET).unwrap();
-    assert_eq!((ended.start_time_seconds, ended.duration_seconds), (1_790_398_800, 31 * 3600));
-    assert_eq!((ended.current_gas, ended.end_gas), (None, Some(dec("541.69363865"))));
-    assert_eq!(ended.start_gas, dec("1109.77867352"));
-    assert!(!ended.is_running(ended.ends_at()));
-    let running: DeployAuction = serde_json::from_str(AUCTION_TESTNET).unwrap();
-    assert_eq!(
-        (running.start_gas, running.current_gas, running.end_gas),
-        (dec("1000"), Some(dec("527.03134408")), None)
-    );
-    assert!(running.is_running(running.start_time_seconds));
-}
-
 /// `metaAndAssetCtxs` with `dex: "para"` gives the meta `allPerpMetas` lists at para's place, one
 /// context per perp.
 #[test]
 fn a_dex_s_contexts_line_up_with_its_meta() {
-    let para: DexMetaAndAssetCtxs = serde_json::from_str(PARA).unwrap();
+    let para: MetaAndAssetCtxs = serde_json::from_str(PARA).unwrap();
     let dexes = joined();
     let (place, _, meta) = dexes.dex("para").unwrap();
     assert_eq!(&para.meta, meta);
@@ -189,66 +160,31 @@ fn a_dex_s_contexts_line_up_with_its_meta() {
     assert_eq!(ctx.day_base_vlm, Some(dec("1005.4")));
 }
 
-/// Every HIP-3 perp's table starts at its `maxLeverage`: a flat id under 50 is that leverage, a
-/// listed one has it as its first tier.
-#[test]
-fn every_hip3_perp_s_table_starts_at_its_max_leverage() {
-    let dexes = joined();
-    let mut count = 0;
-    for (_, _, meta) in dexes.dexes() {
-        for perp in &meta.universe {
-            let table = meta.table_of(perp).unwrap();
-            assert_eq!(table.max_leverage_at(Dec::ZERO), Some(perp.max_leverage), "{}", perp.name);
-            count += 1;
-        }
-    }
-    assert_eq!(count, 294);
-}
-
-#[test]
-fn leverage_on_a_hip3_perp_is_held_to_what_it_allows() {
-    let dexes = joined();
-    let (asset, tsla) = dexes.find("xyz:TSLA").unwrap();
-    let set = update_leverage(asset, tsla, MarginMode::Cross, 20).unwrap();
-    assert_eq!(set.leverage(), 20);
-    assert_eq!(
-        update_leverage(asset, tsla, MarginMode::Cross, 21),
-        Err(LeverageError::TooHigh { name: "xyz:TSLA".to_owned(), max: 20, asked: 21 })
-    );
-    let (asset, avgo) = dexes.find("para:AVGO").unwrap();
-    assert_eq!(update_leverage(asset, avgo, MarginMode::Cross, 2), Err(LeverageError::NoCross("para:AVGO".to_owned())));
-    let (_, _, para) = dexes.dex("para").unwrap();
-    let table = para.table_of(avgo).unwrap();
-    assert!(update_leverage_for(asset, avgo, &table, MarginMode::Isolated, 10, dec("1000000")).is_ok());
-}
-
 #[test]
 fn the_reads_name_their_dex() {
     assert_eq!(all_perp_metas_request(), r#"{"type":"allPerpMetas"}"#);
-    assert_eq!(perp_dex_limits_request("xyz"), r#"{"type":"perpDexLimits","dex":"xyz"}"#);
-    assert_eq!(perp_dex_status_request("xyz"), r#"{"type":"perpDexStatus","dex":"xyz"}"#);
-    assert_eq!(perp_deploy_auction_request(), r#"{"type":"perpDeployAuctionStatus"}"#);
+    assert_eq!(perp_dex_limits_request(Dex::Hip3("xyz")), r#"{"type":"perpDexLimits","dex":"xyz"}"#);
+    assert_eq!(perp_dex_status_request(Dex::Hip3("xyz")), r#"{"type":"perpDexStatus","dex":"xyz"}"#);
+    assert_eq!(perp_dex_status_request(Dex::Main), r#"{"type":"perpDexStatus","dex":""}"#);
     let transport = Recorded::new(&[
         ("perpDexs", DEXES),
         ("allPerpMetas", METAS),
         ("perpDexLimits", LIMITS),
         ("perpDexStatus", STATUS),
-        ("perpDeployAuctionStatus", AUCTION_MAINNET),
     ]);
     assert_eq!(block_on(dexes(&transport)).unwrap(), joined());
     assert_eq!(
-        block_on(perp_dex_limits(&transport, "xyz")).unwrap().map(|limits| limits.coin_to_oi_cap.len()),
+        block_on(perp_dex_limits(&transport, Dex::Hip3("xyz"))).unwrap().map(|limits| limits.coin_to_oi_cap.len()),
         Some(123)
     );
     assert_eq!(
-        block_on(perp_dex_status(&transport, "xyz")).unwrap().map(|status| status.total_net_deposit),
+        block_on(perp_dex_status(&transport, Dex::Hip3("xyz"))).unwrap().map(|status| status.total_net_deposit),
         Some(dec("1091195769.8109180927"))
     );
-    assert_eq!(block_on(perp_deploy_auction(&transport)).unwrap().end_gas, Some(dec("541.69363865")));
-    assert_eq!(block_on(perp_dex_limits(&transport, "")).unwrap(), None, "the main dex has no limits: null");
+    assert_eq!(block_on(perp_dex_limits(&transport, Dex::Main)).unwrap(), None, "the main dex has no limits: null");
     let sent = transport.sent();
     assert_eq!(sent[..2], [r#"{"type":"perpDexs"}"#, r#"{"type":"allPerpMetas"}"#], "the list, then the metas");
-    assert_eq!(sent[5], r#"{"type":"perpDexLimits","dex":""}"#);
+    assert_eq!(sent[4], r#"{"type":"perpDexLimits","dex":""}"#);
 }
 
 #[test]

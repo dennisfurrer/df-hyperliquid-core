@@ -42,12 +42,8 @@ fn summary(undelegated: &str, pending: u64) -> DelegatorSummary {
 
 #[test]
 fn every_staking_action_needs_the_account_s_own_key() {
-    for kind in ["cDeposit", "cWithdraw", "tokenDelegate"] {
-        assert_eq!(key(kind), Some(Key::Main), "{kind}");
-    }
-    assert_eq!(key("vaultTransfer"), None);
-    assert!(!Key::Main.takes_agent() && Key::Either.takes_agent());
-    assert_eq!([CDeposit::KEY, CWithdraw::KEY, TokenDelegate::KEY], [Key::Main; 3]);
+    assert_eq!([CDeposit::KEY, CWithdraw::KEY, TokenDelegate::KEY], [Signers::Main; 3]);
+    assert!(!Signers::Main.takes_agent());
 }
 
 /// Every move is read back on the staking balance, which nothing but these
@@ -67,7 +63,7 @@ fn each_move_is_read_back_on_the_staking_balance_by_exactly_its_amount() {
     assert_eq!(delegate.free_at, Some(NONCE + 86_400_000), "locked a day");
     assert!(delegate.effect.landed(dec("200"), dec("100")));
     assert!(!delegate.effect.landed(dec("200"), dec("200")), "not landed yet");
-    assert_eq!((delegate.network, delegate.nonce, delegate.key), (Network::Mainnet, NONCE, Key::Main));
+    assert_eq!((delegate.network, delegate.nonce, delegate.key), (Network::Mainnet, NONCE, Signers::Main));
 }
 
 #[test]

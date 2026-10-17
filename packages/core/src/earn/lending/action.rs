@@ -1,7 +1,7 @@
 //! `borrowLend`: `{type, operation, token, amount}`, keys in that order.
 
+use crate::account::Signers;
 use crate::account::signers::ActionKind;
-use crate::earn::lending::plan::Key;
 use crate::utils::Dec;
 use crate::utils::sign::{L1Action, Map, Value};
 
@@ -47,7 +47,7 @@ pub struct BorrowLend {
 
 impl BorrowLend {
     /// L1: an agent may sign it for its master.
-    pub const KEY: Key = ActionKind::BorrowLend.signers();
+    pub const KEY: Signers = ActionKind::BorrowLend.signers();
 
     /// `amount` in the token, already cut to its `weiDecimals`; it goes on
     /// the wire with no trailing zeros.

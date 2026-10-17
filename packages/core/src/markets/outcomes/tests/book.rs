@@ -48,6 +48,11 @@ fn a_book_without_its_time_is_refused_not_read_as_1970() {
 }
 
 #[test]
-fn the_read_names_its_coin_with_a_hash() {
-    assert_eq!(book_request(Coin::new(1473, OutcomeSide::Yes)), r##"{"type":"l2Book","coin":"#14730"}"##);
+fn a_side_s_book_is_read_by_its_hash_coin_and_put_on_the_grid() {
+    let coin = Coin::new(1473, OutcomeSide::Yes);
+    let request = crate::markets::book::l2_book_request(&coin.to_string(), crate::markets::Precision::FULL);
+    assert_eq!(request, r##"{"type":"l2Book","coin":"#14730"}"##);
+    let read: crate::markets::Book = serde_json::from_str(LIVE).unwrap();
+    let book = Book::try_from(read).unwrap();
+    assert_eq!((book.coin, book.top()), (coin, Some((px("0.58495"), px("0.58497")))));
 }

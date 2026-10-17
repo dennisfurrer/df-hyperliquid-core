@@ -1,9 +1,9 @@
 //! `vaultTransfer`: `{type, vaultAddress, isDeposit, usd}`, keys in that order, `usd` in
 //! millionths. HLP's address and a vault's lockup differ between the networks.
 
+use crate::account::Signers;
 use crate::account::signers::ActionKind;
 use crate::client::Network;
-use crate::earn::vaults::plan::Key;
 use crate::utils::sign::{L1Action, Map};
 use crate::utils::{Address, BadUnits, Dec, exact_units};
 
@@ -63,7 +63,7 @@ pub struct VaultTransfer {
 
 impl VaultTransfer {
     /// L1: an agent may sign it for its master.
-    pub const KEY: Key = ActionKind::VaultTransfer.signers();
+    pub const KEY: Signers = ActionKind::VaultTransfer.signers();
 
     /// USDC from the perp balance into `vault`, at most six places: refused
     /// rather than rounded when finer.

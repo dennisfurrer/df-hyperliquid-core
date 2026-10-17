@@ -3,19 +3,20 @@
 //! an asset id counted against the wrong dex would sign an order for another market.
 
 use crate::client::http::transport::INFO;
-use crate::client::{ApiError, Transport, info};
-use crate::markets::dexes::dex::{DexAsset, DexMeta, PerpDex, PerpDexs, perp_dexs, request};
-use crate::markets::dexes::ids::{asset_parts, split_coin};
+use crate::client::{ApiError, Transport, info, info_request};
+use crate::markets::dex::split_coin;
+use crate::markets::dexes::dex::{PerpDex, PerpDexs, perp_dexs};
+use crate::markets::perps::meta::{Meta, PerpAsset};
 use crate::utils::Asset;
 
 /// `{"type":"allPerpMetas"}`.
 #[must_use]
 pub fn all_perp_metas_request() -> String {
-    request("allPerpMetas", None)
+    info_request("allPerpMetas", &[])
 }
 
 /// Every dex's meta in `perpDexs` order, the main dex's first.
-pub async fn all_perp_metas(transport: &impl Transport) -> Result<Vec<DexMeta>, ApiError> {
+pub async fn all_perp_metas(transport: &impl Transport) -> Result<Vec<Meta>, ApiError> {
     info(transport, all_perp_metas_request()).await
 }
 
@@ -41,11 +42,11 @@ pub enum Misaligned {
 pub struct Dexes {
     pub list: PerpDexs,
     /// One per dex, in `perpDexs` order, the main dex's first.
-    pub metas: Vec<DexMeta>,
+    pub metas: Vec<Meta>,
 }
 
 impl Dexes {
-    pub fn new(list: PerpDexs, metas: Vec<DexMeta>) -> Result<Dexes, Misaligned> {
+    pub fn new(list: PerpDexs, metas: Vec<Meta>) -> Result<Dexes, Misaligned> {
         if list.0.len() != metas.len() {
             return Err(Misaligned::Count { dexes: list.0.len(), metas: metas.len() });
         }
@@ -61,19 +62,19 @@ impl Dexes {
     }
 
     /// Each HIP-3 dex with its place and its meta.
-    pub fn dexes(&self) -> impl Iterator<Item = (u32, &PerpDex, &DexMeta)> {
+    pub fn dexes(&self) -> impl Iterator<Item = (u32, &PerpDex, &Meta)> {
         self.list.dexes().filter_map(|(place, dex)| Some((place, dex, self.metas.get(usize::try_from(place).ok()?)?)))
     }
 
     /// A HIP-3 dex by its name.
     #[must_use]
-    pub fn dex(&self, name: &str) -> Option<(u32, &PerpDex, &DexMeta)> {
+    pub fn dex(&self, name: &str) -> Option<(u32, &PerpDex, &Meta)> {
         self.dexes().find(|(_, dex, _)| dex.name == name)
     }
 
     /// A HIP-3 perp by its coin, `xyz:TSLA`, with its asset id.
     #[must_use]
-    pub fn find(&self, coin: &str) -> Option<(Asset, &DexAsset)> {
+    pub fn find(&self, coin: &str) -> Option<(Asset, &PerpAsset)> {
         let (name, _) = split_coin(coin)?;
         let (place, _, meta) = self.dex(name)?;
         meta.find(place, coin)
@@ -81,8 +82,8 @@ impl Dexes {
 
     /// A HIP-3 perp by its asset id, with its dex.
     #[must_use]
-    pub fn get(&self, asset: Asset) -> Option<(&PerpDex, &DexAsset)> {
-        let (place, _) = asset_parts(asset)?;
+    pub fn get(&self, asset: Asset) -> Option<(&PerpDex, &PerpAsset)> {
+        let (place, _) = asset.hip3_parts()?;
         let (_, dex, meta) = self.dexes().find(|(at, _, _)| *at == place)?;
         Some((dex, meta.get(place, asset)?))
     }

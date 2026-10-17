@@ -1,30 +1,35 @@
-//! What a HIP-3 dex may hold (`perpDexLimits`) and what it holds (`perpDexStatus`), asked by dex
-//! name. The main dex, `""`, has no limits: `null`.
+//! What a HIP-3 dex may hold (`perpDexLimits`) and what it holds (`perpDexStatus`). Both always
+//! name the dex, the main dex as `""`, which has no limits: `null`.
 
-use crate::client::{ApiError, Transport, info};
-use crate::markets::dexes::dex::request;
-use crate::utils::Dec;
+use crate::client::{ApiError, Transport, info, info_request};
+use crate::markets::dex::Dex;
+use crate::utils::{Dec, Json};
 use serde::Deserialize;
+
+/// `{"dex":<name>}`, `""` for the main dex.
+fn named(kind: &str, dex: Dex<'_>) -> String {
+    info_request(kind, &[("dex", Json::String(dex.name().unwrap_or_default().to_owned()))])
+}
 
 /// `{"type":"perpDexLimits","dex":<name>}`.
 #[must_use]
-pub fn perp_dex_limits_request(dex: &str) -> String {
-    request("perpDexLimits", Some(dex))
+pub fn perp_dex_limits_request(dex: Dex<'_>) -> String {
+    named("perpDexLimits", dex)
 }
 
 /// `None` for the main dex and for a dex the venue does not know.
-pub async fn perp_dex_limits(transport: &impl Transport, dex: &str) -> Result<Option<DexLimits>, ApiError> {
+pub async fn perp_dex_limits(transport: &impl Transport, dex: Dex<'_>) -> Result<Option<DexLimits>, ApiError> {
     info(transport, perp_dex_limits_request(dex)).await
 }
 
 /// `{"type":"perpDexStatus","dex":<name>}`.
 #[must_use]
-pub fn perp_dex_status_request(dex: &str) -> String {
-    request("perpDexStatus", Some(dex))
+pub fn perp_dex_status_request(dex: Dex<'_>) -> String {
+    named("perpDexStatus", dex)
 }
 
 /// `None` where the venue answers `null`.
-pub async fn perp_dex_status(transport: &impl Transport, dex: &str) -> Result<Option<DexStatus>, ApiError> {
+pub async fn perp_dex_status(transport: &impl Transport, dex: Dex<'_>) -> Result<Option<DexStatus>, ApiError> {
     info(transport, perp_dex_status_request(dex)).await
 }
 

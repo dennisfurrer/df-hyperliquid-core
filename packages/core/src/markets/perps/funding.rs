@@ -2,10 +2,9 @@
 //! predicted rates (`predictedFundings`). Both histories answer at most [`FUNDING_PAGE`] rows, so a
 //! long range is read in windows ([`funding_windows`]) or pages ([`next_page`]).
 
-use crate::client::{ApiError, Transport, info};
-use crate::markets::perps::dex::{Dex, number, request, text};
+use crate::client::{ApiError, Transport, info, info_request};
 use crate::utils::dec::MAX_SCALE;
-use crate::utils::{Address, Dec, Round};
+use crate::utils::{Address, Dec, Json, Round};
 use serde::Deserialize;
 
 /// A perp settles funding once an hour.
@@ -31,9 +30,16 @@ pub const fn next_funding(now_ms: u64) -> u64 {
 /// is named by its full coin, `xyz:TSLA`.
 #[must_use]
 pub fn funding_history_request(coin: &str, start_ms: u64, end_ms: Option<u64>) -> String {
-    let mut fields = vec![("coin", text(coin)), ("startTime", number(start_ms))];
-    fields.extend(end_ms.map(|end| ("endTime", number(end))));
-    request("fundingHistory", fields, Dex::Main)
+    let fields = window(("coin", Json::String(coin.to_owned())), start_ms, end_ms);
+    info_request("fundingHistory", &fields)
+}
+
+/// `first`, then `startTime` and `endTime` when given, as a history read names its window.
+fn window(first: (&'static str, Json), start_ms: u64, end_ms: Option<u64>) -> Vec<(&'static str, Json)> {
+    let time = |ms: u64| Json::Number(ms.to_string());
+    let mut fields = vec![first, ("startTime", time(start_ms))];
+    fields.extend(end_ms.map(|end| ("endTime", time(end))));
+    fields
 }
 
 /// One perp's settlements from `start_ms`, oldest first, at most [`FUNDING_PAGE`] of them.
@@ -106,9 +112,8 @@ pub struct FundingRate {
 /// perps answer together.
 #[must_use]
 pub fn user_funding_request(user: Address, start_ms: u64, end_ms: Option<u64>) -> String {
-    let mut fields = vec![("user", text(&user.to_hex())), ("startTime", number(start_ms))];
-    fields.extend(end_ms.map(|end| ("endTime", number(end))));
-    request("userFunding", fields, Dex::Main)
+    let fields = window(("user", Json::String(user.to_hex())), start_ms, end_ms);
+    info_request("userFunding", &fields)
 }
 
 /// An account's settlements from `start_ms`, oldest first, at most [`FUNDING_PAGE`] rows.
@@ -195,7 +200,7 @@ pub struct FundingDelta {
 /// `{"type":"predictedFundings"}`.
 #[must_use]
 pub fn predicted_fundings_request() -> String {
-    request("predictedFundings", Vec::new(), Dex::Main)
+    info_request("predictedFundings", &[])
 }
 
 pub async fn predicted_fundings(transport: &impl Transport) -> Result<PredictedFundings, ApiError> {

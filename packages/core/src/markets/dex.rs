@@ -1,6 +1,8 @@
 //! Which perp dex a read or a coin is about: a request without `dex` is the main dex's, one with
-//! `"dex":"xyz"` that HIP-3 dex's. A HIP-3 coin is `dex:SYMBOL`; its asset id is
+//! `"dex":"xyz"` that HIP-3 dex's ([`Dex::field`]). A HIP-3 coin is `dex:SYMBOL`; its asset id is
 //! [`Asset::hip3`](crate::utils::asset::Asset::hip3).
+
+use crate::utils::Json;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum Dex<'a> {
@@ -28,6 +30,12 @@ impl<'a> Dex<'a> {
             Dex::Main => None,
             Dex::Hip3(name) => Some(name),
         }
+    }
+
+    /// The `dex` field of a request body; `None` for the main dex, which a request leaves unnamed.
+    #[must_use]
+    pub fn field(self) -> Option<(&'static str, Json)> {
+        self.name().map(|name| ("dex", Json::String(name.to_owned())))
     }
 }
 

@@ -12,7 +12,7 @@ use crate::earn::lending::action::{BadLend, BorrowLend};
 use crate::earn::lending::state::{ReserveState, UserState};
 
 const RESERVES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/reserves.json"));
-const ATLAS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/atlas_pm.json"));
+const PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/portfolio_margin.json"));
 const NONCE: u64 = 1_790_412_105_001;
 
 fn dec(text: &str) -> Dec {
@@ -25,17 +25,15 @@ fn reserves(network: Network) -> Vec<(u32, ReserveState)> {
 }
 
 /// Supplied 3.32730523 HYPE (150), borrowed 188.39764406 USDC (0).
-fn atlas() -> UserState {
-    let all: serde_json::Value = serde_json::from_str(ATLAS).unwrap();
+fn portfolio() -> UserState {
+    let all: serde_json::Value = serde_json::from_str(PORTFOLIO).unwrap();
     serde_json::from_value(all["borrowLendUserState"].clone()).unwrap()
 }
 
 #[test]
 fn an_agent_may_lend_and_borrow() {
-    assert_eq!(key("borrowLend"), Some(Key::Either));
-    assert_eq!(key("usdSend"), None);
-    assert_eq!(BorrowLend::KEY, Key::Either);
-    assert!(Key::Either.takes_agent() && !Key::Main.takes_agent());
+    assert_eq!(BorrowLend::KEY, Signers::Either);
+    assert!(BorrowLend::KEY.takes_agent());
 }
 
 /// A position's value moves with interest too, so a read back shows which
@@ -46,7 +44,7 @@ fn each_operation_is_read_back_on_its_own_position() {
     let testnet = reserves(Network::Testnet);
     let supply = ctx.supply(1105, dec("2"), &testnet).unwrap();
     assert_eq!(supply.effect, Effect { balance: Balance::Supplied(1105), change: Change::Rises(dec("2")) });
-    assert_eq!((supply.network, supply.nonce, supply.key), (Network::Testnet, NONCE, Key::Either));
+    assert_eq!((supply.network, supply.nonce, supply.key), (Network::Testnet, NONCE, Signers::Either));
     assert!(supply.action.wire().contains(r#""operation":"supply","token":1105,"amount":"2""#));
     let borrow = ctx.borrow(0, dec("50"), &testnet).unwrap();
     assert_eq!(borrow.effect, Effect { balance: Balance::Borrowed(0), change: Change::Rises(dec("50")) });
@@ -54,7 +52,7 @@ fn each_operation_is_read_back_on_its_own_position() {
     assert!(!supply.effect.landed(dec("1"), dec("1")));
 
     let ctx = Ctx { network: Network::Mainnet, nonce: NONCE };
-    let state = atlas();
+    let state = portfolio();
     let some = ctx.withdraw(150, Some(dec("1")), &state).unwrap();
     assert_eq!(some.effect, Effect { balance: Balance::Supplied(150), change: Change::Falls(dec("1")) });
     let all = ctx.withdraw(150, None, &state).unwrap();
@@ -81,7 +79,7 @@ fn what_is_not_there_is_refused() {
     assert_eq!(ctx.supply(0, Dec::ZERO, &testnet), Err(Refused::Lend(BadLend::NotPositive(Dec::ZERO))));
 
     let ctx = Ctx { network: Network::Mainnet, nonce: NONCE };
-    let state = atlas();
+    let state = portfolio();
     assert_eq!(
         ctx.withdraw(150, Some(dec("4")), &state),
         Err(Refused::MoreThan { amount: dec("4"), held: dec("3.32730523") })

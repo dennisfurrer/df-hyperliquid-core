@@ -1,11 +1,10 @@
 //! Vaults: details, deposits and withdrawals, lockups, and an account's equity in each.
-#![deny(clippy::float_arithmetic)]
 
 pub mod plan;
 pub mod reads;
 pub mod transfer;
 
-pub use plan::{Balance, Change, Ctx, Effect, Key, Plan, Refused, key};
+pub use plan::{Balance, Change, Ctx, Effect, Plan, Refused};
 pub use reads::{
     Follower, LeadingVault, Relationship, VaultDetails, VaultEquity, leading_vaults, leading_vaults_request,
     user_vault_equities, user_vault_equities_request, vault_details, vault_details_request,

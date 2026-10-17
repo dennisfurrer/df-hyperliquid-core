@@ -1,11 +1,23 @@
-//! A print: one trade on a market's tape, the same shape from `recentTrades` and from the
+//! A print: one trade on a market's tape, the same shape from the `recentTrades` read and from the
 //! `trades` feed.
 
 use serde::Deserialize;
 
+use crate::client::{ApiError, Transport, info, info_request};
 use crate::markets::side::Side;
+use crate::utils::Json;
 use crate::utils::address::Address;
 use crate::utils::dec::Dec;
+
+/// `{"type":"recentTrades","coin":..}`.
+#[must_use]
+pub fn recent_trades_request(coin: &str) -> String {
+    info_request("recentTrades", &[("coin", Json::String(coin.to_owned()))])
+}
+
+pub async fn recent_trades(transport: &impl Transport, coin: &str) -> Result<Vec<Trade>, ApiError> {
+    info(transport, recent_trades_request(coin)).await
+}
 
 /// One trade on a market's tape.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]

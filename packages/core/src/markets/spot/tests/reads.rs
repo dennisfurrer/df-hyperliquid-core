@@ -1,13 +1,8 @@
 //! Live answers, 2026-10-08: on mainnet, `tokenDetails` for HYPE (94,023 genesis balances cut to
-//! two), `spotDeployState` for HLP Strategy A (nothing being deployed) and
-//! `spotPairDeployAuctionStatus`; on testnet, `spotMeta` with its 1,667 tokens cut to USDC, PURR,
-//! HYPE and RUBT (the first token whose index is not its place, 1540 at 1536) and their USDC pairs.
+//! two); on testnet, `spotMeta` with its 1,667 tokens cut to USDC, PURR, HYPE and RUBT (the first
+//! token whose index is not its place, 1540 at 1536) and their USDC pairs.
 
 use crate::client::{Network, TESTNET_USDC};
-use crate::deploy::tokens::{
-    GasAuction, SpotDeployState, spot_deploy_state, spot_deploy_state_request, spot_pair_deploy_auction,
-    spot_pair_deploy_auction_request,
-};
 use crate::markets::spot::details::{TokenDetails, token_details, token_details_request};
 use crate::markets::spot::meta::SpotMeta;
 use crate::markets::spot::support::{Recorded, block_on, dec};
@@ -15,10 +10,6 @@ use crate::utils::{Address, Asset};
 
 const DETAILS: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/token_details_hype_mainnet.json"));
-const DEPLOY_STATE: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/spot_deploy_state_mainnet.json"));
-const PAIR_AUCTION: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/spot_pair_deploy_auction_mainnet.json"));
 const TESTNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/spot_meta_testnet.json"));
 
 fn testnet() -> SpotMeta {
@@ -95,35 +86,5 @@ fn token_details_are_asked_by_token_id() {
     let transport = Recorded::new(&[("tokenDetails", DETAILS)]);
     let details = block_on(token_details(&transport, "0x0d01dc56dcaaca66ad901c959b4011ec")).unwrap();
     assert_eq!(details.name, "HYPE");
-}
-
-/// Hyperliquid's docs give the deploy auctions 31 hours.
-#[test]
-fn the_deploy_auctions_read_their_gas_and_their_hours() {
-    let state: SpotDeployState = serde_json::from_str(DEPLOY_STATE).unwrap();
-    assert!(state.states.is_empty(), "nothing being deployed");
-    let auction = &state.gas_auction;
-    assert_eq!(auction.duration_seconds, 31 * 3600);
-    assert_eq!((auction.start_time_seconds, auction.ends_at()), (1_791_403_200, 1_791_514_800));
-    assert_eq!((auction.start_gas, auction.current_gas, auction.end_gas), (dec("500"), Some(dec("500")), None));
-    assert!(auction.is_running(1_791_480_567));
-    assert!(!auction.is_running(1_791_514_800), "over at its end");
-    assert!(!auction.is_running(1_791_403_199), "not before its start");
-    let pair: GasAuction = serde_json::from_str(PAIR_AUCTION).unwrap();
-    assert_eq!(pair.duration_seconds, 31 * 3600);
-    assert_eq!(pair.current_gas, Some(dec("500")));
-}
-
-#[test]
-fn the_deploy_reads_name_their_type() {
-    let user: Address = "0x010461c14e146ac35fe42271bdc1134ee31c703a".parse().unwrap();
-    assert_eq!(
-        spot_deploy_state_request(user),
-        r#"{"type":"spotDeployState","user":"0x010461c14e146ac35fe42271bdc1134ee31c703a"}"#
-    );
-    assert_eq!(spot_pair_deploy_auction_request(), r#"{"type":"spotPairDeployAuctionStatus"}"#);
-    let transport = Recorded::new(&[("spotDeployState", DEPLOY_STATE), ("spotPairDeployAuctionStatus", PAIR_AUCTION)]);
-    assert!(block_on(spot_deploy_state(&transport, user)).unwrap().states.is_empty());
-    assert_eq!(block_on(spot_pair_deploy_auction(&transport)).unwrap().start_gas, dec("500"));
-    assert_eq!(transport.sent().len(), 2);
+    assert_eq!(transport.sent(), [token_details_request("0x0d01dc56dcaaca66ad901c959b4011ec")]);
 }

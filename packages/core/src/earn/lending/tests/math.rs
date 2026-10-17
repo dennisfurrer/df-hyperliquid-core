@@ -18,7 +18,7 @@ use crate::earn::lending::state::{ReserveState, UserState};
 
 const RESERVES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/reserves.json"));
 const RESERVE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/reserve.json"));
-const ATLAS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/atlas_pm.json"));
+const PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/portfolio_margin.json"));
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -31,7 +31,7 @@ fn reserves(network: Network) -> Vec<(u32, ReserveState)> {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct Atlas {
+struct Portfolio {
     spot_clearinghouse_state: Spot,
     borrow_lend_user_state: UserState,
     all_borrow_lend_reserve_states: Vec<(u32, ReserveState)>,
@@ -49,8 +49,8 @@ struct Balance {
     hold: Dec,
 }
 
-fn atlas() -> Atlas {
-    serde_json::from_str(ATLAS).unwrap()
+fn portfolio() -> Portfolio {
+    serde_json::from_str(PORTFOLIO).unwrap()
 }
 
 /// Every recorded reserve, from three days and both networks.
@@ -62,7 +62,10 @@ fn every_reserve() -> Vec<(String, u32, ReserveState)> {
     let single: BTreeMap<String, ReserveState> = serde_json::from_str(RESERVE).unwrap();
     all.extend(single.into_iter().map(|(network, state)| (format!("{network} single"), 0, state)));
     all.extend(
-        atlas().all_borrow_lend_reserve_states.into_iter().map(|(token, state)| ("atlas".to_owned(), token, state)),
+        portfolio()
+            .all_borrow_lend_reserve_states
+            .into_iter()
+            .map(|(token, state)| ("portfolio margin".to_owned(), token, state)),
     );
     all
 }
@@ -130,21 +133,24 @@ fn what_can_still_be_borrowed() {
     assert_eq!(borrowable(&[(150, dec("2"))], &testnet, &owes("0")), Dec::ZERO, "testnet's 150 backs nothing");
 
     // The portfolio-margin account: everything it holds is held against, so nothing more.
-    let atlas = atlas();
-    let held: Vec<(u32, Dec)> = atlas
+    let portfolio = portfolio();
+    let held: Vec<(u32, Dec)> = portfolio
         .spot_clearinghouse_state
         .balances
         .iter()
         .map(|line| (line.token, line.total.checked_sub(line.hold).unwrap()))
         .collect();
-    assert_eq!(borrowable(&held, &atlas.all_borrow_lend_reserve_states, &atlas.borrow_lend_user_state), Dec::ZERO);
+    assert_eq!(
+        borrowable(&held, &portfolio.all_borrow_lend_reserve_states, &portfolio.borrow_lend_user_state),
+        Dec::ZERO
+    );
 }
 
 /// `healthy` is safe, `liquidatable` is liquidatable, and anything else (the
 /// live `atRisk`) is near.
 #[test]
 fn health_reads_as_a_risk() {
-    let state = atlas().borrow_lend_user_state;
+    let state = portfolio().borrow_lend_user_state;
     assert_eq!(state.health, "atRisk");
     assert_eq!(state.risk(), Risk::Near);
     assert_eq!(state.factor(), Some(dec("0.994555261")));

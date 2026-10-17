@@ -80,7 +80,7 @@ fn a_live_fill_reads_every_field_the_venue_sent() {
         "twapId": null
     }"##;
     let fill = Fill::read(&serde_json::from_str(text).unwrap()).unwrap();
-    assert_eq!((fill.coin, fill.side), (Coin::lookup("#12270").unwrap(), Side::Buy));
+    assert_eq!((fill.coin, fill.side), (Coin::parse("#12270").unwrap(), Side::Buy));
     assert_eq!(fill.price, dec("0.21349"));
     assert_eq!(fill.size, Qty::new(34));
     assert_eq!((fill.start_position, fill.position), (SignedQty::new(1355), SignedQty::new(1389)));
@@ -223,11 +223,11 @@ fn a_spot_answer_yields_outcome_holdings_and_nothing_else() {
     let held = holdings(&state);
     assert_eq!(held.len(), 2);
     let first = &held[0];
-    assert_eq!(first.coin, Coin::lookup("#12140").unwrap());
+    assert_eq!(first.coin, Coin::parse("#12140").unwrap());
     assert_eq!((first.total, first.hold, first.entry_ntl), (dec("218"), dec("12"), dec("58.975575")));
     assert_eq!(first.free(), dec("206"), "hold is part of total and never added to it");
     assert_eq!(first.average(), Some(dec("0.27053016")), "what it cost a contract, to eight places");
-    assert_eq!(held[1].coin, Coin::lookup("+12160").unwrap());
+    assert_eq!(held[1].coin, Coin::parse("+12160").unwrap());
     assert_eq!(held[1].average(), Some(dec("0.08376452")));
 }
 

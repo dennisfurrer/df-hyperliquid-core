@@ -1,16 +1,13 @@
 //! Every HIP-4 vector on file, rebuilt through the typed builders (never from the JSON itself) and signed on
 //! the network each was made for. The files are in `vectors/`, each naming what made it.
 //!
-//! - `outcome_deploy.json`: deployer vectors (Hyperliquid's Python SDK, an independent builder, presets), every
-//!   one built by the deployer flow ([`df_hyperliquid_core::deploy::outcomes::flow`]) from the inputs as typed.
+//! - `outcome_deploy.json`: deployer vectors (Hyperliquid's Python SDK, an independent builder, recorded
+//!   presets), every one built by the deploy constructors from the inputs as typed. Each keyword is checked
+//!   against the hint the venue's own templates give a keyword of that name, and each settlement copies an
+//!   `outcomeMeta` listing what it settles.
 //! - `outcomes.json`: a first HIP-4 session through an outcome ticket, signed by `@nktkas/hyperliquid` 0.24.3,
 //!   on mainnet.
 //! - `l1.json`: the HIP-4 market orders among the recorded L1 cases, mainnet.
-//!
-//! The deployer flow is checked against a desk made for each case: the
-//! templates declare exactly the keywords the case types, each with the hint
-//! the venue's own templates give a keyword of that name, and `outcomeMeta`
-//! lists what a settle or grant copies from.
 
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -19,12 +16,11 @@ use std::collections::BTreeMap;
 
 use df_hyperliquid_core::account::{LocalKey, recover};
 use df_hyperliquid_core::client::Network;
-use df_hyperliquid_core::deploy::outcomes::flow::{self, Desk, Filled, Plan, Seat};
-use df_hyperliquid_core::deploy::outcomes::{FeeScale, Fraction, Grant, Permission, Venue};
-use df_hyperliquid_core::markets::outcomes::market::Catalog;
+use df_hyperliquid_core::deploy::outcomes::{
+    ActivateOutcomeDeployer, FeeScale, Fraction, Grant, Hint, Instance, Keywords, OutcomeDeploy, Permission, Venue,
+};
 use df_hyperliquid_core::markets::outcomes::px::{Px, Qty};
-use df_hyperliquid_core::markets::outcomes::template::{Keyword, OutcomeTemplate, TemplateRole};
-use df_hyperliquid_core::markets::outcomes::{Coin, Deployer, Outcome, OutcomeMeta, Question, SideSpec};
+use df_hyperliquid_core::markets::outcomes::{Coin, Fields, Outcome, OutcomeMeta, Question, SideSpec};
 use df_hyperliquid_core::trade::builder::fee::BuilderFee;
 use df_hyperliquid_core::trade::{Builder, Cancel, PlaceOrder, Side, Tif};
 use df_hyperliquid_core::utils::sign::user_signed::{NonceKey, UserSigned};
@@ -43,7 +39,7 @@ const AGENT_KEY: &str = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f46
 
 /// 2026-08-01 00:00 UTC: before every time the deployer cases type, and
 /// within a year of each.
-const DESK_NOW: u64 = 1_785_542_400_000;
+const NOW: u64 = 1_785_542_400_000;
 
 fn parse(text: &str) -> Json {
     Json::parse(text).unwrap()
@@ -86,26 +82,18 @@ fn hint(keyword: &str) -> &'static str {
     }
 }
 
-fn filled(json: &Json) -> Filled {
+/// A template instance from a case's `template` and `keywords`, as typed, every value one its
+/// keyword's hint takes at [`NOW`].
+fn instance(name: &str, json: &Json) -> Instance {
     let pairs = list(json, "keywords").iter().map(|pair| {
         let pair = pair.as_array().unwrap();
         (pair[0].as_str().unwrap().to_owned(), pair[1].as_str().unwrap().to_owned())
     });
-    Filled::new(text(json, "template"), pairs.collect::<Vec<_>>())
-}
-
-fn template(filled: &Filled, role: TemplateRole) -> OutcomeTemplate {
-    OutcomeTemplate {
-        id: filled.template.clone(),
-        role,
-        name: String::new(),
-        description: String::new(),
-        keywords: filled
-            .values
-            .keys()
-            .map(|name| Keyword { name: name.clone(), kind: hint(name).to_owned() })
-            .collect(),
-    }
+    let keywords = Keywords::from_pairs(pairs).unwrap_or_else(|bad| panic!("{name}: {bad}"));
+    let declared: Vec<(&str, Hint)> =
+        keywords.iter().map(|(keyword, _)| (keyword, Hint::parse(hint(keyword)))).collect();
+    assert_eq!(keywords.check(declared, NOW), [], "{name}: the keywords");
+    Instance::new(text(json, "template"), keywords)
 }
 
 fn row(outcome: u32, venue: &str, name: &str, description: &str, sides: [&str; 2]) -> Outcome {
@@ -136,39 +124,17 @@ fn settled_row(venue: &str, settlement: &Json) -> Outcome {
     )
 }
 
-/// The question a named outcome is added to: live on the venue, made from
-/// the template the added outcome's names as its parent.
-const PARENT: &str = "sportsContestResult";
-
-type Step<'s> = Box<dyn FnOnce(&Desk<'_>) -> Result<Plan, Vec<flow::Refusal>> + 's>;
-
-fn run(name: &str, meta: &OutcomeMeta, templates: &[OutcomeTemplate], seat: &Seat, step: Step<'_>) -> Plan {
-    step(&Desk { meta, templates, seat, now_ms: DESK_NOW, limits: None })
-        .unwrap_or_else(|refused| panic!("{name}: {refused:?}"))
-}
-
-fn through_the_flow(case: &Json) -> Plan {
+/// A case's action, built from its inputs as typed.
+fn built(case: &Json) -> Box<dyn L1Action> {
     let name = text(case, "name");
-    let venue = text(case, "venue");
+    let venue_name = text(case, "venue");
+    let venue: Venue = venue_name.parse().unwrap();
     let given = case.get("given").unwrap();
-    let deployer = Address::from_bytes([0x0d; 20]);
-    let mut meta = OutcomeMeta {
-        deployers: vec![Deployer { deployer, venue: Some(venue.to_owned()), sub_deployers: Vec::new() }],
-        ..OutcomeMeta::default()
-    };
-    let mut templates = Vec::new();
-    let seat = Seat::Deployer { venue: venue.to_owned() };
     let fee = || text(given, "feeScale").parse::<FeeScale>().unwrap();
-    let run = |meta: &OutcomeMeta, templates: &[OutcomeTemplate], seat: &Seat, step: Step<'_>| {
-        run(name, meta, templates, seat, step)
-    };
+    let id = |key: &str| u32::try_from(number(given, key)).unwrap();
     match name {
-        "activate" => {
-            meta.deployers.clear();
-            let venue: Venue = venue.parse().unwrap();
-            run(&meta, &templates, &Seat::Free, Box::new(move |desk| flow::activate(desk, venue)))
-        }
-        "deactivate" => run(&meta, &templates, &seat, Box::new(flow::deactivate)),
+        "activate" => Box::new(ActivateOutcomeDeployer::Activate(venue)),
+        "deactivate" => Box::new(ActivateOutcomeDeployer::Deactivate),
         _ if given.get("grants").is_some() => {
             let grants: Vec<Grant> = list(given, "grants")
                 .iter()
@@ -181,83 +147,59 @@ fn through_the_flow(case: &Json) -> Plan {
                     allowed: grant.get("allowed") == Some(&Json::Bool(true)),
                 })
                 .collect();
-            // What is to be taken away is held now; what is to be given is not.
-            meta.deployers[0].sub_deployers = grants
-                .iter()
-                .filter(|grant| !grant.allowed)
-                .map(|grant| (grant.permission.wire().to_owned(), vec![grant.user]))
-                .collect();
-            run(&meta, &templates, &seat, Box::new(|desk| flow::set_grants(desk, &grants)))
+            Box::new(OutcomeDeploy::set_sub_deployers(venue, grants).unwrap())
         }
         _ if given.get("settlements").is_some() => {
-            let question = u32::try_from(number(given, "question")).unwrap();
             let settlements = list(given, "settlements");
-            meta.outcomes = settlements.iter().map(|one| settled_row(venue, one)).collect();
-            meta.questions = vec![Question {
-                question,
-                name: text(given, "name").to_owned(),
-                description: text(given, "description").to_owned(),
-                fallback_outcome: None,
-                named_outcomes: meta.outcomes.iter().map(|row| row.outcome).collect(),
-                settled_named_outcomes: Vec::new(),
-            }];
+            let outcomes: Vec<Outcome> = settlements.iter().map(|one| settled_row(venue_name, one)).collect();
+            let meta = OutcomeMeta {
+                questions: vec![Question {
+                    question: id("question"),
+                    name: text(given, "name").to_owned(),
+                    description: text(given, "description").to_owned(),
+                    fallback_outcome: None,
+                    named_outcomes: outcomes.iter().map(|row| row.outcome).collect(),
+                    settled_named_outcomes: Vec::new(),
+                }],
+                outcomes,
+                ..OutcomeMeta::default()
+            };
             let winner = settlements.iter().find(|one| text(one, "fraction") == "1").unwrap();
             let winner = u32::try_from(number(winner, "outcome")).unwrap();
-            run(&meta, &templates, &seat, Box::new(|desk| flow::settle_question(desk, question, winner)))
+            Box::new(OutcomeDeploy::settle_question(venue, &meta, id("question"), winner).unwrap())
         }
         _ if given.get("fraction").is_some() => {
-            meta.outcomes = vec![settled_row(venue, given)];
-            let outcome = meta.outcomes[0].outcome;
+            let meta = OutcomeMeta { outcomes: vec![settled_row(venue_name, given)], ..OutcomeMeta::default() };
             let fraction: Fraction = text(given, "fraction").parse().unwrap();
-            run(&meta, &templates, &seat, Box::new(|desk| flow::settle_outcome(desk, outcome, fraction)))
+            Box::new(OutcomeDeploy::settle_outcome(venue, &meta, id("outcome"), fraction).unwrap())
         }
         _ if given.get("named").and_then(Json::as_array).is_some() => {
-            let question = filled(given.get("question").unwrap());
-            let named: Vec<Filled> = list(given, "named").iter().map(filled).collect();
-            templates.push(template(&question, TemplateRole::Question));
-            for one in &named {
-                templates.push(template(one, TemplateRole::QuestionOutcome { parent: question.template.clone() }));
-            }
-            run(&meta, &templates, &seat, Box::new(|desk| flow::register_question(desk, &question, fee(), &named)))
+            let question = instance(name, given.get("question").unwrap());
+            let named: Vec<Instance> = list(given, "named").iter().map(|one| instance(name, one)).collect();
+            Box::new(OutcomeDeploy::register_question(venue, question, fee(), named).unwrap())
         }
         _ if given.get("named").is_some() => {
-            let question = u32::try_from(number(given, "question")).unwrap();
-            let named = filled(given.get("named").unwrap());
-            templates.push(template(&named, TemplateRole::QuestionOutcome { parent: PARENT.to_owned() }));
-            meta.outcomes = vec![row(9_999, venue, "template:sportsContestDraw", "", ["Yes", "No"])];
-            meta.questions = vec![Question {
-                question,
-                name: format!("template:{PARENT}"),
-                description: String::new(),
-                fallback_outcome: None,
-                named_outcomes: vec![9_999],
-                settled_named_outcomes: Vec::new(),
-            }];
-            run(&meta, &templates, &seat, Box::new(|desk| flow::add_to_question(desk, question, &named)))
+            let named = instance(name, given.get("named").unwrap());
+            Box::new(OutcomeDeploy::register_and_associate(venue, id("question"), named))
         }
-        _ => {
-            let outcome = filled(given);
-            let role = TemplateRole::Standalone { side_names: vec!["Yes".to_owned(), "No".to_owned()] };
-            templates.push(template(&outcome, role));
-            run(&meta, &templates, &seat, Box::new(|desk| flow::register_outcome(desk, &outcome, fee())))
-        }
+        _ => Box::new(OutcomeDeploy::register_standalone(venue, instance(name, given), fee())),
     }
 }
 
 #[test]
-fn the_python_sdk_s_deployer_hashes_come_out_of_the_flow() {
+fn the_python_sdk_s_deployer_hashes_come_out_of_the_builders() {
     let file = parse(DEPLOY);
     let python = file.get("python").unwrap();
     let nonce = number(python, "nonce");
     let cases = list(python, "cases");
     assert_eq!(cases.len(), 8);
-    let mut built = BTreeMap::new();
+    let mut actions = BTreeMap::new();
     for case in cases {
         let name = text(case, "name");
-        let plan = through_the_flow(case);
-        assert_eq!(plan.action.wire(), case.get("action").unwrap().compact(), "{name}: the action");
-        assert_eq!(hex::encode_prefixed(&plan.action.connection_id(nonce, None)), text(case, "actionHash"), "{name}");
-        built.insert(name.to_owned(), plan.action);
+        let action = built(case);
+        assert_eq!(action.wire(), case.get("action").unwrap().compact(), "{name}: the action");
+        assert_eq!(hex::encode_prefixed(&action.connection_id(nonce, None)), text(case, "actionHash"), "{name}");
+        actions.insert(name.to_owned(), action);
     }
 
     let multi = python.get("multiSig").unwrap();
@@ -267,7 +209,7 @@ fn the_python_sdk_s_deployer_hashes_come_out_of_the_flow() {
         let packed = Value::Array(vec![
             Value::from(user.to_owned()),
             Value::from(outer.to_owned()),
-            Value::Map(built[name].action()),
+            Value::Map(actions[name].action()),
         ])
         .to_msgpack();
         assert_eq!(hex::encode_prefixed(&connection_id(&packed, nonce, None)), text(inner, "actionHash"), "{name}");
@@ -289,7 +231,7 @@ fn the_python_sdk_s_deployer_hashes_come_out_of_the_flow() {
             Map::new()
                 .put("multiSigUser", user.to_owned())
                 .put("outerSigner", outer.to_owned())
-                .put("action", built[text(envelope, "name")].action()),
+                .put("action", actions[text(envelope, "name")].action()),
         );
     assert_eq!(
         text(envelope, "signatureChainId"),
@@ -300,7 +242,7 @@ fn the_python_sdk_s_deployer_hashes_come_out_of_the_flow() {
 }
 
 #[test]
-fn independent_bytes_hashes_and_mainnet_digests_come_out_of_the_flow() {
+fn independent_bytes_hashes_and_mainnet_digests_come_out_of_the_builders() {
     let file = parse(DEPLOY);
     let independent = file.get("independent").unwrap();
     let nonce = number(independent, "nonce");
@@ -308,7 +250,7 @@ fn independent_bytes_hashes_and_mainnet_digests_come_out_of_the_flow() {
     assert_eq!(cases.len(), 3);
     for case in cases {
         let name = text(case, "name");
-        let action = through_the_flow(case).action;
+        let action = built(case);
         assert_eq!(hex::encode(&action.msgpack()), text(case, "msgpack"), "{name}: the msgpack");
         assert_eq!(hex::encode_prefixed(&action.connection_id(nonce, None)), text(case, "actionHash"), "{name}");
         let digest = action.digest(nonce, None, Network::Mainnet);
@@ -318,13 +260,13 @@ fn independent_bytes_hashes_and_mainnet_digests_come_out_of_the_flow() {
 }
 
 #[test]
-fn studio_s_presets_come_out_of_the_flow_byte_for_byte() {
+fn the_recorded_presets_come_out_of_the_builders_byte_for_byte() {
     let file = parse(DEPLOY);
     let cases = list(file.get("studio").unwrap(), "cases");
     assert_eq!(cases.len(), 8);
     for case in cases {
         let name = text(case, "name");
-        let action = through_the_flow(case).action;
+        let action = built(case);
         assert_eq!(action.wire(), case.get("action").unwrap().compact(), "{name}");
         if let Some(Json::String(packed)) = case.get("msgpack") {
             assert_eq!(hex::encode(&action.msgpack()), *packed, "{name}: the msgpack");
@@ -350,7 +292,7 @@ fn check_signed(name: &str, case: &Json, action: &dyn L1Action, key: &LocalKey, 
 }
 
 #[test]
-fn atlas_s_first_outcome_session_is_reproduced_on_mainnet() {
+fn a_first_outcome_session_is_reproduced_on_mainnet() {
     let file = parse(OUTCOMES);
     let owner = LocalKey::from_hex(OWNER_KEY).unwrap();
     let agent = LocalKey::from_hex(AGENT_KEY).unwrap();
@@ -406,14 +348,14 @@ fn atlas_s_first_outcome_session_is_reproduced_on_mainnet() {
 }
 
 #[test]
-fn atlas_s_outcome_market_orders_are_frontend_market_at_the_edges() {
+fn outcome_market_orders_are_frontend_market_at_the_edges() {
     let file = parse(L1);
     let key = LocalKey::from_hex(text(&file, "key")).unwrap();
     let cases = list(&file, "cases");
     let case = |name: &str| cases.iter().find(|case| text(case, "name") == name).unwrap();
     let orders = [
-        ("order_hip4_frontend_market_buy", Coin::new(1234, OutcomeSide::Yes).market(Side::Buy, dec("25"))),
-        ("order_hip4_frontend_market_sell", Coin::new(1234, OutcomeSide::No).market(Side::Sell, dec("10"))),
+        ("order_hip4_frontend_market_buy", Coin::new(1234, OutcomeSide::Yes).market(Side::Buy, Qty::new(25))),
+        ("order_hip4_frontend_market_sell", Coin::new(1234, OutcomeSide::No).market(Side::Sell, Qty::new(10))),
     ];
     for (name, order) in orders {
         let case = case(name);
@@ -438,13 +380,18 @@ fn atlas_s_outcome_market_orders_are_frontend_market_at_the_edges() {
 #[test]
 fn a_testnet_order_names_testnet_s_own_outcome_and_signs_for_testnet() {
     let meta: OutcomeMeta = serde_json::from_str(TESTNET_META).unwrap();
-    let catalog = Catalog::build(&meta, 1_791_417_600_000);
-    let daily = catalog
-        .markets
+    let daily = meta
+        .outcomes
         .iter()
-        .find(|market| market.title == "BTC above 83136 at 2026-10-09 03:00Z")
+        .find(|row| {
+            let fields = Fields::parse(&row.description);
+            let field = |key: &str| fields.text(key);
+            field("underlying").as_deref() == Some("BTC")
+                && field("targetPrice").as_deref() == Some("83136")
+                && field("expiry").as_deref() == Some("20261009-0300")
+        })
         .expect("testnet's daily BTC market");
-    let order = daily.sides.yes.market(Side::Buy, dec("25")).unwrap();
+    let order = daily.coin(OutcomeSide::Yes).market(Side::Buy, Qty::new(25)).unwrap();
     assert_eq!(order.asset().id(), 100_231_360, "from testnet's data, not a mainnet constant");
     let action = PlaceOrder::one(order);
     let key = LocalKey::from_hex(AGENT_KEY).unwrap();

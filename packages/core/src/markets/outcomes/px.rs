@@ -18,13 +18,6 @@ pub const OBSERVED_PLACES: u32 = 8;
 /// Units of a reported mid in one unit of the quote token.
 pub const OBSERVED_PER_UNIT: u32 = 100_000_000;
 
-/// A minimum order of 1.5 of the quote token, each share valued at its short side
-/// ([`min_shares`]). The venue publishes no figure; this keeps 0.5 of headroom over a floor of 1.
-pub const MIN_NOTIONAL: Dec = Dec::lit::<1>(15);
-
-/// A share is never valued under a cent for [`min_shares`].
-const SHORT_SIDE_FLOOR: Dec = Dec::lit::<2>(1);
-
 /// Why a figure is not a price.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadPx {
@@ -448,19 +441,6 @@ impl<'de> Deserialize<'de> for Qty {
         let text = String::deserialize(deserializer)?;
         Qty::parse(&text).map_err(de::Error::custom)
     }
-}
-
-/// The fewest shares an order at `mark` may have: `ceil(1.5 / clamp(min(p, 1 - p), 0.01, 1))`, each
-/// share valued at its short side and never under a cent. Exact: 15 at 0.9, where a float
-/// `1 - 0.9` gives 16.
-#[must_use]
-pub fn min_shares(mark: Dec) -> Qty {
-    let most = Qty(150);
-    let Some(other) = Dec::ONE.checked_sub(mark) else {
-        return most;
-    };
-    let short = mark.min(other).clamp(SHORT_SIDE_FLOOR, Dec::ONE);
-    MIN_NOTIONAL.checked_div(short, 0, Round::Up).and_then(whole).unwrap_or(most)
 }
 
 /// Why a figure is not a holding.

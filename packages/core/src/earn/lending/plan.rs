@@ -2,24 +2,11 @@
 //! its nonce, the key it needs, and the position that should change once it
 //! lands. A token is its spot index from the caller's `spotMeta`.
 
-use crate::account::signers::ActionKind;
+use crate::account::Signers;
 use crate::client::Network;
 use crate::earn::lending::action::{BadLend, BorrowLend};
 use crate::earn::lending::state::{ReserveState, UserState, reserve};
 use crate::utils::Dec;
-
-/// Who may sign an action: `Main` is the account's own key only; `Either` also
-/// takes an agent the account approved.
-pub use crate::account::signers::Signers as Key;
-
-/// The lending actions.
-const KINDS: [ActionKind; 1] = [ActionKind::BorrowLend];
-
-/// The key each lending action needs, by its wire `type`.
-#[must_use]
-pub fn key(kind: &str) -> Option<Key> {
-    ActionKind::from_wire(kind).filter(|kind| KINDS.contains(kind)).map(ActionKind::signers)
-}
 
 /// A figure a read back checks: a position's `value` in
 /// `borrowLendUserState`, by token.
@@ -64,7 +51,7 @@ pub struct Plan<A> {
     pub network: Network,
     pub action: A,
     pub nonce: u64,
-    pub key: Key,
+    pub key: Signers,
     pub effect: Effect,
 }
 

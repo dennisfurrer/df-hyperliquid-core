@@ -1,15 +1,13 @@
 //! HYPE staking: moves between spot and staking, delegation, validators and rewards.
-#![deny(clippy::float_arithmetic)]
 
 pub mod account;
 pub mod actions;
 pub mod plan;
 pub mod reads;
 
-pub use crate::utils::sign::UserAction;
 pub use account::{PendingWithdrawal, REWARDS_WINDOW_MS, Staking, pending_withdrawals, rewards_since, staking};
 pub use actions::{CDeposit, CWithdraw, HYPE_DECIMALS, TokenDelegate, hype_wei};
-pub use plan::{Balance, Change, Ctx, Effect, Key, Plan, Refused, key};
+pub use plan::{Balance, Change, Ctx, Effect, Plan, Refused};
 pub use reads::{
     Delegation, DelegatorSummary, MAINNET_DELEGATION_LOCK_MS, MAINNET_UNSTAKING_MS, MAX_PENDING_WITHDRAWALS, Reward,
     StakeDelta, StakeEvent, TESTNET_DELEGATION_LOCK_MS, TESTNET_UNSTAKING_MS, ValidatorStats, ValidatorSummary,

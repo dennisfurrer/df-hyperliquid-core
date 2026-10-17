@@ -1,11 +1,13 @@
-//! Templates: an outcome's name (`template:<id><version>`) gives its [`Family`]; the venue's
-//! `outcomeTemplates` give a [`Pattern`] for the rest; `outcomeDeployerLimits` says what a venue may
-//! still register.
+//! Templates: an outcome's name (`template:<id><version>`) gives its [`Family`]; `outcomeTemplates`
+//! lists each template's title, roles and keywords, and how a row made from one reads
+//! ([`OutcomeTemplate::on_chain`]); [`fill`] and [`label`] write a title and a side's name from the
+//! keywords; `outcomeDeployerLimits` says what a venue may still register.
 
-use std::{collections::BTreeMap, fmt, str::FromStr};
+use std::{collections::BTreeMap, fmt};
 
 use crate::client::{ApiError, Transport, info, info_request};
-use crate::deploy::outcomes::actions::Hint;
+use crate::deploy::outcomes::actions::{Hint, Keywords};
+use crate::markets::outcomes::fields::Fields;
 use crate::utils::Json;
 use serde::{
     Deserialize, Deserializer,
@@ -41,82 +43,15 @@ pub enum Family {
     ContestResult,
     TournamentWinner,
     PolicyRateDecision,
-    /// A venue template with no family here, read from the pattern the venue publishes for it.
+    /// A venue template with no family here; its `outcomeTemplates` entry says what it makes.
     Template,
 }
 
 impl Family {
-    /// Every family, in reporting order.
-    pub const ALL: [Family; 19] = [
-        Family::BinaryPrice,
-        Family::PriceTouch,
-        Family::ScalarPrice,
-        Family::ContestWinner,
-        Family::ContestParticipant,
-        Family::ContestDraw,
-        Family::TournamentParticipant,
-        Family::SportsScalar,
-        Family::SportsOverUnder,
-        Family::PolicyRate(RateMove::Increase),
-        Family::PolicyRate(RateMove::Decrease),
-        Family::PolicyRate(RateMove::NoChange),
-        Family::Recurring,
-        Family::Fallback,
-        Family::Named,
-        Family::ContestResult,
-        Family::TournamentWinner,
-        Family::PolicyRateDecision,
-        Family::Template,
-    ];
-
-    #[must_use]
-    pub const fn slug(self) -> &'static str {
-        match self {
-            Family::BinaryPrice => "binary_price",
-            Family::PriceTouch => "price_touch",
-            Family::ScalarPrice => "scalar_price",
-            Family::ContestWinner => "contest_winner",
-            Family::ContestParticipant => "contest_participant",
-            Family::ContestDraw => "contest_draw",
-            Family::TournamentParticipant => "tournament_participant",
-            Family::SportsScalar => "sports_scalar",
-            Family::SportsOverUnder => "sports_over_under",
-            Family::PolicyRate(RateMove::Increase) => "policy_rate_increase",
-            Family::PolicyRate(RateMove::Decrease) => "policy_rate_decrease",
-            Family::PolicyRate(RateMove::NoChange) => "policy_rate_no_change",
-            Family::Recurring => "recurring",
-            Family::Fallback => "fallback",
-            Family::Named => "named",
-            Family::ContestResult => "contest_result",
-            Family::TournamentWinner => "tournament_winner",
-            Family::PolicyRateDecision => "policy_rate_decision",
-            Family::Template => "template",
-        }
-    }
-
     /// The families that describe a question rather than a book.
     #[must_use]
     pub const fn is_question(self) -> bool {
         matches!(self, Family::ContestResult | Family::TournamentWinner | Family::PolicyRateDecision)
-    }
-}
-
-impl fmt::Display for Family {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.slug())
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("unknown kind `{0}`")]
-pub struct UnknownFamily(pub String);
-
-impl FromStr for Family {
-    type Err = UnknownFamily;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        let wanted = text.trim();
-        Family::ALL.into_iter().find(|family| family.slug() == wanted).ok_or_else(|| UnknownFamily(wanted.to_owned()))
     }
 }
 
@@ -165,42 +100,43 @@ impl Template {
     }
 }
 
-/// A template as the catalogue reads one: its title pattern, a standalone outcome's side names,
-/// and each keyword with its kind.
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Pattern {
-    /// The id an outcome names after `template:`, version digits and all.
-    pub id: String,
-    /// The title, keywords in braces: `{company} IPO confirmed by {dateTime}`.
-    pub name: String,
-    /// A standalone outcome's two side names, braces allowed.
-    pub sides: Vec<String>,
-    /// Each keyword and its kind (`string`, `dateTime`, `uDecimal`, `hlPerp` and so on), in the
-    /// venue's order.
-    pub keywords: Vec<(String, String)>,
-}
-
-impl From<&OutcomeTemplate> for Pattern {
-    fn from(template: &OutcomeTemplate) -> Pattern {
-        Pattern {
-            id: template.id.clone(),
-            name: template.name.clone(),
-            sides: match &template.role {
-                TemplateRole::Standalone { side_names } => side_names.clone(),
-                _ => Vec::new(),
-            },
-            keywords: template.keywords.iter().map(|keyword| (keyword.name.clone(), keyword.kind.clone())).collect(),
+/// `pattern` with each `{keyword}` replaced by its value, or by `?` where `value` gives none: a
+/// template's title (`{perp} above {threshold} at {time}?`) written from a row's keywords.
+#[must_use]
+pub fn fill(pattern: &str, value: impl Fn(&str) -> Option<String>) -> String {
+    let mut out = String::with_capacity(pattern.len());
+    let mut rest = pattern;
+    while let Some(open) = rest.find('{') {
+        out.push_str(&rest[..open]);
+        let after = &rest[open + 1..];
+        match after.find('}') {
+            Some(close) => {
+                out.push_str(&value(&after[..close]).unwrap_or_else(|| "?".to_owned()));
+                rest = &after[close + 1..];
+            }
+            None => {
+                out.push_str(&rest[open..]);
+                rest = "";
+            }
         }
     }
+    out.push_str(rest);
+    out
 }
 
-/// The venue's templates by id.
-pub type Patterns = BTreeMap<String, Pattern>;
-
-/// The templates as the catalogue reads them.
+/// A side's name from its `sideSpecs` entry: `template:Yes` is `Yes`, `template:{shortNameA}` the
+/// description's `shortNameA`, nothing at all `fallback`.
 #[must_use]
-pub fn patterns(templates: &[OutcomeTemplate]) -> Patterns {
-    templates.iter().map(|template| (template.id.clone(), Pattern::from(template))).collect()
+pub fn label(spec: Option<&str>, fields: &Fields<'_>, fallback: &str) -> String {
+    let raw = spec.unwrap_or(fallback).trim();
+    let raw = raw.strip_prefix("template:").unwrap_or(raw);
+    let Some(key) = raw.strip_prefix('{').and_then(|rest| rest.strip_suffix('}')) else {
+        return match raw.is_empty() {
+            true => fallback.to_owned(),
+            false => raw.to_owned(),
+        };
+    };
+    fields.text(key).unwrap_or_else(|| fallback.to_owned())
 }
 
 /// What a template makes, as `outcomeTemplates` says in its `role`.
@@ -254,6 +190,37 @@ impl OutcomeTemplate {
             _ => None,
         }
     }
+
+    /// What a row made from this template with `values` reads as in `outcomeMeta`:
+    /// `template:<id>`, the keywords sorted as `key:value` with bars between, and a standalone
+    /// outcome's side names under `template:`.
+    #[must_use]
+    pub fn on_chain(&self, values: &Keywords) -> OnChain {
+        let mut pairs: Vec<(&str, &str)> = self
+            .keywords
+            .iter()
+            .map(|keyword| (keyword.name.as_str(), values.get(&keyword.name).unwrap_or("")))
+            .collect();
+        pairs.sort_by(|a, b| a.0.as_bytes().cmp(b.0.as_bytes()));
+        let description = pairs.iter().map(|(key, value)| format!("{key}:{value}")).collect::<Vec<_>>().join("|");
+        let sides = match &self.role {
+            TemplateRole::Standalone { side_names } => match side_names.as_slice() {
+                [first, second] => Some([format!("template:{first}"), format!("template:{second}")]),
+                _ => None,
+            },
+            _ => None,
+        };
+        OnChain { name: format!("template:{}", self.id), description, sides }
+    }
+}
+
+/// How the venue writes a row made from a template.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OnChain {
+    pub name: String,
+    pub description: String,
+    /// A standalone outcome's sides; a question's outcome has `Yes` and `No`.
+    pub sides: Option<[String; 2]>,
 }
 
 #[derive(Deserialize)]
@@ -393,35 +360,9 @@ pub struct Remaining {
     pub active: u32,
 }
 
-/// A venue's limits, with the live count beside what remains, so the cap is read from the venue
-/// rather than assumed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DeployerLimits {
-    /// The venue does not say what cap this counts down from.
-    pub daily_remaining: u32,
-    pub active_remaining: u32,
-    /// Every `outcomeMeta` row on the venue, fallbacks included.
-    pub active_used: u32,
-}
-
-impl DeployerLimits {
-    #[must_use]
-    pub const fn new(remaining: Remaining, live: u32) -> DeployerLimits {
-        DeployerLimits { daily_remaining: remaining.daily, active_remaining: remaining.active, active_used: live }
-    }
-
-    /// Live plus remaining: 100 on every venue so far.
-    #[must_use]
-    pub const fn active_cap(self) -> u32 {
-        self.active_used.saturating_add(self.active_remaining)
-    }
-}
-
-/// `live` is the venue's count of `outcomeMeta` rows ([`crate::deploy::outcomes::flow::live_on`]).
-pub async fn deployer_limits(transport: &impl Transport, venue: &str, live: u32) -> Result<DeployerLimits, ApiError> {
-    info::<Remaining>(transport, deployer_limits_request(venue))
-        .await
-        .map(|remaining| DeployerLimits::new(remaining, live))
+/// How many more outcomes `venue` may register today and hold live.
+pub async fn deployer_limits(transport: &impl Transport, venue: &str) -> Result<Remaining, ApiError> {
+    info(transport, deployer_limits_request(venue)).await
 }
 
 #[cfg(test)]

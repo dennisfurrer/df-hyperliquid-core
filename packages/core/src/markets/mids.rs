@@ -4,7 +4,20 @@ use std::fmt;
 
 use serde::{Deserialize, Deserializer, de};
 
+use crate::client::{ApiError, Transport, info, info_request};
+use crate::markets::dex::Dex;
 use crate::utils::dec::Dec;
+
+/// `{"type":"allMids","dex"?}`: the main dex, spot and outcomes with it, unless a HIP-3 dex is
+/// named.
+#[must_use]
+pub fn all_mids_request(dex: Dex<'_>) -> String {
+    info_request("allMids", dex.field().as_slice())
+}
+
+pub async fn all_mids(transport: &impl Transport, dex: Dex<'_>) -> Result<Mids, ApiError> {
+    info(transport, all_mids_request(dex)).await
+}
 
 /// Every coin's mid on one dex, in the venue's order. The main dex's also carries spot pairs
 /// (`@107`, `PURR/USDC`) and outcome sides (`#14730`). Where a book is empty the venue prints its

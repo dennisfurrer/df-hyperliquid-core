@@ -2,24 +2,11 @@
 //! its nonce, the key it needs, the balance that should change once it lands,
 //! and when what it moved is free again.
 
-use crate::account::signers::ActionKind;
+use crate::account::Signers;
 use crate::client::Network;
 use crate::earn::staking::actions::{CDeposit, CWithdraw, TokenDelegate};
 use crate::earn::staking::reads::{Delegation, DelegatorSummary, MAX_PENDING_WITHDRAWALS, locked_until, unstaking_ms};
 use crate::utils::{Address, BadUnits, Dec};
-
-/// Who may sign an action: `Main` is the account's own key only; `Either` also
-/// takes an agent the account approved.
-pub use crate::account::signers::Signers as Key;
-
-/// The staking actions.
-const KINDS: [ActionKind; 3] = [ActionKind::CDeposit, ActionKind::CWithdraw, ActionKind::TokenDelegate];
-
-/// The key each staking action needs, by its wire `type`.
-#[must_use]
-pub fn key(kind: &str) -> Option<Key> {
-    ActionKind::from_wire(kind).filter(|kind| KINDS.contains(kind)).map(ActionKind::signers)
-}
 
 /// A figure a read back checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,7 +57,7 @@ pub struct Plan<A> {
     pub action: A,
     /// What it is signed with; the action carries it too.
     pub nonce: u64,
-    pub key: Key,
+    pub key: Signers,
     pub effect: Effect,
     /// When what it moved is free again, milliseconds: a delegation's lock
     /// ends, or a withdrawal reaches spot.
@@ -102,7 +89,7 @@ pub struct Ctx {
 }
 
 impl Ctx {
-    const fn plan<A>(&self, action: A, key: Key, effect: Effect, free_at: Option<u64>) -> Plan<A> {
+    const fn plan<A>(&self, action: A, key: Signers, effect: Effect, free_at: Option<u64>) -> Plan<A> {
         Plan { network: self.network, action, nonce: self.nonce, key, effect, free_at }
     }
 

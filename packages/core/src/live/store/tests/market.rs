@@ -6,10 +6,7 @@ use crate::live::store::fixtures::{
 };
 use crate::live::store::market::fold_bar;
 use crate::live::store::{BARS, Context, Folded, Handle, Interest, Read, Store};
-use crate::markets::book::Level;
-use crate::markets::candle::{Candle, Interval};
-use crate::markets::trades::Trade;
-use crate::markets::{L2Book, MarketTrade, Mids};
+use crate::markets::{Book, Candle, Interval, Level, Mids, Trade};
 use crate::utils::Dec;
 
 fn store() -> Store {
@@ -89,7 +86,7 @@ fn a_book_no_one_wants_is_dropped() {
     let mut store = store();
     assert_eq!(store.apply(1_000, &frame("l2Book")), Folded::Dropped);
     assert!(store.book("BTC").is_none());
-    let book: L2Book = read(L2_BOOK);
+    let book: Book = read(L2_BOOK);
     assert_eq!(store.read(1_000, Read::Book(&book)), Folded::Dropped);
 }
 
@@ -99,7 +96,7 @@ fn a_book_no_one_wants_is_dropped() {
 fn an_older_book_never_replaces_a_newer_one() {
     let mut store = store();
     let _book = wanting(&mut store, [Interest::Book { coin: coin("BTC") }]);
-    let book: L2Book = read(L2_BOOK);
+    let book: Book = read(L2_BOOK);
     assert_eq!(store.read(1_000, Read::Book(&book)), Folded::Changed);
     assert_eq!(store.apply(2_000, &frame("l2Book")), Folded::Dropped);
     assert_eq!(store.book("BTC").unwrap().time, 1791480825902);
@@ -132,7 +129,7 @@ fn a_book_goes_with_its_last_interest() {
 fn prints_are_kept_newest_first_and_once() {
     let mut store = store();
     let _trades = wanting(&mut store, [Interest::Trades { coin: coin("BTC") }]);
-    let recent: Vec<MarketTrade> = read(RECENT_TRADES);
+    let recent: Vec<Trade> = read(RECENT_TRADES);
     assert_eq!(store.read(1_000, Read::Trades(&recent)), Folded::Changed);
     assert_eq!(store.apply(2_000, &frame("trades")), Folded::Changed);
     assert_eq!(store.apply(3_000, &frame("trades")), Folded::Same, "the same prints again");
@@ -306,7 +303,7 @@ fn one_dex_s_contexts_land_on_its_coins() {
     assert_eq!(store.apply(1_000, &frame("assetCtxs")), Folded::Changed);
     assert_eq!(store.context("xyz:XYZ100").unwrap().mark(), dec("30567.0"));
     assert_eq!(store.context("xyz:TSLA").unwrap().mark(), dec("368.56"));
-    let para: crate::markets::dexes::DexMetaAndAssetCtxs = read(PARA);
+    let para: crate::markets::perps::MetaAndAssetCtxs = read(PARA);
     assert_eq!(store.read(2_000, Read::Dex { dex: "para", read: &para }), Folded::Changed);
     let Some(Context::Perp(total)) = store.context("para:TOTAL2").map(|ctx| ctx.value) else { panic!("a perp") };
     assert_eq!((total.mark_px, total.mid_px), (dec("1179.574"), Some(dec("1179.65"))));
