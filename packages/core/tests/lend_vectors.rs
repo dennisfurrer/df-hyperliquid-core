@@ -7,9 +7,9 @@
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use df_hyperliquid_core::account::{LocalKey, recover};
+use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
-use df_hyperliquid_core::earn::lending::{BorrowLend, Ctx, Key, ReserveState};
+use df_hyperliquid_core::earn::lending::{BorrowLend, Ctx, ReserveState};
 use df_hyperliquid_core::utils::sign::L1Action;
 use df_hyperliquid_core::utils::{Dec, Json, hex};
 
@@ -78,7 +78,7 @@ fn every_nktkas_borrow_lend_hashes_and_signs_on_mainnet_and_testnet() {
         );
         if text(wire, "operation") == "supply" {
             let plan = Ctx { network, nonce }.supply(0, Dec::parse("100.5").unwrap(), &reserves(network)).unwrap();
-            assert_eq!((plan.action, plan.nonce, plan.key), (action, nonce, Key::Either), "{network}: the plan");
+            assert_eq!((plan.action, plan.nonce, plan.key), (action, nonce, Signers::Either), "{network}: the plan");
         }
     }
 }

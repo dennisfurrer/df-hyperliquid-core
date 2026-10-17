@@ -7,7 +7,7 @@
 
 use crate::account::active::{ActiveAssetData, active_asset_data, active_asset_data_request};
 use crate::account::positions::{ClearinghouseState, Leverage, clearinghouse_state, clearinghouse_state_request};
-use crate::markets::perps::dex::Dex;
+use crate::markets::Dex;
 use crate::markets::perps::support::{Recorded, block_on, dec};
 use crate::trade::{MarginMode, Side};
 use crate::utils::{Address, Dec};

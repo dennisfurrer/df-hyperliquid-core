@@ -4,7 +4,7 @@
 use std::error::Error;
 
 use df_hyperliquid_core::client::native::{Native, clock};
-use df_hyperliquid_core::markets::{self, Precision, perps};
+use df_hyperliquid_core::markets::{self, Dex, Precision, perps};
 use df_hyperliquid_core::trade::{self, Side};
 use df_hyperliquid_core::trade::{Amount, Market, OrderIntent};
 use df_hyperliquid_core::{Client, Dec, Network};
@@ -13,9 +13,9 @@ use df_hyperliquid_core::{Client, Dec, Network};
 async fn main() -> Result<(), Box<dyn Error>> {
     let client = Client::reader(Native::new(), Network::Mainnet, clock);
 
-    let meta = perps::meta_and_asset_ctxs(&client).await?;
-    let (asset, perp, ctx) = meta.find("BTC").ok_or("BTC is not listed")?;
-    let book = markets::reads::l2_book(&client, "BTC", Precision::FULL).await?;
+    let meta = perps::meta_and_asset_ctxs(&client, Dex::Main).await?.ok_or("no main dex")?;
+    let (asset, perp, ctx) = meta.find(0, "BTC").ok_or("BTC is not listed")?;
+    let book = markets::book::l2_book(&client, "BTC", Precision::FULL).await?;
     let (bid, ask) = book.touch();
     let mid = book.mid().ok_or("the book is empty")?;
 

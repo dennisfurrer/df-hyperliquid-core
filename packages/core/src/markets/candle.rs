@@ -1,10 +1,38 @@
-//! Candles and their intervals, the same shape from `candleSnapshot` and from the `candle` feed.
+//! Candles and their intervals, the same shape from the `candleSnapshot` read and from the `candle`
+//! feed.
 
 use std::{borrow::Cow, fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, de};
 
+use crate::client::{ApiError, Transport, info, info_request};
+use crate::utils::Json;
 use crate::utils::dec::Dec;
+
+/// `{"type":"candleSnapshot","req":{"coin","interval","startTime","endTime"}}`,
+/// the times unix milliseconds. Only the 5000 most recent candles are kept.
+#[must_use]
+pub fn candle_snapshot_request(coin: &str, interval: Interval, start: u64, end: u64) -> String {
+    let req = Json::Object(vec![
+        ("coin".to_owned(), Json::String(coin.to_owned())),
+        ("interval".to_owned(), Json::String(interval.wire().to_owned())),
+        ("startTime".to_owned(), Json::Number(start.to_string())),
+        ("endTime".to_owned(), Json::Number(end.to_string())),
+    ]);
+    info_request("candleSnapshot", &[("req", req)])
+}
+
+/// The candles in the window, oldest first; none when the venue answers `null`.
+pub async fn candle_snapshot(
+    transport: &impl Transport,
+    coin: &str,
+    interval: Interval,
+    start: u64,
+    end: u64,
+) -> Result<Vec<Candle>, ApiError> {
+    let candles: Option<Vec<Candle>> = info(transport, candle_snapshot_request(coin, interval, start, end)).await?;
+    Ok(candles.unwrap_or_default())
+}
 
 /// A candle's width; every interval the venue accepts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

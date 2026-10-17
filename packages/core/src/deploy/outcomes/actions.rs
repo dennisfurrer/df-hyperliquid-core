@@ -1,6 +1,6 @@
 //! What an outcome deployer signs, all L1 actions: claiming a venue, registering outcomes and questions from
-//! templates, settling them, and letting other addresses do either. Values are checked when made, not when
-//! signed. **Settling pays out at once and cannot be undone.**
+//! templates, settling them with the words `outcomeMeta` lists, and letting other addresses do either. Values
+//! are checked when made, not when signed. **Settling pays out at once and cannot be undone.**
 
 use std::{
     collections::{BTreeMap, BTreeSet, btree_map::Entry},
@@ -8,6 +8,7 @@ use std::{
     str::FromStr,
 };
 
+use crate::markets::outcomes::meta::{Outcome, OutcomeMeta};
 use crate::utils::sign::{L1Action, Map, Value};
 use crate::utils::time::Stamp;
 use crate::utils::{Address, Dec};
@@ -28,14 +29,20 @@ pub enum DeployError {
     NoNamedOutcomes,
     #[error("setting sub-deployers needs at least one grant")]
     NoGrants,
-    #[error("settling a question needs each of its named outcomes not yet settled")]
-    NoSettlements,
     #[error("outcome {0} belongs to a question, which settles to 0 or 1 only")]
     NotWhole(u32),
-    #[error("a question settles with exactly one named outcome at 1, not {0}")]
-    Winners(usize),
     #[error("outcome {0} is settled twice")]
     SettledTwice(u32),
+    #[error("outcome {0} is not in outcomeMeta")]
+    NotListed(u32),
+    #[error("outcome {0} does not list two sides")]
+    NotTwoSided(u32),
+    #[error("outcome {outcome} is question {question}'s fallback, which settles with its question")]
+    Fallback { outcome: u32, question: u32 },
+    #[error("question {0} is not in outcomeMeta")]
+    NoQuestion(u32),
+    #[error("outcome {outcome} is no named outcome question {question} has left to settle")]
+    NotOpen { outcome: u32, question: u32 },
 }
 
 /// A venue name: 2 to 4 lower case letters, never `spot`. Activating claims
@@ -485,7 +492,7 @@ impl Instance {
 /// One outcome settled: the body of `settleOutcome`, and each entry of
 /// `settleQuestion2`. The name, description and side names must be the ones
 /// `outcomeMeta` lists, character for character, trailing spaces included
-/// ([`crate::markets::outcomes::Outcome::settlement`] copies them); they are sent as given.
+/// ([`Outcome::settlement`] copies them); they are sent as given.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settlement {
     pub outcome: u32,
@@ -641,8 +648,11 @@ impl Operation {
 /// operation's [`Permission`].
 ///
 /// The constructors check what [`Operation`] alone cannot: that a question
-/// has a named outcome, that a grant list is not empty, and that a question
-/// settles with one winner. Settling pays out at once and cannot be undone.
+/// has a named outcome, that a grant list is not empty, and that a settlement
+/// is one `outcomeMeta` allows, its words copied from it: a question settles
+/// every named outcome it has left, exactly one at 1; its fallback never
+/// settles alone; and its named outcome settles alone only at 0 or 1.
+/// Settling pays out at once and cannot be undone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutcomeDeploy {
     pub venue: Venue,
@@ -672,41 +682,48 @@ impl OutcomeDeploy {
         OutcomeDeploy { venue, operation: Operation::RegisterAndAssociate { question, named } }
     }
 
-    /// Any fraction for a standalone outcome. A question's outcome takes only
-    /// 0 or 1, which this cannot tell, so the caller keeps to that;
-    /// [`crate::deploy::outcomes::flow::settle_outcome`] tells from `outcomeMeta`. Pays out at
-    /// once and cannot be undone.
-    #[must_use]
-    pub fn settle_outcome(venue: Venue, settlement: Settlement) -> Self {
-        OutcomeDeploy { venue, operation: Operation::SettleOutcome(settlement) }
+    /// `settleOutcome` for `outcome` at `fraction`, its words copied from `meta`. An outcome no
+    /// question holds settles to any fraction; a question's named outcome settles alone only to 0
+    /// or 1 (testnet settled a question's legs one at a time as each was ruled out); a question's
+    /// fallback never settles alone. Pays out at once and cannot be undone.
+    pub fn settle_outcome(
+        venue: Venue,
+        meta: &OutcomeMeta,
+        outcome: u32,
+        fraction: Fraction,
+    ) -> Result<Self, DeployError> {
+        let row = meta.outcome(outcome).ok_or(DeployError::NotListed(outcome))?;
+        if let Some(question) = meta.question_of(outcome) {
+            if question.fallback_outcome == Some(outcome) {
+                return Err(DeployError::Fallback { outcome, question: question.question });
+            }
+            if !fraction.is_whole() {
+                return Err(DeployError::NotWhole(outcome));
+            }
+        }
+        let settlement = settlement(row, fraction)?;
+        Ok(OutcomeDeploy { venue, operation: Operation::SettleOutcome(settlement) })
     }
 
-    /// `settlements` in the order given, each at 0 or 1, exactly one at 1, no
-    /// outcome twice. That they are every named outcome not yet settled, and
-    /// that `name` and `description` are the question's own, is for the
-    /// caller to take from `outcomeMeta`. Pays out at once and cannot be
-    /// undone.
-    pub fn settle_question(
-        venue: Venue,
-        question: u32,
-        settlements: Vec<Settlement>,
-        name: String,
-        description: String,
-    ) -> Result<Self, DeployError> {
-        if settlements.is_empty() {
-            return Err(DeployError::NoSettlements);
-        }
-        if let Some(part) = settlements.iter().find(|entry| !entry.fraction.is_whole()) {
-            return Err(DeployError::NotWhole(part.outcome));
-        }
-        let winners = settlements.iter().filter(|entry| entry.fraction == Fraction::ONE).count();
-        if winners != 1 {
-            return Err(DeployError::Winners(winners));
+    /// `settleQuestion2` for `question`: every named outcome it has left, in the order `meta` lists
+    /// them, `winner` at 1 and the rest at 0, the fallback left out, the question's words and each
+    /// outcome's copied from `meta`. Pays out at once and cannot be undone.
+    pub fn settle_question(venue: Venue, meta: &OutcomeMeta, question: u32, winner: u32) -> Result<Self, DeployError> {
+        let asked = meta.question(question).ok_or(DeployError::NoQuestion(question))?;
+        if !asked.unsettled().any(|leg| leg == winner) {
+            return Err(DeployError::NotOpen { outcome: winner, question });
         }
         let mut seen = BTreeSet::new();
-        if let Some(again) = settlements.iter().find(|entry| !seen.insert(entry.outcome)) {
-            return Err(DeployError::SettledTwice(again.outcome));
+        let mut settlements = Vec::new();
+        for leg in asked.unsettled() {
+            if !seen.insert(leg) {
+                return Err(DeployError::SettledTwice(leg));
+            }
+            let fraction = if leg == winner { Fraction::ONE } else { Fraction::ZERO };
+            let row = meta.outcome(leg).ok_or(DeployError::NotListed(leg))?;
+            settlements.push(settlement(row, fraction)?);
         }
+        let (name, description) = (asked.name.clone(), asked.description.clone());
         Ok(OutcomeDeploy { venue, operation: Operation::SettleQuestion { question, settlements, name, description } })
     }
 
@@ -716,6 +733,11 @@ impl OutcomeDeploy {
         }
         Ok(OutcomeDeploy { venue, operation: Operation::SetSubDeployers(grants) })
     }
+}
+
+/// A row's settlement at `fraction`, its words as `outcomeMeta` lists them.
+fn settlement(row: &Outcome, fraction: Fraction) -> Result<Settlement, DeployError> {
+    row.settlement(fraction).ok_or(DeployError::NotTwoSided(row.outcome))
 }
 
 impl L1Action for OutcomeDeploy {

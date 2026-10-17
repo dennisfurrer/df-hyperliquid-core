@@ -17,9 +17,12 @@ use std::{
 use df_hyperliquid_core::account::LocalKey;
 use df_hyperliquid_core::client::Status;
 use df_hyperliquid_core::client::native::{Native, clock};
-use df_hyperliquid_core::deploy::outcomes::{Fraction, OutcomeDeploy, Venue};
-use df_hyperliquid_core::markets::outcomes::{self, Coin, OutcomeMeta, OutcomeSide, Px, Side, Tif};
-use df_hyperliquid_core::trade::{Cancel, L1Action, PlaceOrder};
+use df_hyperliquid_core::deploy::outcomes::{Fraction, Operation, OutcomeDeploy, Venue};
+use df_hyperliquid_core::markets::Precision;
+use df_hyperliquid_core::markets::book::l2_book;
+use df_hyperliquid_core::markets::outcomes::{self, Coin, OutcomeMeta, Px, Qty};
+use df_hyperliquid_core::trade::{Cancel, L1Action, PlaceOrder, Side, Tif};
+use df_hyperliquid_core::utils::OutcomeSide;
 use df_hyperliquid_core::{Client, Network};
 
 const NETWORK: Network = Network::Testnet;
@@ -76,7 +79,7 @@ async fn minimum(
     }
     let mut kept = Vec::new();
     for (price, size, worth) in CASES {
-        let order = coin.limit(Side::Buy, price.parse()?, size.parse()?, Tif::Alo)?;
+        let order = coin.order(Side::Buy, price.parse::<Px>()?, size.parse::<Qty>()?, Tif::Alo)?;
         let place = PlaceOrder::one(order);
         println!("\n{size} contracts at {price}: {worth}\n  {}", place.wire());
         let Some(client) = &client else { continue };
@@ -124,7 +127,7 @@ async fn roomy(reader: &Client<Native>, meta: &OutcomeMeta) -> Result<Option<Coi
     rows.sort_unstable_by(|a, b| b.cmp(a));
     for outcome in rows.into_iter().take(15) {
         let coin = Coin::new(outcome, OutcomeSide::Yes);
-        let book = outcomes::book::book(reader, coin).await?;
+        let book = outcomes::Book::try_from(l2_book(reader, &coin.to_string(), Precision::FULL).await?)?;
         if book.asks.first().is_none_or(|level| level.px > high) {
             return Ok(Some(coin));
         }
@@ -139,7 +142,8 @@ async fn fallback(meta: &OutcomeMeta, question: u32, signer: Option<LocalKey>) -
     let venue_name = row.venue.as_deref().ok_or("its fallback names no venue")?;
     let venue: Venue = venue_name.parse()?;
     let settlement = row.settlement(Fraction::ZERO).ok_or("its fallback does not list two sides")?;
-    let action = OutcomeDeploy::settle_outcome(venue, settlement);
+    // Built by hand: OutcomeDeploy::settle_outcome refuses a fallback alone, and this asks the venue.
+    let action = OutcomeDeploy { venue, operation: Operation::SettleOutcome(settlement) };
     println!("question {question} ({}), its fallback {outcome}, venue {venue_name}", listed.name);
     if let Some(deployer) = meta.deployer(venue_name) {
         println!("the venue's deployer: {}", deployer.deployer);

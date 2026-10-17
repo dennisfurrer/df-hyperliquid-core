@@ -1,9 +1,57 @@
-//! `l2Book`: a market's visible book, the same shape from `/info` and from the socket. Prices and
-//! sizes are exact [`Dec`] values read from the venue's strings.
+//! `l2Book`: a market's visible book, the same shape from `/info` and from the socket, and the
+//! precision it is asked at. Prices and sizes are exact [`Dec`] values read from the venue's strings.
 
 use serde::Deserialize;
 
+use crate::client::{ApiError, Transport, info, info_request};
+use crate::utils::Json;
 use crate::utils::dec::{Dec, Round};
+
+/// How finely a book's levels are bucketed: full precision, or 2 to 5
+/// significant figures, and at 5 figures a step of 1, 2 or 5 in the last.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Precision {
+    figures: Option<u32>,
+    step: Option<u32>,
+}
+
+impl Precision {
+    pub const FULL: Precision = Precision { figures: None, step: None };
+
+    /// `nSigFigs`: 2, 3, 4 or 5.
+    #[must_use]
+    pub const fn figures(figures: u32) -> Option<Precision> {
+        match figures {
+            2..=5 => Some(Precision { figures: Some(figures), step: None }),
+            _ => None,
+        }
+    }
+
+    /// `mantissa`: 1, 2 or 5, and only at five figures.
+    #[must_use]
+    pub const fn step(self, step: u32) -> Option<Precision> {
+        match (self.figures, step) {
+            (Some(5), 1 | 2 | 5) => Some(Precision { figures: Some(5), step: Some(step) }),
+            _ => None,
+        }
+    }
+}
+
+/// `{"type":"l2Book","coin":..,"nSigFigs"?,"mantissa"?}`. A coin is `BTC`, `xyz:XYZ100` on a HIP-3
+/// dex, `@107` or `PURR/USDC` for a pair, `#14730` for an outcome side.
+#[must_use]
+pub fn l2_book_request(coin: &str, precision: Precision) -> String {
+    let number = |value: u32| Json::Number(value.to_string());
+    let figures = precision.figures.map(|figures| ("nSigFigs", number(figures)));
+    let step = precision.step.map(|step| ("mantissa", number(step)));
+    let fields: Vec<(&str, Json)> =
+        [Some(("coin", Json::String(coin.to_owned()))), figures, step].into_iter().flatten().collect();
+    info_request("l2Book", &fields)
+}
+
+pub async fn l2_book(transport: &impl Transport, coin: &str, precision: Precision) -> Result<Book, ApiError> {
+    info(transport, l2_book_request(coin, precision)).await
+}
 
 /// One price level: `n` orders resting at `px` for `sz` in all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -48,16 +96,6 @@ impl From<Raw> for Book {
 }
 
 impl Book {
-    #[must_use]
-    pub fn bids(&self) -> &[Level] {
-        &self.bids
-    }
-
-    #[must_use]
-    pub fn asks(&self) -> &[Level] {
-        &self.asks
-    }
-
     /// The best bid and the best ask.
     #[must_use]
     pub fn touch(&self) -> (Option<Dec>, Option<Dec>) {

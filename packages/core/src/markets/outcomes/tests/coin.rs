@@ -8,7 +8,6 @@ use crate::utils::sign::L1Action;
 use crate::utils::{Address, hex};
 
 use super::*;
-use crate::markets::outcomes::px::{Px, Qty};
 
 const NONCE: u64 = 1_712_345_678_000;
 
@@ -102,30 +101,17 @@ fn the_cancel_action_hashes_to_the_verified_value() {
 
 #[test]
 fn a_market_order_is_frontend_market_at_the_edge_of_the_range_and_never_gtc() {
-    let buy = coin().market(Side::Buy, dec("50")).unwrap();
-    assert_eq!((buy.price(), buy.tif()), (MAX_PRICE, Some(Tif::FrontendMarket)));
-    let sell = coin().market(Side::Sell, dec("50")).unwrap();
-    assert_eq!((sell.price(), sell.tif()), (MIN_PRICE, Some(Tif::FrontendMarket)));
+    let buy = coin().market(Side::Buy, Qty::new(50)).unwrap();
+    assert_eq!((buy.price(), buy.tif()), (Px::MAX_QUOTE.to_dec(), Some(Tif::FrontendMarket)));
+    let sell = coin().market(Side::Sell, Qty::new(50)).unwrap();
+    assert_eq!((sell.price(), sell.tif()), (Px::MIN_QUOTE.to_dec(), Some(Tif::FrontendMarket)));
     assert!(buy.is_market() && sell.is_market());
     let posted = PlaceOrder::one(sell).wire();
     assert!(posted.contains(r#""p":"0.00001""#) && posted.contains(r#""tif":"FrontendMarket""#), "{posted}");
     assert!(!posted.contains("Gtc"), "{posted}");
-    let resting = coin().limit(Side::Buy, dec("0.35"), dec("50"), Tif::Gtc).unwrap();
+    let resting = coin().order(Side::Buy, px("0.35"), Qty::new(50), Tif::Gtc).unwrap();
     assert!(!resting.is_market());
-}
-
-#[test]
-fn an_outcome_price_is_a_tick_of_a_hundred_thousandth_never_against_the_trader() {
-    assert_eq!(outcome_price(dec("0.123456"), Side::Buy), Some(dec("0.12345")));
-    assert_eq!(outcome_price(dec("0.123451"), Side::Sell), Some(dec("0.12346")));
-    assert_eq!(outcome_price(dec("0.999995"), Side::Buy), Some(MAX_PRICE));
-    assert_eq!(outcome_price(dec("0.999991"), Side::Sell), None, "rounds up to 1, past the range");
-    assert_eq!(outcome_price(dec("0.000004"), Side::Buy), None);
-    assert_eq!(outcome_price(dec("1"), Side::Buy), None);
-    assert_eq!(outcome_size(dec("50.9")), Some(dec("50")), "whole contracts, toward zero");
-    assert_eq!(outcome_size(dec("0.9")), None);
-    assert_eq!(coin().limit(Side::Buy, dec("1.5"), dec("1"), Tif::Gtc), Err(OutcomeError::Price(dec("1.5"))));
-    assert_eq!(coin().market(Side::Buy, dec("0.5")), Err(OutcomeError::Size(dec("0.5"))));
+    assert_eq!(coin().market(Side::Buy, Qty::ZERO), Err(OutcomeError::Size(Dec::ZERO)));
 }
 
 #[test]
@@ -178,24 +164,12 @@ fn a_market_order_within_a_slippage_is_bounded_toward_its_reference() {
     let down = arsenal.market_within(Side::Sell, third, dec("0.01"), Qty::new(1)).unwrap();
     assert_eq!(down.price(), dec("0.33"), "0.3299967 rounds up, toward the reference");
     let edge = arsenal.market_within(Side::Buy, px("0.99"), dec("0.05"), Qty::new(1)).unwrap();
-    assert_eq!(edge.price(), MAX_PRICE, "past the range it stops at the edge");
+    assert_eq!(edge.price(), Px::MAX_QUOTE.to_dec(), "past the range it stops at the edge");
     let floor = arsenal.market_within(Side::Sell, px("0.00001"), dec("0.5"), Qty::new(1)).unwrap();
-    assert_eq!(floor.price(), MIN_PRICE);
+    assert_eq!(floor.price(), Px::MIN_QUOTE.to_dec());
     assert_eq!(
         arsenal.market_within(Side::Buy, px("0.5"), dec("0.51"), Qty::new(1)),
         Err(OutcomeError::Slippage(dec("0.51")))
     );
     assert_eq!(arsenal.market_within(Side::Buy, px("0.5"), dec("0.01"), Qty::ZERO), Err(OutcomeError::Size(Dec::ZERO)));
-}
-
-#[test]
-fn a_coin_is_looked_up_with_or_without_its_prefix() {
-    let yes = Coin::new(1210, OutcomeSide::Yes);
-    assert_eq!(Coin::lookup(" 12100 "), Some(yes));
-    assert_eq!(Coin::lookup("#12101"), Some(yes.opposite()));
-    assert_eq!(Coin::lookup("+12100"), Some(yes));
-    assert_eq!(Coin::lookup("BTC"), None);
-    assert_eq!(Coin::parse("12100"), None, "venue data carries its prefix");
-    assert!(yes.matches("121") && yes.matches("#1210") && yes.matches("+12100") && yes.matches(""));
-    assert!(!yes.matches("999"));
 }

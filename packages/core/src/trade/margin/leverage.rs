@@ -1,9 +1,13 @@
-//! `updateLeverage`: the leverage and margin mode of a perp position, main dex or HIP-3.
+//! `updateLeverage`: the leverage and margin mode of a perp position, main dex or HIP-3, checked
+//! against the perp's meta and margin table, or against a ticket's [`Market`], before anything is
+//! signed.
 
+use crate::markets::perps::meta::PerpAsset;
 use crate::trade::error::TradeError;
+use crate::trade::margin::tables::{LeverageError, MarginTable, checked_leverage};
 use crate::trade::ticket::{Market, Refusal};
-use crate::utils::Asset;
 use crate::utils::sign::{L1Action, Map};
+use crate::utils::{Asset, Dec};
 
 /// How a position is margined, the same mode a position read back carries.
 pub use crate::account::clearinghouse::MarginMode;
@@ -47,18 +51,46 @@ impl L1Action for UpdateLeverage {
     }
 }
 
+/// `updateLeverage` for `perp` at `asset`: refused over its `maxLeverage`, and refused as cross
+/// where it is isolated only.
+pub fn update_leverage(
+    asset: Asset,
+    perp: &PerpAsset,
+    mode: MarginMode,
+    leverage: u32,
+) -> Result<UpdateLeverage, LeverageError> {
+    checked_leverage(asset, &perp.name, perp.max_leverage, perp.allows_cross(), mode, leverage)
+}
+
+/// [`update_leverage`], and held to the tier of `table` (the perp's, from
+/// [`crate::markets::perps::Meta::table_of`]) that a position of `notional` reaches: BTC takes 40x
+/// up to 150M and 20x past it.
+pub fn update_leverage_for(
+    asset: Asset,
+    perp: &PerpAsset,
+    table: &MarginTable,
+    mode: MarginMode,
+    leverage: u32,
+    notional: Dec,
+) -> Result<UpdateLeverage, LeverageError> {
+    let set = update_leverage(asset, perp, mode, leverage)?;
+    table.check(&perp.name, leverage, notional)?;
+    Ok(set)
+}
+
 /// `updateLeverage`, held to the market's ceiling and margin mode.
 pub fn leverage(market: &Market, mode: MarginMode, leverage: u32) -> Result<UpdateLeverage, Refusal> {
     let Some(most) = market.max_leverage() else {
         return Err(Refusal::Spot("leverage"));
     };
-    if leverage == 0 || leverage > most {
-        return Err(Refusal::Leverage { asked: leverage, most });
-    }
-    if mode == MarginMode::Cross && !market.allows_cross() {
-        return Err(Refusal::IsolatedOnly);
-    }
-    Ok(UpdateLeverage::new(market.asset(), mode, leverage)?)
+    // A ticket's refusals name no perp, so neither does the check.
+    checked_leverage(market.asset(), "", most, market.allows_cross(), mode, leverage).map_err(|error| match error {
+        LeverageError::TooHigh { .. }
+        | LeverageError::OverTier { .. }
+        | LeverageError::Trade(TradeError::NoLeverage) => Refusal::Leverage { asked: leverage, most },
+        LeverageError::NoCross(_) => Refusal::IsolatedOnly,
+        LeverageError::Trade(error) => Refusal::Trade(error),
+    })
 }
 
 #[cfg(test)]

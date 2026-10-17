@@ -1,10 +1,8 @@
 //! Spot: tokens, pairs and their contexts, and token details.
-#![deny(clippy::float_arithmetic)]
 
 pub mod details;
 pub mod meta;
 
-pub use crate::utils::Grid;
 pub use details::{Genesis, TokenDetails, token_details, token_details_request};
 pub use meta::{
     EvmContract, SpotCtx, SpotMarket, SpotMeta, SpotMetaAndAssetCtxs, SpotPair, SpotToken, spot_meta,

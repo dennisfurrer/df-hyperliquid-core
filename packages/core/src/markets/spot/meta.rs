@@ -6,20 +6,16 @@ use crate::utils::Grid;
 use crate::utils::{Address, Asset, AssetKind, Dec, SPOT_ASSET_BASE};
 use serde::Deserialize;
 
-fn request(kind: &str) -> String {
-    info_request(kind, &[])
-}
-
 /// `{"type":"spotMeta"}`.
 #[must_use]
 pub fn spot_meta_request() -> String {
-    request("spotMeta")
+    info_request("spotMeta", &[])
 }
 
 /// `{"type":"spotMetaAndAssetCtxs"}`.
 #[must_use]
 pub fn spot_meta_and_asset_ctxs_request() -> String {
-    request("spotMetaAndAssetCtxs")
+    info_request("spotMetaAndAssetCtxs", &[])
 }
 
 pub async fn spot_meta(transport: &impl Transport) -> Result<SpotMeta, ApiError> {

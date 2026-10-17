@@ -7,9 +7,9 @@
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use df_hyperliquid_core::account::{LocalKey, recover};
+use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
-use df_hyperliquid_core::earn::vaults::{Ctx, Key, MAINNET_HLP, VaultDetails, VaultTransfer};
+use df_hyperliquid_core::earn::vaults::{Ctx, MAINNET_HLP, VaultDetails, VaultTransfer};
 use df_hyperliquid_core::utils::sign::L1Action;
 use df_hyperliquid_core::utils::{Dec, Json, hex};
 
@@ -68,6 +68,6 @@ fn every_nktkas_vault_transfer_hashes_and_signs_on_mainnet_and_testnet() {
             )
         );
         let plan = Ctx { network, nonce, now_ms: nonce }.deposit(&hlp, Dec::parse("10").unwrap()).unwrap();
-        assert_eq!((plan.action, plan.nonce, plan.key), (action, nonce, Key::Either), "{network}: the plan");
+        assert_eq!((plan.action, plan.nonce, plan.key), (action, nonce, Signers::Either), "{network}: the plan");
     }
 }

@@ -3,7 +3,7 @@
 //! `predictedFundings` (234 coins cut to four) and `perpsAtOpenInterestCap` (as sent).
 
 use crate::account::positions::ClearinghouseState;
-use crate::markets::perps::dex::Dex;
+use crate::markets::Dex;
 use crate::markets::perps::funding::{
     FUNDING_INTERVAL_MS, FUNDING_PAGE, FUNDING_WINDOW_MS, FundingRate, HL_PERP, PredictedFundings, UserFunding,
     funding_history, funding_history_range, funding_history_request, funding_windows, merge_rates, next_funding,
@@ -174,7 +174,7 @@ fn the_perps_at_their_open_interest_cap_are_in_the_meta() {
     let at_cap: Vec<String> = serde_json::from_str(AT_CAP).unwrap();
     assert_eq!(at_cap, ["CANTO", "FTM", "JELLY", "LOOM", "RLB", "VINE", "ZEREBRO"]);
     let meta: Meta = serde_json::from_str(META).unwrap();
-    assert!(at_cap.iter().all(|coin| meta.find(coin).is_some_and(|(_, perp)| perp.is_delisted)));
+    assert!(at_cap.iter().all(|coin| meta.find(0, coin).is_some_and(|(_, perp)| perp.is_delisted)));
     assert_eq!(perps_at_open_interest_cap_request(Dex::Main), r#"{"type":"perpsAtOpenInterestCap"}"#);
     assert_eq!(
         perps_at_open_interest_cap_request(Dex::Hip3("xyz")),

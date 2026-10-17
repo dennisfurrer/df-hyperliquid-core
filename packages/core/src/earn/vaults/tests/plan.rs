@@ -33,9 +33,8 @@ fn dec(text: &str) -> Dec {
 
 #[test]
 fn an_agent_may_move_into_and_out_of_a_vault() {
-    assert_eq!(key("vaultTransfer"), Some(Key::Either));
-    assert_eq!(key("borrowLend"), None);
-    assert_eq!(VaultTransfer::KEY, Key::Either);
+    assert_eq!(VaultTransfer::KEY, Signers::Either);
+    assert!(VaultTransfer::KEY.takes_agent());
 }
 
 /// A vault's equity moves with its profit and loss too, so a read back shows
@@ -46,7 +45,7 @@ fn a_deposit_rises_the_equity_and_locks_for_the_vault_s_lockup() {
     let punks = details("testnetHyperpunks");
     let plan = ctx.deposit(&punks, dec("10")).unwrap();
     assert_eq!(plan.effect, Effect { balance: Balance::Vault(punks.vault_address), change: Change::Rises(dec("10")) });
-    assert_eq!((plan.key, plan.free_at), (Key::Either, Some(NONCE + 20_000)));
+    assert_eq!((plan.key, plan.free_at), (Signers::Either, Some(NONCE + 20_000)));
     assert!(plan.action.wire().contains(r#""isDeposit":true,"usd":10000000"#));
     let hlp = ctx.deposit(&details("testnetHlp"), dec("10")).unwrap();
     assert_eq!(hlp.free_at, Some(NONCE + 4 * DAY));
@@ -81,7 +80,7 @@ fn a_withdrawal_waits_for_the_lockup_and_takes_at_most_the_equity() {
     let ctx = Ctx { network: Network::Testnet, nonce: NONCE, now_ms: until };
     let some = ctx.withdraw(&equity, dec("100")).unwrap();
     assert_eq!(some.effect, Effect { balance: Balance::Vault(TESTNET_HLP), change: Change::Falls(dec("100")) });
-    assert_eq!((some.key, some.free_at), (Key::Either, None));
+    assert_eq!((some.key, some.free_at), (Signers::Either, None));
     assert_eq!(
         ctx.withdraw(&equity, dec("1068.955111")),
         Err(Refused::MoreThan { amount: dec("1068.955111"), held: dec("1068.95511") })

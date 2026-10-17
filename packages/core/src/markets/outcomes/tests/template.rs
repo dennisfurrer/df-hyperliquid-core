@@ -37,13 +37,9 @@ fn names_outside_the_templates_still_classify() {
 }
 
 #[test]
-fn kinds_round_trip_through_their_slugs() {
-    for family in Family::ALL {
-        assert_eq!(family.slug().parse::<Family>(), Ok(family));
-        assert_eq!(family.to_string(), family.slug());
-    }
-    assert!("no_such_kind".parse::<Family>().is_err());
+fn a_question_family_describes_a_question() {
     assert!(Family::ContestResult.is_question() && !Family::ContestWinner.is_question());
+    assert!(Family::TournamentWinner.is_question() && Family::PolicyRateDecision.is_question());
 }
 
 const ROLES: &str = r#"[
@@ -119,14 +115,47 @@ fn testnet_s_templates_carry_each_keyword_s_hint() {
     assert!(draw.keywords.is_empty());
 }
 
+/// Testnet's `sportsSpread` title filled from a row's keywords, and a side's name from its spec.
 #[test]
-fn a_pattern_is_a_template_as_the_catalogue_reads_it() {
-    let patterns = patterns(&read(TESTNET));
-    let spread = &patterns["sportsSpread"];
-    assert_eq!(spread.name, "{participantA} v {participantB}: {shortNameA} {spread}");
-    assert_eq!(spread.sides, ["Yes", "No"]);
-    assert_eq!(spread.keywords[7], ("shortNameA".to_owned(), "shortString".to_owned()));
-    assert!(patterns["awardWinner"].sides.is_empty(), "a question has no sides of its own");
+fn a_title_and_side_names_are_filled_from_the_keywords() {
+    let templates = read(TESTNET);
+    let spread = templates.iter().find(|one| one.id == "sportsSpread").unwrap();
+    let fields = Fields::parse(
+        "countedPlay:regulation time and any overtime|measure:points|participantA:Pittsburgh Steelers|participantB:Cleveland Browns|shortNameA:Steelers|spread:-2.5",
+    );
+    assert_eq!(fill(&spread.name, |name| fields.text(name)), "Pittsburgh Steelers v Cleveland Browns: Steelers -2.5");
+    assert_eq!(fill("{company} IPO confirmed by {dateTime}", |name| fields.text(name)), "? IPO confirmed by ?");
+    assert_eq!(fill("no keywords", |_| None), "no keywords");
+    assert_eq!(fill("open {brace", |_| None), "open {brace", "an unclosed brace is kept as written");
+    let game = Fields::parse("shortNameA:49ers|shortNameB:Rams");
+    assert_eq!(label(Some("template:{shortNameA}"), &game, "Yes"), "49ers");
+    assert_eq!(label(Some("template:{shortNameC}"), &game, "No"), "No", "a keyword the row leaves out");
+    assert_eq!(label(Some("template:Yes"), &game, "No"), "Yes");
+    assert_eq!(label(None, &game, "Yes"), "Yes");
+}
+
+/// As outcome 1210 reads on mainnet.
+#[test]
+fn on_chain_a_row_is_its_template_and_its_keywords_sorted() {
+    let templates = read(MAINNET);
+    let binary = &templates[0];
+    let values = Keywords::from_pairs([
+        ("time", "20261001-0000"),
+        ("perp", "BTC"),
+        ("threshold", "100000"),
+        ("seconds", "1"),
+        ("priceDescription", "BTC-USDC mark"),
+    ])
+    .unwrap();
+    let chain = binary.on_chain(&values);
+    assert_eq!(chain.name, "template:binaryPrice");
+    assert_eq!(
+        chain.description,
+        "perp:BTC|priceDescription:BTC-USDC mark|seconds:1|threshold:100000|time:20261001-0000"
+    );
+    assert_eq!(chain.sides, Some(["template:Yes".to_owned(), "template:No".to_owned()]));
+    let named = templates.iter().find(|one| one.parent().is_some()).unwrap();
+    assert_eq!(named.on_chain(&Keywords::new()).sides, None, "a question's outcome has no sides of its own");
 }
 
 #[test]
@@ -135,17 +164,11 @@ fn the_reads_name_their_type() {
     assert_eq!(deployer_limits_request("out"), r#"{"type":"outcomeDeployerLimits","venue":"out"}"#);
 }
 
-/// Live, 2026-09-13: `{"nDailyOutcomesRemaining":494,"nActiveOutcomesRemaining":1}` on a venue
-/// holding 99, and 73 and 12 held on two others.
+/// Live, 2026-09-13, on a venue holding 99.
 #[test]
-fn the_active_cap_is_derived_from_the_live_count_and_not_from_a_constant() {
+fn the_deployer_limits_read_what_remains() {
     let remaining: Remaining =
         serde_json::from_str(r#"{"nDailyOutcomesRemaining":494,"nActiveOutcomesRemaining":1}"#).unwrap();
-    let limits = DeployerLimits::new(remaining, 99);
-    assert_eq!((limits.daily_remaining, limits.active_remaining, limits.active_used), (494, 1, 99));
-    assert_eq!(limits.active_cap(), 100);
-    let txyz = DeployerLimits { daily_remaining: 500, active_remaining: 27, active_used: 73 };
-    let skew = DeployerLimits { daily_remaining: 495, active_remaining: 88, active_used: 12 };
-    assert_eq!(txyz.active_cap(), skew.active_cap());
+    assert_eq!(remaining, Remaining { daily: 494, active: 1 });
     assert_eq!(serde_json::from_str::<Remaining>("{}").unwrap(), Remaining { daily: 0, active: 0 });
 }

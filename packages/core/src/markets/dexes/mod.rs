@@ -1,18 +1,11 @@
-//! HIP-3 builder-deployed perp dexes: the dex list, each dex's meta and contexts, limits and status.
-#![deny(clippy::float_arithmetic)]
+//! HIP-3 builder-deployed perp dexes: the dex list, every dex lined up with its meta, and each
+//! dex's limits and status. A dex's meta and contexts are [`crate::markets::perps`]'s.
 
 pub mod dex;
-pub mod ids;
 pub mod limits;
 pub mod listing;
 
-pub use crate::trade::MarginMode;
-pub use crate::utils::Grid;
-pub use dex::{
-    DexAsset, DexCtx, DexMeta, DexMetaAndAssetCtxs, PerpDex, PerpDexs, dex_meta, dex_meta_and_asset_ctxs,
-    dex_meta_and_asset_ctxs_request, dex_meta_request, perp_dexs, perp_dexs_request,
-};
-pub use ids::{Dex, asset_parts, coin, split_coin};
+pub use dex::{PerpDex, PerpDexs, perp_dexs, perp_dexs_request};
 pub use limits::{
     DexLimits, DexStatus, perp_dex_limits, perp_dex_limits_request, perp_dex_status, perp_dex_status_request,
 };

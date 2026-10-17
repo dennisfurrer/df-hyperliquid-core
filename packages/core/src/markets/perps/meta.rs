@@ -1,41 +1,45 @@
-//! `meta`, `metaAndAssetCtxs` and `perpsAtOpenInterestCap` for the main dex. Fields an order or a
-//! market view does not need are left unread.
+//! `meta`, `metaAndAssetCtxs` and `perpsAtOpenInterestCap` for any perp dex: the main dex, or a
+//! HIP-3 dex by name. A perp's asset id counts from its dex's place in `perpDexs`, the main dex at
+//! 0. Fields an order or a market view does not need are left unread.
 
 use crate::client::{ApiError, Transport, info, info_request};
-use crate::markets::perps::dex::{self, Dex};
+use crate::markets::dex::Dex;
 use crate::markets::perps::table::MarginTable;
-use crate::utils::Grid;
-use crate::utils::{Asset, AssetKind};
+use crate::utils::{Asset, AssetKind, Dec, Grid};
 use serde::Deserialize;
 
-fn request(kind: &str) -> String {
-    info_request(kind, &[])
-}
+/// Units of the underlying a `k` perp counts in.
+const THOUSAND: Dec = Dec::from_int(1000);
 
-/// `{"type":"meta"}`.
+/// `{"type":"meta"}`, with `dex` for a HIP-3 dex.
 #[must_use]
-pub fn meta_request() -> String {
-    request("meta")
+pub fn meta_request(dex: Dex<'_>) -> String {
+    info_request("meta", dex.field().as_slice())
 }
 
-/// `{"type":"metaAndAssetCtxs"}`.
+/// `{"type":"metaAndAssetCtxs"}`, with `dex` for a HIP-3 dex.
 #[must_use]
-pub fn meta_and_asset_ctxs_request() -> String {
-    request("metaAndAssetCtxs")
+pub fn meta_and_asset_ctxs_request(dex: Dex<'_>) -> String {
+    info_request("metaAndAssetCtxs", dex.field().as_slice())
 }
 
-pub async fn meta(transport: &impl Transport) -> Result<Meta, ApiError> {
-    info(transport, meta_request()).await
+/// `None` for a dex the venue does not know, which it answers `null`.
+pub async fn meta(transport: &impl Transport, dex: Dex<'_>) -> Result<Option<Meta>, ApiError> {
+    info(transport, meta_request(dex)).await
 }
 
-pub async fn meta_and_asset_ctxs(transport: &impl Transport) -> Result<MetaAndAssetCtxs, ApiError> {
-    info(transport, meta_and_asset_ctxs_request()).await
+/// `None` for a dex the venue does not know, which it answers `null`.
+pub async fn meta_and_asset_ctxs(
+    transport: &impl Transport,
+    dex: Dex<'_>,
+) -> Result<Option<MetaAndAssetCtxs>, ApiError> {
+    info(transport, meta_and_asset_ctxs_request(dex)).await
 }
 
 /// `{"type":"perpsAtOpenInterestCap"}`, with `dex` for a HIP-3 dex.
 #[must_use]
 pub fn perps_at_open_interest_cap_request(dex: Dex<'_>) -> String {
-    dex::request("perpsAtOpenInterestCap", Vec::new(), dex)
+    info_request("perpsAtOpenInterestCap", dex.field().as_slice())
 }
 
 /// The perps whose open interest is at its cap, by coin: an order there may only reduce a
@@ -44,7 +48,7 @@ pub async fn perps_at_open_interest_cap(transport: &impl Transport, dex: Dex<'_>
     info(transport, perps_at_open_interest_cap_request(dex)).await
 }
 
-/// The main dex's perps, in the order their asset ids count.
+/// One dex's perps, in the order their asset ids count.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
@@ -52,7 +56,7 @@ pub struct Meta {
     /// The tiered margin tables by id; a flat one is never listed ([`Meta::margin_table`]).
     #[serde(default)]
     pub margin_tables: Vec<(u32, MarginTable)>,
-    /// The spot token perps are margined in; 0 is USDC.
+    /// The spot token the dex margins in; 0 is USDC.
     #[serde(default)]
     pub collateral_token: Option<u32>,
 }
@@ -61,7 +65,7 @@ pub struct Meta {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PerpAsset {
-    /// `BTC`: what the order book, fills and positions call it.
+    /// What the order book, fills and positions call it: `BTC`, or `xyz:TSLA` on a HIP-3 dex.
     pub name: String,
     pub sz_decimals: u32,
     pub max_leverage: u32,
@@ -72,9 +76,15 @@ pub struct PerpAsset {
     /// Delisted perps keep their place, so the ids after them hold.
     #[serde(default)]
     pub is_delisted: bool,
-    /// `strictIsolated` or `noCross` where the venue says; absent is cross.
+    /// `strictIsolated` or `noCross` where the venue or the deployer says; absent is cross.
     #[serde(default)]
     pub margin_mode: Option<String>,
+    /// `enabled` where a HIP-3 deployer turned growth mode on.
+    #[serde(default)]
+    pub growth_mode: Option<String>,
+    /// A HIP-3 deployer's share of fees, set per asset.
+    #[serde(default)]
+    pub deployer_fee_scale: Option<Dec>,
 }
 
 impl PerpAsset {
@@ -90,26 +100,46 @@ impl PerpAsset {
     }
 }
 
+/// What a coin tracks and how many units of it one contract is: `kPEPE` is a thousand PEPE. A
+/// HIP-3 coin's `dex:` is left off: `xyz:TSLA` tracks TSLA.
+#[must_use]
+pub fn underlying(coin: &str) -> (&str, Dec) {
+    let bare = coin.split_once(':').map_or(coin, |(_, symbol)| symbol);
+    match bare.strip_prefix('k') {
+        Some(rest) if rest.starts_with(|first: char| first.is_ascii_uppercase()) => (rest, THOUSAND),
+        _ => (bare, Dec::ONE),
+    }
+}
+
+/// A perp asset id's dex place and index: `(0, index)` on the main dex.
+const fn place_of(asset: Asset) -> Option<(u32, u32)> {
+    match asset.kind() {
+        AssetKind::Perp => Some((0, asset.id())),
+        _ => asset.hip3_parts(),
+    }
+}
+
 impl Meta {
-    /// Every perp with its asset id, delisted ones included.
-    pub fn perps(&self) -> impl Iterator<Item = (Asset, &PerpAsset)> {
+    /// Every perp with its asset id, delisted ones included, for the dex at `place` in `perpDexs`:
+    /// the main dex at 0.
+    pub fn perps(&self, place: u32) -> impl Iterator<Item = (Asset, &PerpAsset)> {
         self.universe
             .iter()
             .enumerate()
-            .filter_map(|(index, perp)| Some((Asset::perp(u32::try_from(index).ok()?)?, perp)))
+            .filter_map(move |(index, perp)| Some((Asset::perp_on(place, u32::try_from(index).ok()?)?, perp)))
     }
 
-    /// A perp by name, as the venue spells it: `BTC`, not `btc`.
+    /// A perp by name as the venue spells it (`BTC`, not `btc`; `xyz:TSLA`), on the dex at `place`.
     #[must_use]
-    pub fn find(&self, name: &str) -> Option<(Asset, &PerpAsset)> {
-        self.perps().find(|(_, perp)| perp.name == name)
+    pub fn find(&self, place: u32, name: &str) -> Option<(Asset, &PerpAsset)> {
+        self.perps(place).find(|(_, perp)| perp.name == name)
     }
 
-    /// A perp by its asset id.
+    /// A perp by its asset id, on the dex at `place`.
     #[must_use]
-    pub fn get(&self, asset: Asset) -> Option<&PerpAsset> {
-        match asset.kind() {
-            AssetKind::Perp => self.universe.get(usize::try_from(asset.id()).ok()?),
+    pub fn get(&self, place: u32, asset: Asset) -> Option<&PerpAsset> {
+        match place_of(asset)? {
+            (at, index) if at == place => self.universe.get(usize::try_from(index).ok()?),
             _ => None,
         }
     }
@@ -133,17 +163,19 @@ impl From<(Meta, Vec<PerpCtx>)> for MetaAndAssetCtxs {
 }
 
 impl MetaAndAssetCtxs {
+    /// A perp's context by its asset id, on the dex at `place`.
     #[must_use]
-    pub fn ctx(&self, asset: Asset) -> Option<&PerpCtx> {
-        self.meta.get(asset)?;
-        self.ctxs.get(usize::try_from(asset.id()).ok()?)
+    pub fn ctx(&self, place: u32, asset: Asset) -> Option<&PerpCtx> {
+        self.meta.get(place, asset)?;
+        let (_, index) = place_of(asset)?;
+        self.ctxs.get(usize::try_from(index).ok()?)
     }
 
-    /// A perp by name with its context.
+    /// A perp by name with its context, on the dex at `place`.
     #[must_use]
-    pub fn find(&self, name: &str) -> Option<(Asset, &PerpAsset, &PerpCtx)> {
-        let (asset, perp) = self.meta.find(name)?;
-        Some((asset, perp, self.ctx(asset)?))
+    pub fn find(&self, place: u32, name: &str) -> Option<(Asset, &PerpAsset, &PerpCtx)> {
+        let (asset, perp) = self.meta.find(place, name)?;
+        Some((asset, perp, self.ctx(place, asset)?))
     }
 }
 

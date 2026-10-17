@@ -4,12 +4,21 @@
 //!   every outcome and activate L1 hash, and the three inner multi-sig hashes over an outcome action.
 //! - An independent builder's msgpack, L1 hash and mainnet digest at nonce 1234567890000.
 //! - Preset bodies the venue takes.
+//!
+//! A settlement copies `outcomeMeta`, so each settle below reads one listing what it settles.
 
 use crate::client::Network;
+use crate::markets::outcomes::meta::{OutcomeMeta, Question, SideSpec};
+use crate::markets::outcomes::template::Templates;
 use crate::utils::sign::{L1Action, Value, connection_id};
 use crate::utils::{Address, hex};
 
 use super::*;
+
+const TESTNET_TEMPLATES: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip4/outcome_templates_testnet.json"));
+const MAINNET_TEMPLATES: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip4/outcome_templates_mainnet.json"));
 
 const MASTER: &str = "0xa8d106881abe9a0b6ffd367788d6af91439d37f6";
 const LEADER: &str = "0x251fd19df63a83652eea93a6a5e451aa5ce81e4c";
@@ -36,13 +45,37 @@ fn instance(id: &str, pairs: &[(&str, &str)]) -> Instance {
     Instance::new(id, keywords(pairs))
 }
 
-fn settlement(outcome: u32, fraction: &str, name: &str, description: &str, sides: [&str; 2]) -> Settlement {
-    Settlement {
+/// An outcome as `outcomeMeta` lists it, its words exactly as given.
+fn row(outcome: u32, name: &str, description: &str, sides: [&str; 2]) -> Outcome {
+    Outcome {
         outcome,
-        fraction: fraction.parse().unwrap(),
         name: name.to_owned(),
         description: description.to_owned(),
-        sides: sides.map(str::to_owned),
+        side_specs: sides.iter().map(|side| SideSpec { name: (*side).to_owned() }).collect(),
+        quote_token: Some("USDC".to_owned()),
+        venue: None,
+        deployer_fee_scale: None,
+    }
+}
+
+/// `outcomeMeta` listing `outcomes`.
+fn listing(outcomes: Vec<Outcome>) -> OutcomeMeta {
+    OutcomeMeta { outcomes, ..OutcomeMeta::default() }
+}
+
+/// `outcomeMeta` listing `legs` as the named outcomes of `question`, none settled, no fallback.
+fn asked(question: u32, name: &str, description: &str, legs: Vec<Outcome>) -> OutcomeMeta {
+    let named_outcomes = legs.iter().map(|leg| leg.outcome).collect();
+    OutcomeMeta {
+        questions: vec![Question {
+            question,
+            name: name.to_owned(),
+            description: description.to_owned(),
+            fallback_outcome: None,
+            named_outcomes,
+            settled_named_outcomes: Vec::new(),
+        }],
+        ..listing(legs)
     }
 }
 
@@ -98,28 +131,23 @@ fn python_sub_deployers() -> OutcomeDeploy {
 }
 
 fn python_settle_outcome() -> OutcomeDeploy {
-    OutcomeDeploy::settle_outcome(
-        venue("zzz"),
-        settlement(
-            13065,
-            "1",
-            "template:binaryPrice4",
-            "perp:BTC|threshold:50000|time:20260901-1200",
-            ["template:Yes", "template:No"],
-        ),
-    )
+    let meta = listing(vec![row(
+        13065,
+        "template:binaryPrice4",
+        "perp:BTC|threshold:50000|time:20260901-1200",
+        ["template:Yes", "template:No"],
+    )]);
+    OutcomeDeploy::settle_outcome(venue("zzz"), &meta, 13065, Fraction::ONE).unwrap()
+}
+
+/// Question 182 of three chickens, 7004 winning.
+fn chickens() -> OutcomeMeta {
+    let chicken = |outcome| row(outcome, "Chicken", "N/A", ["Yes", "No"]);
+    asked(182, "What will Hypurr eat most of?", "A food journal", vec![chicken(7003), chicken(7004), chicken(7005)])
 }
 
 fn python_settle_question() -> OutcomeDeploy {
-    let chicken = |outcome, fraction| settlement(outcome, fraction, "Chicken", "N/A", ["Yes", "No"]);
-    OutcomeDeploy::settle_question(
-        venue("zzz"),
-        182,
-        vec![chicken(7003, "0"), chicken(7004, "1"), chicken(7005, "0")],
-        "What will Hypurr eat most of?".to_owned(),
-        "A food journal".to_owned(),
-    )
-    .unwrap()
+    OutcomeDeploy::settle_question(venue("zzz"), &chickens(), 182, 7004).unwrap()
 }
 
 fn python_activate() -> ActivateOutcomeDeployer {
@@ -241,16 +269,13 @@ fn outcome_actions_pack_byte_for_byte_as_a_production_builder_packs_them() {
         "254e054cfcfdf83a54c5e42b2ac8f46c85503660c0ad3b69576eea7443a3a964",
     );
 
-    let settle = OutcomeDeploy::settle_outcome(
-        venue("out"),
-        settlement(
-            1224,
-            "1",
-            "template:binaryPrice",
-            "perp:GOLD|priceDescription:d|seconds:1|threshold:4460.9|time:20260829-2100",
-            ["template:Yes", "template:No"],
-        ),
-    );
+    let gold = listing(vec![row(
+        1224,
+        "template:binaryPrice",
+        "perp:GOLD|priceDescription:d|seconds:1|threshold:4460.9|time:20260829-2100",
+        ["template:Yes", "template:No"],
+    )]);
+    let settle = OutcomeDeploy::settle_outcome(venue("out"), &gold, 1224, Fraction::ONE).unwrap();
     assert_golden(
         "settleOutcome",
         &settle,
@@ -260,17 +285,16 @@ fn outcome_actions_pack_byte_for_byte_as_a_production_builder_packs_them() {
     );
 
     let fomc = "decisionLabel:September 2026|institution:FOMC";
-    let question = OutcomeDeploy::settle_question(
-        venue("out"),
+    let decision = asked(
         191,
+        "template:policyRateDecision",
+        fomc,
         vec![
-            settlement(1227, "0", "template:policyRateHike", fomc, ["Yes", "No"]),
-            settlement(1228, "1", "template:policyRateNoChange", fomc, ["Yes", "No"]),
+            row(1227, "template:policyRateHike", fomc, ["Yes", "No"]),
+            row(1228, "template:policyRateNoChange", fomc, ["Yes", "No"]),
         ],
-        "template:policyRateDecision".to_owned(),
-        fomc.to_owned(),
-    )
-    .unwrap();
+    );
+    let question = OutcomeDeploy::settle_question(venue("out"), &decision, 191, 1228).unwrap();
     assert_golden(
         "settleQuestion2",
         &question,
@@ -283,7 +307,7 @@ fn outcome_actions_pack_byte_for_byte_as_a_production_builder_packs_them() {
 const CONTEST: &str = "competition:UEFA Nations League|contestType:Match|countedPlay:regulation time, 90 minutes plus stoppage time|officialSource:Union of European Football Associations|participantA:Denmark|participantB:Portugal|resolutionDeadline:20261002-1845|scheduledStart:20261001-1845|season:2026/27|sport:Soccer|stage:League A, Matchday 3";
 
 #[test]
-fn every_builder_writes_studio_s_presets_byte_for_byte() {
+fn every_builder_writes_the_recorded_presets_byte_for_byte() {
     let ab = || venue("ab");
     let standalone = OutcomeDeploy::register_standalone(
         ab(),
@@ -346,34 +370,30 @@ fn every_builder_writes_studio_s_presets_byte_for_byte() {
         r#"{"type":"outcomeDeploy","venue":"ab","operation":{"registerAndAssociateNamedOutcomeFromTemplate":{"question":350,"namedOutcomeTemplateInstance":{"id":"sportsContestParticipant2","keywordToValue":[["participant","Spain"]]}}}}"#
     );
 
-    let settle = OutcomeDeploy::settle_outcome(
-        ab(),
-        settlement(
-            6955,
-            "1",
-            "template:binaryPrice",
-            "perp:BTC|priceDescription:BTC-USDC perp mark|seconds:60|threshold:83114|time:20260930-0845",
-            ["template:Yes", "template:No"],
-        ),
-    );
+    let btc = listing(vec![row(
+        6955,
+        "template:binaryPrice",
+        "perp:BTC|priceDescription:BTC-USDC perp mark|seconds:60|threshold:83114|time:20260930-0845",
+        ["template:Yes", "template:No"],
+    )]);
+    let settle = OutcomeDeploy::settle_outcome(ab(), &btc, 6955, Fraction::ONE).unwrap();
     assert_eq!(
         settle.wire(),
         r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleOutcome":{"outcome":6955,"settleFraction":"1","details":"","nameAndDescription":["template:binaryPrice","perp:BTC|priceDescription:BTC-USDC perp mark|seconds:60|threshold:83114|time:20260930-0845"],"sideNames":["template:Yes","template:No"]}}}"#
     );
 
     let named = "template:sportsContestParticipant2";
-    let settle_question = OutcomeDeploy::settle_question(
-        ab(),
+    let contest = asked(
         350,
+        "template:sportsContestResult",
+        CONTEST,
         vec![
-            settlement(5940, "1", named, "participant:Denmark", ["Yes", "No"]),
-            settlement(5941, "0", "template:sportsContestDraw2", "", ["Yes", "No"]),
-            settlement(5942, "0", named, "participant:Portugal", ["Yes", "No"]),
+            row(5940, named, "participant:Denmark", ["Yes", "No"]),
+            row(5941, "template:sportsContestDraw2", "", ["Yes", "No"]),
+            row(5942, named, "participant:Portugal", ["Yes", "No"]),
         ],
-        "template:sportsContestResult".to_owned(),
-        CONTEST.to_owned(),
-    )
-    .unwrap();
+    );
+    let settle_question = OutcomeDeploy::settle_question(ab(), &contest, 350, 5940).unwrap();
     assert_eq!(
         settle_question.wire(),
         r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleQuestion2":{"question":350,"outcomeSettlements":[{"outcome":5940,"settleFraction":"1","details":"","nameAndDescription":["template:sportsContestParticipant2","participant:Denmark"],"sideNames":["Yes","No"]},{"outcome":5941,"settleFraction":"0","details":"","nameAndDescription":["template:sportsContestDraw2",""],"sideNames":["Yes","No"]},{"outcome":5942,"settleFraction":"0","details":"","nameAndDescription":["template:sportsContestParticipant2","participant:Portugal"],"sideNames":["Yes","No"]}],"nameAndDescription":["template:sportsContestResult","competition:UEFA Nations League|contestType:Match|countedPlay:regulation time, 90 minutes plus stoppage time|officialSource:Union of European Football Associations|participantA:Denmark|participantB:Portugal|resolutionDeadline:20261002-1845|scheduledStart:20261001-1845|season:2026/27|sport:Soccer|stage:League A, Matchday 3"]}}}"#
@@ -662,9 +682,9 @@ fn a_venue_is_two_to_four_lower_case_letters_and_never_spot() {
 }
 
 #[test]
-fn a_settlement_copies_its_names_exactly_as_given() {
-    let action =
-        OutcomeDeploy::settle_outcome(venue("ab"), settlement(7, "0.25", "Chicken  ", " N/A \t", ["Yes ", " No"]));
+fn a_settlement_copies_its_names_exactly_as_listed() {
+    let meta = listing(vec![row(7, "Chicken  ", " N/A \t", ["Yes ", " No"])]);
+    let action = OutcomeDeploy::settle_outcome(venue("ab"), &meta, 7, "0.25".parse().unwrap()).unwrap();
     assert_eq!(
         action.wire(),
         r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleOutcome":{"outcome":7,"settleFraction":"0.25","details":"","nameAndDescription":["Chicken  "," N/A \t"],"sideNames":["Yes "," No"]}}}"#,
@@ -672,37 +692,124 @@ fn a_settlement_copies_its_names_exactly_as_given() {
     );
 }
 
+/// The venue `out` as live ones are: a standalone outcome, and question 350 of three named
+/// outcomes and a fallback, the first named one settled (still listed here, as a read taken
+/// mid-settlement can show it).
+fn out() -> OutcomeMeta {
+    OutcomeMeta {
+        questions: vec![Question {
+            question: 350,
+            name: "template:sportsContestResult".to_owned(),
+            description: "participantA:Denmark|participantB:Portugal".to_owned(),
+            fallback_outcome: Some(1472),
+            named_outcomes: vec![1473, 1474, 1475],
+            settled_named_outcomes: vec![1473],
+        }],
+        ..listing(vec![
+            row(
+                1209,
+                "template:priceTouch",
+                "perp:HYPE|target:100|time:20261001-0000",
+                ["template:Yes", "template:No"],
+            ),
+            row(1472, "template fallback", "other", ["Yes", "No"]),
+            row(1473, "template:sportsContestParticipant2", "participant:Denmark", ["Yes", "No"]),
+            row(1474, "template:sportsContestParticipant2", "participant:Portugal", ["Yes", "No"]),
+            row(1475, "template:sportsContestDraw2", "", ["Yes", "No"]),
+        ])
+    }
+}
+
+/// Testnet, 2026-10-08: question 823's named outcomes were settled one at a time at 0 as each
+/// team went out, the question staying live.
 #[test]
-fn a_question_settles_with_exactly_one_winner() {
-    let entry = |outcome, fraction| settlement(outcome, fraction, "Chicken", "N/A", ["Yes", "No"]);
-    let settle = |settlements| {
-        OutcomeDeploy::settle_question(
-            venue("zzz"),
-            182,
-            settlements,
-            "What will Hypurr eat most of?".to_owned(),
-            "A food journal".to_owned(),
-        )
-        .map_err(|error| error.to_string())
+fn a_question_s_leg_settles_alone_only_at_0_or_1_and_never_its_fallback() {
+    let meta = out();
+    let settle = |outcome, fraction: &str| {
+        OutcomeDeploy::settle_outcome(venue("out"), &meta, outcome, fraction.parse().unwrap())
     };
-    assert_eq!(settle(vec![]), Err("settling a question needs each of its named outcomes not yet settled".to_owned()));
+    let leg = settle(1474, "0").unwrap();
+    assert!(leg.wire().contains(r#""outcome":1474,"settleFraction":"0""#));
+    assert_eq!(settle(1474, "0.5"), Err(DeployError::NotWhole(1474)));
+    assert_eq!(settle(1472, "0"), Err(DeployError::Fallback { outcome: 1472, question: 350 }));
     assert_eq!(
-        settle(vec![entry(7003, "0"), entry(7004, "0")]),
-        Err("a question settles with exactly one named outcome at 1, not 0".to_owned())
+        DeployError::Fallback { outcome: 1472, question: 350 }.to_string(),
+        "outcome 1472 is question 350's fallback, which settles with its question"
     );
+    assert!(settle(1209, "0.25").is_ok(), "an outcome no question holds settles to any fraction");
+    assert_eq!(settle(4242, "0"), Err(DeployError::NotListed(4242)));
+    let one_sided =
+        listing(vec![Outcome { side_specs: vec![SideSpec { name: "Yes".to_owned() }], ..row(9, "x", "", ["", ""]) }]);
     assert_eq!(
-        settle(vec![entry(7003, "1"), entry(7004, "1.0")]),
-        Err("a question settles with exactly one named outcome at 1, not 2".to_owned())
+        OutcomeDeploy::settle_outcome(venue("out"), &one_sided, 9, Fraction::ONE),
+        Err(DeployError::NotTwoSided(9))
     );
+}
+
+#[test]
+fn a_question_settles_its_open_legs_one_winning_the_settled_one_left_out() {
+    let meta = out();
+    let settle = |question, winner| OutcomeDeploy::settle_question(venue("out"), &meta, question, winner);
     assert_eq!(
-        settle(vec![entry(7003, "1"), entry(7004, "0.5")]),
-        Err("outcome 7004 belongs to a question, which settles to 0 or 1 only".to_owned())
+        settle(350, 1475).unwrap().wire(),
+        r#"{"type":"outcomeDeploy","venue":"out","operation":{"settleQuestion2":{"question":350,"outcomeSettlements":[{"outcome":1474,"settleFraction":"0","details":"","nameAndDescription":["template:sportsContestParticipant2","participant:Portugal"],"sideNames":["Yes","No"]},{"outcome":1475,"settleFraction":"1","details":"","nameAndDescription":["template:sportsContestDraw2",""],"sideNames":["Yes","No"]}],"nameAndDescription":["template:sportsContestResult","participantA:Denmark|participantB:Portugal"]}}}"#
     );
+    assert_eq!(settle(350, 1473), Err(DeployError::NotOpen { outcome: 1473, question: 350 }), "already settled");
+    assert_eq!(settle(350, 1472), Err(DeployError::NotOpen { outcome: 1472, question: 350 }), "the fallback");
+    assert_eq!(settle(351, 1475), Err(DeployError::NoQuestion(351)));
+    let mut gone = out();
+    gone.outcomes.retain(|row| row.outcome != 1474);
     assert_eq!(
-        settle(vec![entry(7003, "0"), entry(7004, "1"), entry(7003, "0")]),
-        Err("outcome 7003 is settled twice".to_owned())
+        OutcomeDeploy::settle_question(venue("out"), &gone, 350, 1475),
+        Err(DeployError::NotListed(1474)),
+        "a leg the read does not list"
     );
-    assert!(settle(vec![entry(7004, "1")]).is_ok(), "the last one alive");
+    let mut twice = out();
+    twice.questions[0].named_outcomes.push(1474);
+    assert_eq!(OutcomeDeploy::settle_question(venue("out"), &twice, 350, 1475), Err(DeployError::SettledTwice(1474)));
+}
+
+/// The venue's own templates (testnet, 2026-10-08): the Python SDK's two-keyword
+/// `sportsContestResult` hashes, but the venue's template asks for eight more. Mainnet's
+/// `binaryPrice` takes the recorded preset whole.
+#[test]
+fn the_venue_s_own_template_asks_for_every_keyword_it_declares() {
+    let declared = |templates: &[crate::markets::outcomes::OutcomeTemplate], id: &str| -> Vec<(String, Hint)> {
+        let template = templates.iter().find(|one| one.id == id).unwrap();
+        template.keywords.iter().map(|keyword| (keyword.name.clone(), keyword.hint())).collect()
+    };
+    let testnet = serde_json::from_str::<Templates>(TESTNET_TEMPLATES).unwrap().0;
+    let result = declared(&testnet, "sportsContestResult");
+    let typed = keywords(&[("participantB", "Spain"), ("participantA", "Brazil")]);
+    let missing: Vec<String> = typed
+        .check(result.iter().map(|(name, hint)| (name.as_str(), hint.clone())), NOW_MS)
+        .into_iter()
+        .filter(|bad| bad.problem == Problem::Missing)
+        .map(|bad| bad.keyword)
+        .collect();
+    assert_eq!(
+        missing,
+        [
+            "competition",
+            "contestType",
+            "officialSource",
+            "resolutionDeadline",
+            "scheduledStart",
+            "season",
+            "sport",
+            "stage"
+        ]
+    );
+    let mainnet = serde_json::from_str::<Templates>(MAINNET_TEMPLATES).unwrap().0;
+    let binary = declared(&mainnet, "binaryPrice");
+    let preset = keywords(&[
+        ("threshold", "83114"),
+        ("time", "20261231-1200"),
+        ("seconds", "60"),
+        ("priceDescription", "BTC-USDC perp mark"),
+        ("perp", "BTC"),
+    ]);
+    assert_eq!(preset.check(binary.iter().map(|(name, hint)| (name.as_str(), hint.clone())), NOW_MS), []);
 }
 
 #[test]

@@ -1,7 +1,7 @@
 //! An outcome's or a question's description as the venue writes it from a template: `keyword:value`
 //! pairs between bars, a value free to hold colons. Prose reads as no pairs at all.
 
-use crate::markets::outcomes::time::Stamp;
+use crate::utils::time::Stamp;
 
 /// The pairs of one description, in its order.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

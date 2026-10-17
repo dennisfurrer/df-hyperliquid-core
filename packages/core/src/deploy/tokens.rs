@@ -2,6 +2,7 @@
 //! (`spotDeployState`), and the auction for a pair of existing tokens (`spotPairDeployAuctionStatus`).
 
 use crate::client::{ApiError, Transport, info, info_request, user_request};
+use crate::deploy::auction::GasAuction;
 use crate::utils::{Address, Dec};
 use serde::Deserialize;
 
@@ -34,9 +35,6 @@ pub struct SpotDeployState {
     /// The auction a new token's first step pays.
     pub gas_auction: GasAuction,
 }
-
-/// A Dutch auction for a deploy slot, the same shape as the perp deploy auction.
-pub use crate::deploy::auction::GasAuction;
 
 /// One token being deployed. Every field but the token and its spec is read as optional: none has been seen live.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -75,3 +73,7 @@ pub struct TokenSpec {
     pub sz_decimals: u32,
     pub wei_decimals: u32,
 }
+
+#[cfg(test)]
+#[path = "tests/tokens.rs"]
+mod tests;

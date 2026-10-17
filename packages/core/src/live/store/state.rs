@@ -13,19 +13,19 @@ use crate::live::store::interest::{Changes, Handle, Interest, Interests};
 use crate::live::store::market::{BARS, Context, Markets, fold_bar, fold_prints};
 use crate::live::store::stamp::Stamped;
 use crate::live::{Book, Candle, Frame, Interval, LedgerUpdate, Level, Limits, Refused, Session, Subscription, Trade};
+use crate::markets::Mids;
 use crate::markets::perps::{MetaAndAssetCtxs, PerpCtx, UserFunding};
 use crate::markets::split_coin;
 use crate::markets::spot::{SpotCtx, SpotMeta, SpotMetaAndAssetCtxs};
-use crate::markets::{L2Book, MarketTrade, Mids};
 use crate::utils::{Address, Dec};
 
 /// A typed `/info` answer for the store to fold.
 #[derive(Debug, Clone, Copy)]
 pub enum Read<'a> {
     /// `l2Book`, ungrouped.
-    Book(&'a L2Book),
+    Book(&'a Book),
     /// `recentTrades`, newest first.
-    Trades(&'a [MarketTrade]),
+    Trades(&'a [Trade]),
     /// `candleSnapshot`, oldest first: what the socket already sent of the same candles stays.
     Candles(&'a [crate::markets::Candle]),
     /// `allMids` of one perp dex, `""` the first.
@@ -33,7 +33,7 @@ pub enum Read<'a> {
     /// `metaAndAssetCtxs`: the first dex's universe, collateral and contexts.
     Perps(&'a MetaAndAssetCtxs),
     /// `metaAndAssetCtxs` with a HIP-3 `dex`.
-    Dex { dex: &'a str, read: &'a crate::markets::dexes::DexMetaAndAssetCtxs },
+    Dex { dex: &'a str, read: &'a MetaAndAssetCtxs },
     /// `perpDexs` with `allPerpMetas`: every dex's universe and collateral.
     Dexes(&'a crate::markets::dexes::Dexes),
     /// `spotMetaAndAssetCtxs`.

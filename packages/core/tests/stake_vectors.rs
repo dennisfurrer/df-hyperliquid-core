@@ -5,9 +5,9 @@
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use df_hyperliquid_core::account::{LocalKey, recover};
+use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
-use df_hyperliquid_core::earn::staking::{CDeposit, CWithdraw, Ctx, DelegatorSummary, Key, TokenDelegate};
+use df_hyperliquid_core::earn::staking::{CDeposit, CWithdraw, Ctx, DelegatorSummary, TokenDelegate};
 use df_hyperliquid_core::utils::sign::{UserAction, digest_of_wallet_json};
 use df_hyperliquid_core::utils::{Address, Dec, Json, hex};
 
@@ -55,7 +55,7 @@ fn planned(name: &str, network: Network, nonce: u64) -> Box<dyn UserAction> {
         total_pending_withdrawal: Dec::ZERO,
         n_pending_withdrawals: 0,
     };
-    let plan_key = |key: Key| assert_eq!(key, Key::Main, "{name}: user-signed");
+    let plan_key = |key: Signers| assert_eq!(key, Signers::Main, "{name}: user-signed");
     match name {
         "cDeposit" => {
             let plan = ctx.stake(dec("100")).unwrap();

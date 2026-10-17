@@ -20,3 +20,7 @@ impl Meta {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tests/table.rs"]
+mod tests;

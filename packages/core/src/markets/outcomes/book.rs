@@ -1,21 +1,10 @@
-//! `l2Book` for one outcome side, read onto the 0.00001 grid. A level off the grid, or a coin that
-//! is no outcome side, refuses the whole book.
+//! One outcome side's book on the 0.00001 grid, from a [`crate::markets::Book`] (read with
+//! [`crate::markets::book::l2_book`] for `#<encoding>`). A level off the grid, or a coin that is no
+//! outcome side, refuses the whole book.
 
-use crate::client::{ApiError, Transport, info, info_request};
 use crate::markets::outcomes::coin::Coin;
 use crate::markets::outcomes::px::{BadPx, BadQty, Px, Qty};
-use crate::utils::Json;
 use serde::Deserialize;
-
-/// `{"type":"l2Book","coin":"#14730"}`.
-#[must_use]
-pub fn book_request(coin: Coin) -> String {
-    info_request("l2Book", &[("coin", Json::String(coin.to_string()))])
-}
-
-pub async fn book(transport: &impl Transport, coin: Coin) -> Result<Book, ApiError> {
-    info(transport, book_request(coin)).await
-}
 
 /// One price on the book: what rests there and in how many orders.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]

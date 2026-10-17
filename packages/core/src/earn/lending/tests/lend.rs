@@ -182,7 +182,7 @@ fn one_reserve_reads_by_its_token() {
 #[test]
 fn a_position_without_a_basis_reads() {
     let all: serde_json::Value =
-        serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/atlas_pm.json")))
+        serde_json::from_str(include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/lend/portfolio_margin.json")))
             .unwrap();
     let state: UserState = serde_json::from_value(all["borrowLendUserState"].clone()).unwrap();
     assert_eq!(state.position(150).map(|position| position.supply.value), Some(dec("3.32730523")));

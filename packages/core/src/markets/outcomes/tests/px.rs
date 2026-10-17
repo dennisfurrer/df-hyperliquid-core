@@ -1,10 +1,8 @@
-//! Prices seen on live outcome books, and pricing vectors from a TypeScript implementation (its
-//! minimum shares computed exactly with decimal.js).
+//! Prices seen on live outcome books, and price grid vectors from a TypeScript implementation.
 
 use crate::utils::Json;
 
 use super::*;
-use crate::markets::outcomes::coin::{MAX_PRICE, MIN_PRICE};
 
 const PRICING: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/hip4_pricing.json"));
 
@@ -61,7 +59,7 @@ fn stepping_stays_inside_the_range() {
     assert_eq!(Px::ONE.clamp_to_quotable(), Px::MAX_QUOTE);
     assert!(Px::MIN_QUOTE.is_quotable() && Px::MAX_QUOTE.is_quotable());
     assert!(!Px::ZERO.is_quotable() && !Px::ONE.is_quotable());
-    assert_eq!((Px::MIN_QUOTE.to_dec(), Px::MAX_QUOTE.to_dec()), (MIN_PRICE, MAX_PRICE));
+    assert_eq!((Px::MIN_QUOTE.to_dec(), Px::MAX_QUOTE.to_dec()), (dec("0.00001"), dec("0.99999")));
 }
 
 #[test]
@@ -200,20 +198,4 @@ fn reference_prices_agree_where_its_tick_is_the_venue_s() {
         }
     }
     assert_eq!((agreed, finer), (18, 5));
-}
-
-/// `ceil(1.5 / clamp(min(p, 1 - p), 0.01, 1))`, exact. The file keeps the float answer where it
-/// differs (0.9 gives 16 there, since `1 - 0.9` is not 0.1 in a float); the exact one is checked.
-#[test]
-fn the_minimum_shares_follow_the_reference_rule_exactly() {
-    let file = Json::parse(PRICING).unwrap();
-    assert_eq!(file.get("minNotional").and_then(Json::as_str).map(dec), Some(MIN_NOTIONAL));
-    let cases = file.get("minShares").and_then(Json::as_array).unwrap();
-    assert_eq!(cases.len(), 19);
-    for case in cases {
-        let mark = case.get("mark").and_then(Json::as_str).unwrap();
-        let shares = case.get("minShares").and_then(Json::as_u64).unwrap();
-        assert_eq!(min_shares(dec(mark)), Qty::new(shares), "{mark}");
-    }
-    assert_eq!(min_shares(dec("0.9")), Qty::new(15));
 }

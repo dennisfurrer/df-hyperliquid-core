@@ -162,7 +162,7 @@ fn a_refusal_is_the_venue_s_words_and_is_never_sent_again() {
 #[test]
 fn every_crate_s_reads_go_through_the_client_and_its_gate() {
     let client = Client::reader(Wire::answering(r#"{"BTC":"80459.5"}"#), Network::Mainnet, clock);
-    let mids = block_on(crate::markets::reads::all_mids(&client, None)).unwrap();
+    let mids = block_on(crate::markets::mids::all_mids(&client, crate::markets::Dex::Main)).unwrap();
     assert_eq!(mids.get("BTC"), Some("80459.5".parse().unwrap()));
     assert_eq!(client.http().bodies()[0].0, "https://api.hyperliquid.xyz/info");
     assert_eq!(client.spent().minute, 2, "allMids weighs 2");
