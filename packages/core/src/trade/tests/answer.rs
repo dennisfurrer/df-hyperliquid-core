@@ -12,7 +12,7 @@ use crate::client::{ApiError, ExchangeResponse, Status, Transport, TransportErro
 use crate::utils::{Dec, Json};
 
 use super::*;
-use crate::trade::order::Cloid;
+use crate::trade::orders::Cloid;
 
 const EXCHANGE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/exchange.json"));
 

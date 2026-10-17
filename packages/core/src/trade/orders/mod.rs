@@ -1,9 +1,26 @@
-//! `order`: one or more orders, grouped, optionally through a builder. Keys go in the order the
-//! venue hashes: `a b p s r t c` for an order, then `grouping`, then `builder` last.
+//! Orders: the wire every order type ends in ([`Order`], [`PlaceOrder`]), and one module per
+//! type. Keys go in the order the venue hashes: `a b p s r t c` for an order, then `grouping`,
+//! then `builder` last.
 
-use crate::trade::builder_fee::BuilderFee;
+pub mod close;
+pub mod entry;
+pub mod limit;
+pub mod market;
+pub mod scale;
+pub mod tpsl;
+pub mod trigger;
+pub mod twap;
+
+pub use close::{Close, close};
+pub use entry::{OrderIntent, Price, order};
+pub use scale::{LEAST_LEVELS, MOST_LEVELS, Scale, scale};
+pub use tpsl::{Covers, TriggerIntent, trigger};
+pub use trigger::{Exit, ExitPrice, TRIGGER_SLIPPAGE};
+pub use twap::{MINIMUM_TWAP_VALUE, Twap, TwapCancel, TwapIntent, twap};
+
+use crate::trade::builder::{Builder, OverCap};
 use crate::utils::sign::{L1Action, Map, Value};
-use crate::utils::{Address, Asset, AssetKind, Dec};
+use crate::utils::{Asset, AssetKind, Dec};
 
 /// Which way an order trades, the same `B` and `A` the reads and the socket carry.
 pub use crate::markets::Side;
@@ -194,47 +211,6 @@ impl Order {
     }
 }
 
-/// Who routed the order and what it takes: `{b, f}`, the address lowercase,
-/// the fee in tenths of a basis point.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Builder {
-    address: Address,
-    fee: BuilderFee,
-}
-
-impl Builder {
-    /// The account must have approved at least `fee` for this builder
-    /// (`approveBuilderFee`), or the venue refuses the order.
-    #[must_use]
-    pub const fn new(address: Address, fee: BuilderFee) -> Builder {
-        Builder { address, fee }
-    }
-
-    #[must_use]
-    pub const fn address(&self) -> Address {
-        self.address
-    }
-
-    #[must_use]
-    pub const fn fee(&self) -> BuilderFee {
-        self.fee
-    }
-
-    #[must_use]
-    pub fn wire(&self) -> Map {
-        Map::new().put("b", self.address.to_hex()).put("f", self.fee.tenths())
-    }
-}
-
-/// A builder fee over what the venue lets a builder take on these orders.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
-#[error("the builder fee of {} is over the {} {} order allows ({})", .fee.tenths(), .cap.tenths(), .kind.one(), .cap)]
-pub struct OverCap {
-    pub fee: BuilderFee,
-    pub cap: BuilderFee,
-    pub kind: AssetKind,
-}
-
 /// `order`: one or more orders, grouped, optionally through a builder.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlaceOrder {
@@ -286,7 +262,7 @@ impl PlaceOrder {
     /// on these orders. One perp order holds the whole action to the perp cap.
     #[must_use]
     pub fn over_builder_cap(&self) -> Option<OverCap> {
-        let fee = self.builder?.fee;
+        let fee = self.builder?.fee();
         let kind = AssetKind::strictest(self.orders.iter().map(Order::asset))?;
         let cap = kind.builder_cap();
         (fee > cap).then_some(OverCap { fee, cap, kind })

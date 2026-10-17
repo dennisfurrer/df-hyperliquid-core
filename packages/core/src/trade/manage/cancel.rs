@@ -1,7 +1,7 @@
 //! `cancel` and `cancelByCloid`. One action may name assets on several dexes:
 //! the asset id says which.
 
-use crate::trade::order::Cloid;
+use crate::trade::orders::Cloid;
 use crate::utils::Asset;
 use crate::utils::sign::{L1Action, Map, Value};
 

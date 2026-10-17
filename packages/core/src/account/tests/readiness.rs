@@ -1,5 +1,5 @@
 use crate::client::{ApiError, TransportError};
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 
 use super::*;
 use crate::account::builder::ApproveBuilderFee;

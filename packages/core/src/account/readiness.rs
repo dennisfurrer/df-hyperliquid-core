@@ -8,7 +8,7 @@ use crate::account::builder::ApproveBuilderFee;
 use crate::account::state::{Abstraction, PerpState};
 use crate::account::{abstraction, perp_state};
 use crate::client::{ApiError, Transport};
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Dec};
 
 /// The least perps account value a builder needs, in USDC.

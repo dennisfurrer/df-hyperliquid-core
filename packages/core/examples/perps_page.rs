@@ -5,8 +5,8 @@ use std::error::Error;
 
 use df_hyperliquid_core::client::native::{Native, clock};
 use df_hyperliquid_core::markets::{self, Precision, perps};
-use df_hyperliquid_core::trade::ticket::{Amount, Market, OrderIntent};
 use df_hyperliquid_core::trade::{self, Side};
+use df_hyperliquid_core::trade::{Amount, Market, OrderIntent};
 use df_hyperliquid_core::{Client, Dec, Network};
 
 #[tokio::main]
@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let market = Market::perp(asset, perp.sz_decimals, perp.max_leverage, perp.allows_cross()).ok_or("not a perp")?;
     let slippage: Dec = "0.01".parse()?;
     let intent = OrderIntent::market(Side::Buy, Amount::Notional("20".parse()?), mid, slippage);
-    let order = trade::ticket::order(&market, &intent, None).map_err(|refusal| format!("{refusal:?}"))?;
+    let order = trade::orders::order(&market, &intent, None).map_err(|refusal| format!("{refusal:?}"))?;
     println!("\nwould send: {}", trade::L1Action::wire(&order));
 
     let spent = client.spent();

@@ -5,7 +5,7 @@
 use crate::utils::{Address, Dec};
 
 use super::*;
-use crate::trade::order::Side;
+use crate::trade::orders::Side;
 use crate::trade::tests_support::{Recorded, block_on};
 
 const FILLS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/user_fills.json"));

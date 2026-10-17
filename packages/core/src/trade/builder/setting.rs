@@ -2,8 +2,8 @@
 //! cap, and whether the account has approved that much. Whether the builder can be paid at all is
 //! [`crate::account::builder_readiness`].
 
-use crate::trade::builder_fee::BuilderFee;
-use crate::trade::order::{Builder, OverCap, PlaceOrder};
+use crate::trade::builder::fee::{Builder, BuilderFee, OverCap};
+use crate::trade::orders::PlaceOrder;
 use crate::utils::{Address, Asset, AssetKind};
 
 /// What each order pays the builder.
@@ -187,5 +187,5 @@ pub enum ApprovalRefused {
 }
 
 #[cfg(test)]
-#[path = "tests/builder.rs"]
+#[path = "tests/setting.rs"]
 mod tests;

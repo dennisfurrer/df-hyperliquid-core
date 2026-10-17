@@ -12,7 +12,7 @@ use crate::account::builder::{max_builder_fee, max_builder_fee_request};
 use crate::account::referral::Referral;
 use crate::account::sub_account::{SubAccount, sub_accounts};
 use crate::client::{Transport, TransportError};
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Dec};
 
 /// HLP's leader's named agents, trimmed to two of six.

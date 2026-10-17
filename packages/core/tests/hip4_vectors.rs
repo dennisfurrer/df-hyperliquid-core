@@ -25,7 +25,7 @@ use df_hyperliquid_core::markets::outcomes::market::Catalog;
 use df_hyperliquid_core::markets::outcomes::px::{Px, Qty};
 use df_hyperliquid_core::markets::outcomes::template::{Keyword, OutcomeTemplate, TemplateRole};
 use df_hyperliquid_core::markets::outcomes::{Coin, Deployer, Outcome, OutcomeMeta, Question, SideSpec};
-use df_hyperliquid_core::trade::builder_fee::BuilderFee;
+use df_hyperliquid_core::trade::builder::fee::BuilderFee;
 use df_hyperliquid_core::trade::{Builder, Cancel, PlaceOrder, Side, Tif};
 use df_hyperliquid_core::utils::sign::user_signed::{NonceKey, UserSigned};
 use df_hyperliquid_core::utils::sign::{Field, L1Action, Map, Value, connection_id};

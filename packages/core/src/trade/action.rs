@@ -1,12 +1,12 @@
 //! Every trading action as one value, so what a confirmation shows and what is signed are the
 //! same value.
 
-use crate::trade::cancel::{Cancel, CancelByCloid};
-use crate::trade::leverage::{UpdateIsolatedMargin, UpdateLeverage};
-use crate::trade::modify::{BatchModify, Modify};
-use crate::trade::order::PlaceOrder;
-use crate::trade::schedule::{Noop, ScheduleCancel};
-use crate::trade::twap::{Twap, TwapCancel};
+use crate::trade::manage::{BatchModify, Modify};
+use crate::trade::manage::{Cancel, CancelByCloid};
+use crate::trade::manage::{Noop, ScheduleCancel};
+use crate::trade::margin::{UpdateIsolatedMargin, UpdateLeverage};
+use crate::trade::orders::PlaceOrder;
+use crate::trade::orders::{Twap, TwapCancel};
 use crate::utils::sign::{L1Action, Map};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

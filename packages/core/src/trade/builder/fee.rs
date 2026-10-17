@@ -1,11 +1,11 @@
 //! A builder's fee in tenths of a basis point, as an order's `f` and `maxBuilderFee` count it (10
 //! is 1 basis point). `approveBuilderFee` names the same figure as a percent.
 
-use std::fmt;
-
-use serde::Deserialize;
-
 use crate::utils::dec::{Dec, Round};
+use crate::utils::sign::Map;
+use crate::utils::{Address, AssetKind};
+use serde::Deserialize;
+use std::fmt;
 
 /// Tenths of a basis point: 10 is 0.01%, 1000 is 1%.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Deserialize)]
@@ -95,4 +95,45 @@ mod tests {
         assert_eq!((PERP_BUILDER_CAP.percent(), SPOT_BUILDER_CAP.percent()), ("0.1%".to_owned(), "1%".to_owned()));
         assert_eq!(OUTCOME_BUILDER_CAP, SPOT_BUILDER_CAP);
     }
+}
+
+/// Who routed the order and what it takes: `{b, f}`, the address lowercase,
+/// the fee in tenths of a basis point.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Builder {
+    address: Address,
+    fee: BuilderFee,
+}
+
+impl Builder {
+    /// The account must have approved at least `fee` for this builder
+    /// (`approveBuilderFee`), or the venue refuses the order.
+    #[must_use]
+    pub const fn new(address: Address, fee: BuilderFee) -> Builder {
+        Builder { address, fee }
+    }
+
+    #[must_use]
+    pub const fn address(&self) -> Address {
+        self.address
+    }
+
+    #[must_use]
+    pub const fn fee(&self) -> BuilderFee {
+        self.fee
+    }
+
+    #[must_use]
+    pub fn wire(&self) -> Map {
+        Map::new().put("b", self.address.to_hex()).put("f", self.fee.tenths())
+    }
+}
+
+/// A builder fee over what the venue lets a builder take on these orders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[error("the builder fee of {} is over the {} {} order allows ({})", .fee.tenths(), .cap.tenths(), .kind.one(), .cap)]
+pub struct OverCap {
+    pub fee: BuilderFee,
+    pub cap: BuilderFee,
+    pub kind: AssetKind,
 }

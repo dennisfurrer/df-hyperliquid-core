@@ -4,7 +4,7 @@
 use crate::utils::{Asset, Dec, Round};
 
 use super::*;
-use crate::trade::order::{Side, Tif};
+use crate::trade::orders::{Side, Tif};
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()

@@ -5,7 +5,7 @@
 
 use std::fmt;
 
-use crate::trade::builder_fee::{BuilderFee, OUTCOME_BUILDER_CAP, PERP_BUILDER_CAP, SPOT_BUILDER_CAP};
+use crate::trade::builder::fee::{BuilderFee, OUTCOME_BUILDER_CAP, PERP_BUILDER_CAP, SPOT_BUILDER_CAP};
 use crate::utils::sign::msgpack::Value;
 
 /// Where spot pairs begin: `10000 + pair index`.

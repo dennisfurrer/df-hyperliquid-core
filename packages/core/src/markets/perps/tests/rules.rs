@@ -7,7 +7,7 @@ use crate::markets::perps::rules::{Rules, underlying};
 use crate::markets::perps::support::dec;
 use crate::markets::perps::table::{FLAT_TABLES_BELOW, MarginTable, MarginTier};
 use crate::trade::MarginMode;
-use crate::trade::perps::{LeverageError, update_leverage_for};
+use crate::trade::margin::perps::{LeverageError, update_leverage_for};
 use crate::utils::Dec;
 use crate::utils::{Grid, MINIMUM_ORDER_VALUE};
 

@@ -4,10 +4,10 @@ use crate::utils::sign::L1Action;
 use crate::utils::{Asset, Dec};
 
 use super::*;
-use crate::trade::cancel::Cancel;
-use crate::trade::modify::{BatchModify, Modify, OrderRef};
-use crate::trade::order::{Order, PlaceOrder, Side, Tif, Tpsl};
-use crate::trade::schedule::{Noop, ScheduleCancel};
+use crate::trade::manage::Cancel;
+use crate::trade::manage::{BatchModify, Modify, OrderRef};
+use crate::trade::manage::{Noop, ScheduleCancel};
+use crate::trade::orders::{Order, PlaceOrder, Side, Tif, Tpsl};
 
 fn limit() -> Order {
     Order::limit(Asset::from_id(0), Side::Buy, Dec::from_int(84_000), Dec::ONE, Tif::Gtc)

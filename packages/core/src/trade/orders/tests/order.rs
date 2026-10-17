@@ -4,12 +4,12 @@
 
 use crate::account::{LocalKey, recover};
 use crate::client::Network;
-use crate::trade::builder_fee::BuilderFee;
-use crate::trade::cancel::{Cancel, CancelByCloid};
-use crate::trade::leverage::{MarginMode, UpdateIsolatedMargin, UpdateLeverage};
-use crate::trade::modify::{BatchModify, Modify, OrderRef};
-use crate::trade::order::*;
-use crate::trade::twap::{Twap, TwapCancel};
+use crate::trade::builder::fee::BuilderFee;
+use crate::trade::manage::{BatchModify, Modify, OrderRef};
+use crate::trade::manage::{Cancel, CancelByCloid};
+use crate::trade::margin::{MarginMode, UpdateIsolatedMargin, UpdateLeverage};
+use crate::trade::orders::*;
+use crate::trade::orders::{Twap, TwapCancel};
 use crate::utils::rounding::Grid;
 use crate::utils::sign::{L1Action, digest_of_wallet_json};
 use crate::utils::{Address, Asset, Dec, hex};

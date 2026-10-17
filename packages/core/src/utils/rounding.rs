@@ -4,7 +4,7 @@
 //! HIP-4 outcomes have their own grid ([`crate::markets::outcomes::px`]).
 
 use crate::trade::error::TradeError;
-use crate::trade::order::{Order, Side, Tif};
+use crate::trade::orders::{Order, Side, Tif};
 use crate::utils::{Asset, Dec, Round};
 
 /// A price keeps at most this many significant figures, unless it is whole.

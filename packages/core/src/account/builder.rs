@@ -3,7 +3,7 @@
 //! the approval is refused by the venue.
 
 use crate::client::{ApiError, Transport, info, info_request};
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
 use crate::utils::{Address, Json};
 

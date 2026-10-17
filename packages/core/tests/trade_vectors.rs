@@ -15,11 +15,11 @@
 
 use df_hyperliquid_core::account::LocalKey;
 use df_hyperliquid_core::client::Network;
-use df_hyperliquid_core::trade::builder_fee::BuilderFee;
+use df_hyperliquid_core::trade::builder::fee::BuilderFee;
 use df_hyperliquid_core::trade::{
     Amount, BatchModify, Builder, BuilderSetting, Cancel, Cloid, Close, Covers, Exit, Grouping, MarginMode, Market,
     Modify, Noop, Order, OrderIntent, OrderRef, PlaceOrder, Scale, ScheduleCancel, Side, Tif, Tpsl, TriggerIntent,
-    Twap, TwapCancel, UpdateIsolatedMargin, ticket,
+    Twap, TwapCancel, UpdateIsolatedMargin, margin, orders,
 };
 use df_hyperliquid_core::utils::sign::L1Action;
 use df_hyperliquid_core::utils::{Address, Asset, Dec, Json, OutcomeSide, hex};
@@ -141,20 +141,20 @@ fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
     let outcome = |side| Asset::outcome(1234, side).unwrap();
     match name {
         "order_limit_gtc" => {
-            Box::new(ticket::order(&btc(), &limit(Side::Buy, "65000", "0.01", Tif::Gtc), None).unwrap())
+            Box::new(orders::order(&btc(), &limit(Side::Buy, "65000", "0.01", Tif::Gtc), None).unwrap())
         }
         "order_limit_alo_trailing_zeros" => {
             let sol = Market::perp(id(3), 2, 20, true).unwrap();
-            Box::new(ticket::order(&sol, &limit(Side::Sell, "2450.50", "1.200", Tif::Alo), None).unwrap())
+            Box::new(orders::order(&sol, &limit(Side::Sell, "2450.50", "1.200", Tif::Alo), None).unwrap())
         }
         "order_ioc_cloid_reduce_only" => {
             let eth = Market::perp(id(1), 4, 25, true).unwrap();
             let mut intent = limit(Side::Sell, "3100.5", "1.25", Tif::Ioc).with_cloid(cloid(1));
             intent.reduce_only = true;
-            Box::new(ticket::order(&eth, &intent, None).unwrap())
+            Box::new(orders::order(&eth, &intent, None).unwrap())
         }
         "order_trigger_sl_market" => {
-            Box::new(ticket::trigger(&btc(), &exit(Side::Sell, "0.02", Tpsl::StopLoss, "60000", None), None).unwrap())
+            Box::new(orders::trigger(&btc(), &exit(Side::Sell, "0.02", Tpsl::StopLoss, "60000", None), None).unwrap())
         }
         "order_trigger_tp_limit" => {
             let avax = Market::perp(id(5), 0, 10, true).unwrap();
@@ -164,7 +164,7 @@ fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
                 Tpsl::TakeProfit,
                 Exit::limit(dec("150.5"), dec("151.25")),
             );
-            Box::new(ticket::trigger(&avax, &take, None).unwrap())
+            Box::new(orders::trigger(&avax, &take, None).unwrap())
         }
         "order_hip4_frontend_market_buy" => {
             Box::new(PlaceOrder::one(Order::market(outcome(OutcomeSide::Yes), Side::Buy, dec("0.99999"), dec("25"))))
@@ -174,7 +174,7 @@ fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
         }
         "order_hip3_builder" => {
             let xyz100 = Market::perp(Asset::hip3(1, 0).unwrap(), 2, 20, true).unwrap();
-            Box::new(ticket::order(&xyz100, &limit(Side::Buy, "6512.5", "0.1", Tif::Gtc), Some(&builder)).unwrap())
+            Box::new(orders::order(&xyz100, &limit(Side::Buy, "6512.5", "0.1", Tif::Gtc), Some(&builder)).unwrap())
         }
         "order_two_orders" => Box::new(PlaceOrder::new(vec![
             Order::limit(id(0), Side::Buy, dec("64000"), dec("0.001"), Tif::Gtc),
@@ -182,20 +182,20 @@ fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
         ])),
         "order_vault_testnet" => {
             let two = Market::perp(id(2), 0, 20, true).unwrap();
-            Box::new(ticket::order(&two, &limit(Side::Sell, "0.25", "400", Tif::Gtc), None).unwrap())
+            Box::new(orders::order(&two, &limit(Side::Sell, "0.25", "400", Tif::Gtc), None).unwrap())
         }
         "cancel" => Box::new(Cancel::new(vec![(id(0), 123_456_789), (outcome(OutcomeSide::Yes), 987_654_321_012)])),
-        "update_leverage_cross" => Box::new(ticket::leverage(&btc(), MarginMode::Cross, 20).unwrap()),
+        "update_leverage_cross" => Box::new(margin::leverage(&btc(), MarginMode::Cross, 20).unwrap()),
         "update_leverage_isolated_hip3" => {
             let xyz100 = Market::perp(Asset::hip3(1, 0).unwrap(), 2, 20, true).unwrap();
-            Box::new(ticket::leverage(&xyz100, MarginMode::Isolated, 5).unwrap())
+            Box::new(margin::leverage(&xyz100, MarginMode::Isolated, 5).unwrap())
         }
         "schedule_cancel_arm" => Box::new(ScheduleCancel::arm(now + 60_000, now).unwrap()),
         "schedule_cancel_disarm" => Box::new(ScheduleCancel::disarm()),
         "order_spot_frontend_market_builder" => {
             let hype = Market::spot(Asset::spot(107).unwrap(), 2).unwrap();
             let buy = OrderIntent::market(Side::Buy, Amount::Size(dec("0.5")), dec("40.829"), dec("0.01"));
-            Box::new(ticket::order(&hype, &buy, Some(&builder)).unwrap())
+            Box::new(orders::order(&hype, &buy, Some(&builder)).unwrap())
         }
         other => panic!("no typed builder for {other}"),
     }
@@ -240,7 +240,7 @@ fn an_entry_with_its_exits_is_the_sdk_s_grouped_order() {
         if let Some(at) = sl {
             entry = entry.stop_loss(Exit::market(dec(at)));
         }
-        let placed = ticket::order(&btc(), &entry, Some(&builder)).unwrap();
+        let placed = orders::order(&btc(), &entry, Some(&builder)).unwrap();
         assert_eq!(placed.grouping(), Grouping::NormalTpsl, "{name}");
         let case = &cases.get(name).and_then(Json::as_array).unwrap()[0];
         check(name, &placed, case, &agent());
@@ -252,13 +252,13 @@ fn an_entry_with_its_exits_is_the_sdk_s_grouped_order() {
 fn the_desk_s_leverage_cases_sign_the_same() {
     let file = parse(LEVERAGE);
     let builder = flat(TERMINAL, 100);
-    let order = |n| ticket::order(&btc(), &market_buy("0.001", "80000", "0.005", n), Some(&builder)).unwrap();
+    let order = |n| orders::order(&btc(), &market_buy("0.001", "80000", "0.005", n), Some(&builder)).unwrap();
     let mut count = 0;
     for (_, session) in file.get("cases").and_then(Json::as_object).unwrap() {
         for case in session.as_array().unwrap() {
             let name = text(case, "name");
             let typed: Box<dyn L1Action> = match name {
-                "leverage" => Box::new(ticket::leverage(&btc(), MarginMode::Cross, 5).unwrap()),
+                "leverage" => Box::new(margin::leverage(&btc(), MarginMode::Cross, 5).unwrap()),
                 "order" | "order_untouched" => Box::new(order(1)),
                 "order_chosen_same" => Box::new(order(2)),
                 other => panic!("no typed builder for {other}"),
@@ -283,38 +283,38 @@ fn the_desk_s_first_session_signs_the_same() {
             // user-signed approvals, not L1 actions
             "approve_agent_atlas" | "approve_builder_fee" => continue,
             "btc_market_buy" => {
-                Box::new(ticket::order(&btc(), &market_buy("0.00375", "80000", "0.005", 1), routed).unwrap())
+                Box::new(orders::order(&btc(), &market_buy("0.00375", "80000", "0.005", 1), routed).unwrap())
             }
             "btc_limit_sell" => {
                 let sell = limit(Side::Sell, "81000", "0.00375", Tif::Gtc).with_cloid(cloid(2));
-                Box::new(ticket::order(&btc(), &sell, routed).unwrap())
+                Box::new(orders::order(&btc(), &sell, routed).unwrap())
             }
             "sp500_market_buy" => {
-                Box::new(ticket::order(&sp500(), &market_buy("0.1", "6712.5", "0.005", 3), routed).unwrap())
+                Box::new(orders::order(&sp500(), &market_buy("0.1", "6712.5", "0.005", 3), routed).unwrap())
             }
             "sp500_limit_sell" => {
                 let sell = limit(Side::Sell, "6800", "0.1", Tif::Gtc).with_cloid(cloid(4));
-                Box::new(ticket::order(&sp500(), &sell, routed).unwrap())
+                Box::new(orders::order(&sp500(), &sell, routed).unwrap())
             }
             "btc_chase_alo" => {
                 let chase = limit(Side::Buy, "79999", "0.001", Tif::Alo).with_cloid(cloid(5));
-                Box::new(ticket::order(&btc(), &chase, routed).unwrap())
+                Box::new(orders::order(&btc(), &chase, routed).unwrap())
             }
             "btc_take_profit" => Box::new(
-                ticket::trigger(&btc(), &exit(Side::Sell, "0.00375", Tpsl::TakeProfit, "90000", Some(6)), routed)
+                orders::trigger(&btc(), &exit(Side::Sell, "0.00375", Tpsl::TakeProfit, "90000", Some(6)), routed)
                     .unwrap(),
             ),
             "btc_stop_loss" => Box::new(
-                ticket::trigger(&btc(), &exit(Side::Sell, "0.00375", Tpsl::StopLoss, "75000", Some(7)), routed)
+                orders::trigger(&btc(), &exit(Side::Sell, "0.00375", Tpsl::StopLoss, "75000", Some(7)), routed)
                     .unwrap(),
             ),
             "btc_close" => {
                 let close = Close::new(dec("0.00375"), dec("80000"), dec("0.03")).with_cloid(cloid(8));
-                Box::new(ticket::close(&btc(), &close, routed).unwrap())
+                Box::new(orders::close(&btc(), &close, routed).unwrap())
             }
             "cancel_one" => Box::new(Cancel::one(id(0), 1002)),
             "cancel_all" => Box::new(Cancel::new(vec![(sp500().asset(), 1003), (id(0), 1004)])),
-            "sp500_leverage_isolated" => Box::new(ticket::leverage(&sp500(), MarginMode::Isolated, 5).unwrap()),
+            "sp500_leverage_isolated" => Box::new(margin::leverage(&sp500(), MarginMode::Isolated, 5).unwrap()),
             other => panic!("no typed builder for {other}"),
         };
         check(name, typed.as_ref(), case, &agent());
@@ -366,10 +366,10 @@ fn the_python_sdk_s_subaccount_orders_sign_the_same() {
             // a dummy action, not an order
             "sdk_test_dummy" => continue,
             "order_market_entry" => {
-                Box::new(ticket::order(&btc(), &market_buy("0.00118", "84100.5", "0.005", 1), None).unwrap())
+                Box::new(orders::order(&btc(), &market_buy("0.00118", "84100.5", "0.005", 1), None).unwrap())
             }
             "order_stop_market" => Box::new(
-                ticket::trigger(&btc(), &exit(Side::Sell, "0.00118", Tpsl::StopLoss, "77372", Some(2)), None).unwrap(),
+                orders::trigger(&btc(), &exit(Side::Sell, "0.00118", Tpsl::StopLoss, "77372", Some(2)), None).unwrap(),
             ),
             "cancel_stop" => Box::new(Cancel::one(id(0), 1002)),
             other => panic!("no typed builder for {other}"),
@@ -408,7 +408,7 @@ fn hip4_tui(name: &str) -> Box<dyn L1Action> {
         }
         "a_spot_order_names_ten_thousand_and_the_pair_index" => {
             let hype = Market::spot(id(10_107), 2).unwrap();
-            Box::new(ticket::order(&hype, &limit(Side::Buy, "44.123", "1.25", Tif::Ioc), None).unwrap())
+            Box::new(orders::order(&hype, &limit(Side::Buy, "44.123", "1.25", Tif::Ioc), None).unwrap())
         }
         "a_stop_loss_at_market_writes_is_market_then_the_trigger_then_the_kind" => {
             Box::new(PlaceOrder::one(trigger(1, Side::Sell, "2900", "0.5", "3000", Tpsl::StopLoss, true)))
@@ -421,12 +421,12 @@ fn hip4_tui(name: &str) -> Box<dyn L1Action> {
                 Tpsl::TakeProfit,
                 Exit::limit(dec("3490"), dec("3500")),
             );
-            Box::new(ticket::trigger(&eth, &take, None).unwrap())
+            Box::new(orders::trigger(&eth, &take, None).unwrap())
         }
         "a_scale_is_one_action_with_a_leg_per_level" => {
             let five = Market::perp(id(5), 2, 10, true).unwrap();
             let levels = Scale::new(Side::Buy, dec("3"), dec("150"), dec("145"), 3, Tif::Gtc);
-            Box::new(ticket::scale(&five, &levels, None).unwrap())
+            Box::new(orders::scale(&five, &levels, None).unwrap())
         }
         "a_cancel_names_asset_and_order" => Box::new(Cancel::new(vec![(id(0), 123_456_789), (id(110_003), 42)])),
         "a_batch_modify_puts_the_order_id_before_the_new_order" => Box::new(BatchModify::new(vec![Modify::new(
@@ -451,23 +451,23 @@ fn hip4_tui(name: &str) -> Box<dyn L1Action> {
         "a_twap_cancel_is_flat" => Box::new(TwapCancel::new(id(0), 1234)),
         "leverage_is_asset_then_cross_then_the_figure" => {
             let tsla = Market::perp(id(110_003), 3, 10, false).unwrap();
-            Box::new(ticket::leverage(&tsla, MarginMode::Isolated, 10).unwrap())
+            Box::new(margin::leverage(&tsla, MarginMode::Isolated, 10).unwrap())
         }
         "margin_goes_in_as_millionths" => Box::new(UpdateIsolatedMargin::new(id(1), Side::Buy, dec("12.5")).unwrap()),
         "margin_comes_out_as_a_negative_int32" => {
             let eth = Market::perp(id(1), 4, 25, true).unwrap();
-            Box::new(ticket::margin(&eth, dec("1"), MarginMode::Isolated, dec("-2.5")).unwrap())
+            Box::new(margin::margin(&eth, dec("1"), MarginMode::Isolated, dec("-2.5")).unwrap())
         }
         "an_order_at_each_market_s_fee_signs_as_the_sdk_does_perp" => Box::new(
             PlaceOrder::one(market_buy()).through(at_88.on(df_hyperliquid_core::utils::AssetKind::Perp).unwrap()),
         ),
         "an_order_at_each_market_s_fee_signs_as_the_sdk_does_hip3" => {
             let tsla = Market::perp(id(110_001), 3, 10, false).unwrap();
-            Box::new(ticket::order(&tsla, &limit(Side::Sell, "340.18", "2.5", Tif::Gtc), Some(&at_88)).unwrap())
+            Box::new(orders::order(&tsla, &limit(Side::Sell, "340.18", "2.5", Tif::Gtc), Some(&at_88)).unwrap())
         }
         "an_order_at_each_market_s_fee_signs_as_the_sdk_does_spot" => {
             let hype = Market::spot(id(10_107), 2).unwrap();
-            Box::new(ticket::order(&hype, &limit(Side::Buy, "44", "1", Tif::Gtc), Some(&at_88)).unwrap())
+            Box::new(orders::order(&hype, &limit(Side::Buy, "44", "1", Tif::Gtc), Some(&at_88)).unwrap())
         }
         "an_order_at_each_market_s_fee_signs_as_the_sdk_does_outcome" => {
             let edge = Order::market(id(100_012_100), Side::Buy, dec("0.99999"), dec("20"));

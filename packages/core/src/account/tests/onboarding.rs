@@ -1,5 +1,5 @@
 use crate::client::Network;
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 
 use super::*;
 use crate::account::fixtures::{

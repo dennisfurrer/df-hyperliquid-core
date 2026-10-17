@@ -1,6 +1,14 @@
 //! `modify` and `batchModify`: a resting order replaced in place.
 
-use crate::trade::order::{Cloid, Order};
+use crate::account::orders::FrontendOrder;
+use crate::trade::orders::Tif;
+use crate::trade::orders::limit::limit_on;
+use crate::trade::orders::tpsl::Covers;
+use crate::trade::orders::trigger::{ExitPrice, fill_price, trigger_on};
+use crate::trade::orders::{Cloid, Order};
+use crate::trade::ticket::{Amount, Market, Refusal, at_least};
+use crate::utils::Dec;
+use crate::utils::rounding::MINIMUM_ORDER_VALUE;
 use crate::utils::sign::{L1Action, Map, Value};
 
 /// The order a modify replaces: the venue's id, or the client's.
@@ -118,3 +126,57 @@ impl L1Action for BatchModify {
             .put_some("a", self.always_place.then_some(true))
     }
 }
+
+/// What a resting order becomes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Change {
+    /// A limit order's new price, size and time in force.
+    Limit { price: Dec, size: Amount, tif: Tif },
+    /// A take profit's or stop loss's new trigger, price and size.
+    Trigger { trigger: Dec, price: ExitPrice, size: Covers },
+}
+
+/// A resting order replaced in place, as `frontendOpenOrders` lists it. Its
+/// side and reduce only stay; a take profit or stop loss always places, as
+/// the venue requires of a trigger.
+pub fn modify(market: &Market, order: &FrontendOrder, change: &Change) -> Result<BatchModify, Refusal> {
+    let grid = market.grid();
+    let side = order.side;
+    let new = match *change {
+        Change::Limit { .. } if order.is_trigger => return Err(Refusal::NotALimit(order.oid)),
+        Change::Limit { tif, .. } if !matches!(tif, Tif::Alo | Tif::Gtc) => return Err(Refusal::ModifyTif(tif)),
+        Change::Limit { price, size, tif } => {
+            let price = limit_on(grid, price, side, "a new price")?;
+            let size = size.size_on(grid, price)?;
+            at_least(size, price, MINIMUM_ORDER_VALUE)?;
+            Order::limit(market.asset(), side, price, size, tif)
+        }
+        Change::Trigger { .. } if !order.is_trigger => return Err(Refusal::NotATrigger(order.oid)),
+        Change::Trigger { trigger, price, size } => {
+            let Some(tpsl) = order.tpsl() else {
+                return Err(Refusal::UnknownTrigger { oid: order.oid, kind: order.order_type.word().to_lowercase() });
+            };
+            let trigger = trigger_on(grid, trigger)?;
+            let size = match size {
+                Covers::Position if order.sz.is_zero() => Dec::ZERO,
+                Covers::Position => return Err(Refusal::NotWholePosition(order.oid)),
+                Covers::Size(amount) => {
+                    let size = amount.size_on(grid, trigger)?;
+                    at_least(size, trigger, MINIMUM_ORDER_VALUE)?;
+                    size
+                }
+            };
+            let (price, is_market) = fill_price(grid, trigger, price, side)?;
+            Order::trigger(market.asset(), side, price, size, trigger, tpsl, is_market)
+        }
+    };
+    let new = match order.reduce_only {
+        true => new.reduce_only(),
+        false => new,
+    };
+    Ok(BatchModify::new(vec![Modify::new(OrderRef::Oid(order.oid), new)]))
+}
+
+#[cfg(test)]
+#[path = "tests/modify.rs"]
+mod tests;

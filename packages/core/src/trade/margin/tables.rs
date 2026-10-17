@@ -3,7 +3,7 @@
 //! leverage, never listed. The main dex and every HIP-3 dex read them the same way.
 
 use crate::trade::error::TradeError;
-use crate::trade::leverage::{MarginMode, UpdateLeverage};
+use crate::trade::margin::{MarginMode, UpdateLeverage};
 use crate::utils::{Asset, Dec};
 use serde::Deserialize;
 
@@ -108,5 +108,5 @@ pub fn checked_leverage(
 }
 
 #[cfg(test)]
-#[path = "tests/margin.rs"]
+#[path = "tests/tables.rs"]
 mod tests;

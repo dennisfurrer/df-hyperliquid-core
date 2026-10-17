@@ -4,7 +4,7 @@
 
 use crate::client::request::{body, dex, number, text, user};
 use crate::client::{ApiError, Transport, info};
-use crate::trade::modify::OrderRef;
+use crate::trade::manage::OrderRef;
 use crate::utils::Address;
 use serde::{Deserialize, Deserializer, de};
 

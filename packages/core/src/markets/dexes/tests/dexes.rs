@@ -11,7 +11,7 @@ use crate::markets::dexes::limits::{
 use crate::markets::dexes::listing::{Dexes, Misaligned, all_perp_metas_request, dexes};
 use crate::markets::dexes::support::{Recorded, block_on, dec};
 use crate::trade::MarginMode;
-use crate::trade::dexes::{LeverageError, update_leverage, update_leverage_for};
+use crate::trade::margin::dexes::{LeverageError, update_leverage, update_leverage_for};
 use crate::utils::{Address, Asset, AssetKind, Dec};
 
 const DEXES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_dexs_mainnet.json"));

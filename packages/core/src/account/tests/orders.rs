@@ -5,8 +5,8 @@
 use crate::utils::{Address, Dec};
 
 use super::*;
-use crate::trade::modify::OrderRef;
-use crate::trade::order::{Cloid, Side, Tif, Tpsl};
+use crate::trade::manage::OrderRef;
+use crate::trade::orders::{Cloid, Side, Tif, Tpsl};
 use crate::trade::tests_support::{Recorded, block_on};
 
 const OPEN: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/open_orders.json"));

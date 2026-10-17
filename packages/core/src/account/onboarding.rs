@@ -8,7 +8,7 @@ use crate::account::signers::ActionKind;
 use crate::account::state::{Abstraction, PerpState, SpotState};
 use crate::account::sub_account::AccountRef;
 use crate::client::Network;
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Dec};
 
 /// The bridge credits nothing under 5 USDC.

@@ -1,10 +1,11 @@
 //! Builder rules: a share of each market's cap in integer math, and the approval check.
 
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Asset, AssetKind, Dec};
 
 use super::*;
-use crate::trade::order::{Builder, Order, PlaceOrder, Side, Tif};
+use crate::trade::builder::Builder;
+use crate::trade::orders::{Order, PlaceOrder, Side, Tif};
 
 fn address(text: &str) -> Address {
     text.parse().unwrap()

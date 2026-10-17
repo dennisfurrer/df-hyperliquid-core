@@ -4,7 +4,7 @@
 
 use crate::client::transport::EXCHANGE;
 use crate::client::{Accepted, ApiError, ExchangeResponse, Status, Transport, exchange};
-use crate::trade::order::Cloid;
+use crate::trade::orders::Cloid;
 use crate::utils::Dec;
 use serde::Deserialize;
 use serde_json::Value;

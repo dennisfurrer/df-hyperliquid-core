@@ -2,7 +2,7 @@
 
 use crate::client::{ApiError, Transport, info, info_request};
 use crate::markets::dexes::ids::asset_parts;
-use crate::trade::dexes::MarginTable;
+use crate::trade::margin::dexes::MarginTable;
 use crate::utils::Grid;
 use crate::utils::{Address, Asset, Dec, Json};
 use serde::Deserialize;

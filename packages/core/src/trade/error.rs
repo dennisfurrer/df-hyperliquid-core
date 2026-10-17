@@ -1,4 +1,4 @@
-use crate::trade::order::OverCap;
+use crate::trade::builder::OverCap;
 use crate::utils::{BadUnits, Dec};
 
 /// What would be refused, or would trade the wrong way, before anything is

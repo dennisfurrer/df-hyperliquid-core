@@ -10,7 +10,7 @@ use crate::account::state::Abstraction;
 use crate::account::sub_account::{CreateSubAccount, SubAccountSpotTransfer, SubAccountTransfer};
 use crate::account::{LocalKey, recover};
 use crate::client::Network;
-use crate::trade::builder_fee::BuilderFee;
+use crate::trade::builder::fee::BuilderFee;
 use crate::utils::sign::{L1Action, UserAction, digest_of_wallet_json};
 use crate::utils::{Address, Dec, hex};
 

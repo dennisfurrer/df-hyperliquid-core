@@ -11,7 +11,8 @@ use crate::utils::Dec;
 use crate::utils::sign::L1Action;
 
 use super::*;
-use crate::trade::perps::{LeverageError, add_margin, remove_margin, update_leverage};
+use crate::trade::margin::perps::{LeverageError, update_leverage};
+use crate::trade::margin::{add_margin, remove_margin};
 
 /// Live, mainnet, 2026-10-06, trimmed: the first three perps and their contexts as sent, then HPOS
 /// (delisted, strictly isolated; 33rd live) and its context.
