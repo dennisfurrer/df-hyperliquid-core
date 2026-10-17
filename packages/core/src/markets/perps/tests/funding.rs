@@ -2,7 +2,7 @@
 //! sent), `userFunding` for HLP Strategy A from 17:00 UTC (177 rows cut to BTC, ETH and DYDX),
 //! `predictedFundings` (234 coins cut to four) and `perpsAtOpenInterestCap` (as sent).
 
-use crate::account::positions::ClearinghouseState;
+use crate::account::ClearinghouseState;
 use crate::markets::Dex;
 use crate::markets::perps::funding::{
     FUNDING_INTERVAL_MS, FUNDING_PAGE, FUNDING_WINDOW_MS, FundingRate, HL_PERP, PredictedFundings, UserFunding,

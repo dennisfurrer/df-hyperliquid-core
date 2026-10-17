@@ -1,5 +1,5 @@
 use crate::client::MAINNET_USDC as USDC;
-use crate::trade::{PlaceOrder, Side, Tif};
+use crate::trade::{Order, PlaceOrder, Side, Tif};
 use crate::utils::Dec;
 use crate::utils::sign::L1Action;
 
@@ -102,7 +102,9 @@ fn a_market_is_found_by_its_book_name_or_its_asset_id() {
 fn a_spot_order_goes_out_on_the_base_s_grid() {
     let meta = meta();
     let hype = meta.market_of("HYPE", "USDC").unwrap();
-    let order = hype.grid().limit(hype.asset().unwrap(), Side::Buy, dec("91.88765"), dec("1.239"), Tif::Gtc).unwrap();
+    let grid = hype.grid();
+    let price = grid.price(dec("91.88765"), Side::Buy).unwrap();
+    let order = Order::limit(hype.asset().unwrap(), Side::Buy, price, grid.size(dec("1.239")).unwrap(), Tif::Gtc);
     assert_eq!(
         PlaceOrder::one(order).wire(),
         r#"{"type":"order","orders":[{"a":10107,"b":true,"p":"91.887","s":"1.23","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na"}"#

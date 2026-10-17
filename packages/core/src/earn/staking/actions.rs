@@ -1,8 +1,7 @@
 //! `cDeposit`, `cWithdraw` and `tokenDelegate`: user-signed, keys in the order
 //! `@nktkas/hyperliquid` 0.33.2 posts them.
 
-use crate::account::Signers;
-use crate::account::signers::ActionKind;
+use crate::account::{ActionKind, Signers};
 use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
 use crate::utils::{Address, BadUnits, Dec, exact_units};
 

@@ -1,5 +1,5 @@
-//! Orders on every market: place, cancel, modify, TWAP, TP/SL, leverage and margin, builder fees, and the ticket that turns an intent into the exact action.
-#![deny(clippy::float_arithmetic)]
+//! Orders on every market: place, cancel, modify, TWAP, TP/SL, leverage and margin, builder fees,
+//! outcome splits and fees, and the ticket that turns an intent into the exact action.
 
 pub mod action;
 pub mod answer;
@@ -17,7 +17,7 @@ pub use action::TradeAction;
 pub use answer::{CancelAnswer, OrderAnswer, TwapAnswer};
 pub use builder::{
     Approval, ApprovalRefused, Approved, Builder, BuilderFee, BuilderSetting, FeeRule, OUTCOME_BUILDER_CAP, OverCap,
-    PERP_BUILDER_CAP, SPOT_BUILDER_CAP, SignedBy,
+    PERP_BUILDER_CAP, SPOT_BUILDER_CAP,
 };
 pub use error::TradeError;
 pub use manage::{BatchModify, Cancel, CancelByCloid, Change, Modify, Noop, OrderRef, ScheduleCancel, TooSoon};

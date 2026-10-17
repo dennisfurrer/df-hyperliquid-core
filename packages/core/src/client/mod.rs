@@ -7,7 +7,6 @@ pub mod http;
 #[cfg(feature = "native")]
 pub mod native;
 pub mod network;
-pub(crate) mod request;
 #[cfg(feature = "web")]
 pub mod web;
 

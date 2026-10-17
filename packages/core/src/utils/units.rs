@@ -4,6 +4,9 @@
 
 use crate::utils::dec::{Dec, Round};
 
+/// USDC's decimals on the perp side and on Arbitrum: millionths.
+pub const USDC_DECIMALS: u32 = 6;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadUnits {
     #[error("{0} is not a positive amount")]

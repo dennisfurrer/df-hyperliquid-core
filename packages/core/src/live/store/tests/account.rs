@@ -1,4 +1,4 @@
-use crate::account::ledger::LedgerUpdate;
+use crate::account::history::LedgerUpdate;
 use crate::account::{Abstraction, SpotState};
 use crate::account::{ClearinghouseState, Leverage};
 use crate::account::{FrontendOrder, OrderKind};
@@ -123,7 +123,7 @@ fn a_fills_read_is_a_whole_and_a_window_adds_to_it() {
     let mut store = store();
     let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
     let _ = store.apply(1_000, &frame("userFills.liquidation"));
-    let recorded: Vec<crate::account::fills::Fill> = read(USER_FILLS);
+    let recorded: Vec<crate::account::history::Fill> = read(USER_FILLS);
     assert_eq!(store.read(2_000, Read::Fills { user: second(), fills: &recorded }), Folded::Changed);
     assert_eq!(fills(&store, second()).len(), 5, "the read is the whole of the latest");
     assert_eq!(store.read(3_000, Read::MoreFills { user: second(), fills: &recorded }), Folded::Same);

@@ -5,7 +5,7 @@
 //! `test_l1_action_signing_matches_with_vault`.
 
 use super::*;
-use crate::account::signer::{LocalKey, recover};
+use crate::account::{LocalKey, recover};
 use crate::client::Network;
 use crate::utils::hex;
 use crate::utils::sign::eip712::digest_of_wallet_json;

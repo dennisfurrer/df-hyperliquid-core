@@ -10,11 +10,11 @@
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
-use df_hyperliquid_core::account::{LocalKey, recover};
+use df_hyperliquid_core::account::{Keeping, LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::transfer::{
-    AgentSendAsset, Amount, Balance, Change, Ctx, EvmContract, HYPE_SYSTEM, Keeping, Key, PERP_DEX, SPOT_DEX,
-    SendAsset, SpotOut, SpotSend, SpotToken, UsdClassTransfer, UsdSend, Withdraw3,
+    AgentSendAsset, Amount, Balance, Change, Ctx, EvmContract, HYPE_SYSTEM, PERP_DEX, SPOT_DEX, SendAsset, SpotOut,
+    SpotSend, SpotToken, UsdClassTransfer, UsdSend, Withdraw3,
 };
 use df_hyperliquid_core::utils::sign::{L1Action, UserAction, digest_of_wallet_json};
 use df_hyperliquid_core::utils::{Address, Json, hex};
@@ -143,7 +143,7 @@ fn the_plans_make_the_nktkas_actions() {
         let out = ctx.withdraw(address(OWN), amount("25")).unwrap();
         assert_eq!(out.action.wire(network), built("withdraw3", nonce).wire(network));
         for key in [class.key, send.key, token.key, out.key] {
-            assert_eq!(key, Key::Main, "{network}: every user-signed transfer needs the account's own key");
+            assert_eq!(key, Signers::Main, "{network}: every user-signed transfer needs the account's own key");
         }
     }
 }
@@ -151,7 +151,7 @@ fn the_plans_make_the_nktkas_actions() {
 /// `agentSendAsset` is an L1 action: the agent signs the phantom agent over
 /// its hash, on mainnet here (source `a`), and the action carries its nonce.
 #[test]
-fn an_agent_moves_between_the_owner_s_balances_as_atlas_recorded() {
+fn an_agent_moves_between_the_owner_s_balances_as_recorded() {
     let file = parse(SEND_ASSET);
     let agent = LocalKey::from_hex(HARDHAT_0).unwrap();
     assert_eq!(agent.address(), address(text(&file, "agent")));
@@ -192,7 +192,7 @@ fn an_agent_moves_between_the_owner_s_balances_as_atlas_recorded() {
         let ctx = Ctx { network: Network::Mainnet, account: owner, keeping: Keeping::Apart, nonce };
         let plan = ctx.agent_between(from, to, &usdc, typed.clone()).unwrap();
         assert_eq!(plan.action, action, "{name}");
-        assert_eq!((plan.key, plan.nonce), (Key::Either, nonce), "{name}");
+        assert_eq!((plan.key, plan.nonce), (Signers::Either, nonce), "{name}");
         let source = match from {
             SPOT_DEX => Balance::Spot(0),
             dex => Balance::Perp(dex.to_owned()),
@@ -242,7 +242,7 @@ fn a_pooled_account_crosses_to_hyperevm_by_send_asset_and_a_separate_one_by_spot
         let name = text(case, "name");
         let network = network(case);
         let keeping = match case.get("pooled") {
-            Some(Json::Bool(true)) => Keeping::Pooled,
+            Some(Json::Bool(true)) => Keeping::Unified,
             _ => Keeping::Apart,
         };
         let wire = case.get("action").unwrap();
@@ -254,7 +254,7 @@ fn a_pooled_account_crosses_to_hyperevm_by_send_asset_and_a_separate_one_by_spot
         let ctx = Ctx { network, account: address(OWN), keeping, nonce };
         let plan = ctx.to_evm(&token, typed.clone()).unwrap();
         assert_eq!(plan.action.wire(network), wire.compact(), "{name}: the posted action");
-        assert_eq!(plan.key, Key::Main, "{name}");
+        assert_eq!(plan.key, Signers::Main, "{name}");
         assert_eq!(plan.effect.balance, Balance::Spot(token.index), "{name}");
         assert_eq!(plan.effect.change, Change::DownAtLeast(typed.value()), "{name}");
         let direct = SpotOut::new(token.system_address(network), &token.wire(), typed, keeping, nonce);

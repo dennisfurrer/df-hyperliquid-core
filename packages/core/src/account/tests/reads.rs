@@ -7,21 +7,26 @@ use std::{
     task::{Context, Poll, Waker},
 };
 
-use crate::account::agent::{Agent, Role, extra_agents};
-use crate::account::builder::{max_builder_fee, max_builder_fee_request};
-use crate::account::referral::Referral;
-use crate::account::sub_account::{SubAccount, sub_accounts};
+use crate::account::{
+    Abstraction, Agent, Referral, Role, SubAccount, abstraction, clearinghouse_state, extra_agents, max_builder_fee,
+    max_builder_fee_request, spot_state, sub_accounts,
+};
 use crate::client::{Transport, TransportError};
+use crate::markets::Dex;
 use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Dec};
 
 /// HLP's leader's named agents, trimmed to two of six.
 const AGENTS: &str = r#"[{"name":"a3","address":"0xeeb5fb0d32a403733ebbf6e1c694f9253b37cf4c","validUntil":1793721457998},{"name":"a2","address":"0x208c65ee65efc668e1d9960ffa6fe57c7e633079","validUntil":1793721404275}]"#;
-const SUBS: &str = r#"[{"name":"ATLAS-SUPERVISED","subAccountUser":"0x1a16ca90bc961b6bce46f400be2afb0f9f71b93f","master":"0x114dc2c90b61ef68b6ccb45d8e9902609cb08f9d","clearinghouseState":{"marginSummary":{"accountValue":"0.0","totalNtlPos":"0.0","totalRawUsd":"0.0","totalMarginUsed":"0.0"},"crossMarginSummary":{"accountValue":"0.0","totalNtlPos":"0.0","totalRawUsd":"0.0","totalMarginUsed":"0.0"},"crossMaintenanceMarginUsed":"0.0","withdrawable":"0.0","assetPositions":[],"time":1791305840519},"spotState":{"balances":[{"coin":"USDC","token":0,"total":"0.0","hold":"0.0","entryNtl":"0.0"}]}}]"#;
+const SUBS: &str = r#"[{"name":"SUPERVISED","subAccountUser":"0x1a16ca90bc961b6bce46f400be2afb0f9f71b93f","master":"0x114dc2c90b61ef68b6ccb45d8e9902609cb08f9d","clearinghouseState":{"marginSummary":{"accountValue":"0.0","totalNtlPos":"0.0","totalRawUsd":"0.0","totalMarginUsed":"0.0"},"crossMarginSummary":{"accountValue":"0.0","totalNtlPos":"0.0","totalRawUsd":"0.0","totalMarginUsed":"0.0"},"crossMaintenanceMarginUsed":"0.0","withdrawable":"0.0","assetPositions":[],"time":1791305840519},"spotState":{"balances":[{"coin":"USDC","token":0,"total":"0.0","hold":"0.0","entryNtl":"0.0"}]}}]"#;
 /// A code's owner, its referral rows and reward history trimmed to one each.
 const REFERRER: &str = r#"{"referredBy":null,"cumVlm":"7049.82","unclaimedRewards":"1.39565981","claimedRewards":"1.799226","builderRewards":"0.0","referrerState":{"stage":"ready","data":{"code":"TESTCODE","nReferrals":3,"referralStates":[{"cumVlm":"2547126.0","cumRewardedFeesSinceReferred":"15.83428","cumFeesRewardedToReferrer":"0.874721","timeJoined":1775271678880,"user":"0xb6a6123aca000befa2b18fb65e7ec489ee1dde92","tokenToState":[[0,{"cumVlm":"2547126.0","cumRewardedFeesSinceReferred":"15.83428","cumFeesRewardedToReferrer":"0.874721"}]]}]}},"rewardHistory":[{"earned":"0.24564","vlm":"3541.88913","referralVlm":"0.0","time":1686181525632}],"tokenToState":[[0,{"cumVlm":"7049.82","unclaimedRewards":"1.39565981","claimedRewards":"1.799226","builderRewards":"0.0"}]]}"#;
 const REFERRED: &str = r#"{"referredBy":{"referrer":"0x677d831aef5328190852e24f13c46cac05f984e7","code":"TESTCODE"},"cumVlm":"2547126.0","unclaimedRewards":"0.0","claimedRewards":"0.0","builderRewards":"0.0","referrerState":{"stage":"needToCreateCode"},"rewardHistory":[],"tokenToState":[[0,{"cumVlm":"2547126.0","unclaimedRewards":"0.0","claimedRewards":"0.0","builderRewards":"0.0"}]]}"#;
 const UNTRADED: &str = r#"{"referredBy":null,"cumVlm":"0.0","unclaimedRewards":"0.0","claimedRewards":"0.0","builderRewards":"0.0","referrerState":{"stage":"needToTrade","data":{"required":"10000.0"}},"rewardHistory":[],"tokenToState":[]}"#;
+
+/// One account's spot and main dex, live, mainnet, 2026-10-06.
+const SPOT: &str = r#"{"balances":[{"coin":"USDC","token":0,"total":"8155.50418728","hold":"0.0","entryNtl":"0.0"},{"coin":"PURR","token":1,"total":"62.97481","hold":"0.0","entryNtl":"14.6492003"},{"coin":"HYPE","token":150,"total":"0.00000004","hold":"0.0","entryNtl":"0.00000359"}]}"#;
+const PERP: &str = r#"{"marginSummary":{"accountValue":"41085992.9213469997","totalNtlPos":"0.0","totalRawUsd":"41085992.9213469997","totalMarginUsed":"477.867397"},"crossMarginSummary":{"accountValue":"41085515.0539499968","totalNtlPos":"0.0","totalRawUsd":"41085515.0539499968","totalMarginUsed":"0.0"},"crossMaintenanceMarginUsed":"0.0","withdrawable":"41085515.0539499968","assetPositions":[],"time":1791304588904}"#;
 
 fn address(text: &str) -> Address {
     text.parse().unwrap()
@@ -60,11 +65,11 @@ fn every_role_reads_and_an_agent_names_its_master() {
 #[test]
 fn a_subaccount_reads_with_its_own_states() {
     let subs: Vec<SubAccount> = serde_json::from_str(SUBS).unwrap();
-    let desk = &subs[0];
-    assert_eq!(desk.name, "ATLAS-SUPERVISED");
-    assert_eq!(desk.master, address("0x114dc2c90b61ef68b6ccb45d8e9902609cb08f9d"));
-    assert_eq!(desk.clearinghouse_state.as_ref().map(|perp| perp.withdrawable), Some(Dec::ZERO));
-    assert_eq!(desk.spot_state.as_ref().and_then(|spot| spot.usdc()).map(|usdc| usdc.total), Some(Dec::ZERO));
+    let sub = &subs[0];
+    assert_eq!(sub.name, "SUPERVISED");
+    assert_eq!(sub.master, address("0x114dc2c90b61ef68b6ccb45d8e9902609cb08f9d"));
+    assert_eq!(sub.clearinghouse_state.as_ref().map(|perp| perp.withdrawable), Some(Dec::ZERO));
+    assert_eq!(sub.spot_state.as_ref().and_then(|spot| spot.usdc()).map(|usdc| usdc.total), Some(Dec::ZERO));
 }
 
 #[test]
@@ -134,7 +139,6 @@ fn none_reads_as_empty_and_a_builder_fee_as_tenths() {
 #[test]
 fn a_standing_reads_the_mode_spot_and_each_dex_asked_for() {
     use crate::account::fixtures::{self, PERP_UNIFIED, PERP_UNIFIED_XYZ, SPOT_UNIFIED, UNIFIED};
-    use crate::account::state::Abstraction;
     let at = |kind: &str, rest: &str| format!(r#"{{"type":"{kind}","user":"{UNIFIED}"{rest}}}"#);
     let asked = [
         at("userAbstraction", ""),
@@ -148,7 +152,9 @@ fn a_standing_reads_the_mode_spot_and_each_dex_asked_for() {
         (&asked[2], PERP_UNIFIED),
         (&asked[3], PERP_UNIFIED_XYZ),
     ]);
-    let standing = fixtures::block_on(crate::account::standing(&transport, address(UNIFIED), &["", "xyz"])).unwrap();
+    let standing =
+        fixtures::block_on(crate::account::standing(&transport, address(UNIFIED), &[Dex::Main, Dex::Hip3("xyz")]))
+            .unwrap();
     assert_eq!(standing.mode, Some(Abstraction::UnifiedAccount));
     assert_eq!(standing.dexes.iter().map(|dex| dex.dex.as_str()).collect::<Vec<_>>(), ["", "xyz"]);
     assert_eq!(standing.dex("").map(|perp| perp.withdrawable), Some(Dec::parse("7046.148664").unwrap()));
@@ -163,4 +169,26 @@ fn a_role_is_read_at_the_address() {
     let body = r#"{"type":"userRole","user":"0xac325205a75ad9695c1499bff980c74539f7515a"}"#;
     let transport = fixtures::Recorded::new(&[(body, ROLE_AGENT)]);
     assert_eq!(fixtures::block_on(crate::account::role(&transport, agent)), Ok(Role::Agent { user: address(UNIFIED) }));
+}
+
+/// The reads post to `/info` with the user lowercase, and read what the venue answers.
+#[test]
+fn the_reads_post_to_info_with_the_user_lowercase() {
+    use crate::account::fixtures;
+    let user = address("0x0D1d9635D0640821d15e323ac8AdADfA9c111414");
+    let lower = r#""user":"0x0d1d9635d0640821d15e323ac8adadfa9c111414""#;
+    let asked = [
+        format!(r#"{{"type":"userAbstraction",{lower}}}"#),
+        format!(r#"{{"type":"spotClearinghouseState",{lower}}}"#),
+        format!(r#"{{"type":"clearinghouseState",{lower}}}"#),
+    ];
+    let transport = fixtures::Recorded::new(&[(&asked[0], "\"default\""), (&asked[1], SPOT), (&asked[2], PERP)]);
+    assert_eq!(fixtures::block_on(abstraction(&transport, user)), Ok(Abstraction::Default));
+    let spot = fixtures::block_on(spot_state(&transport, user)).unwrap();
+    assert_eq!(spot.usdc().map(|usdc| usdc.total), Some(fixtures::dec("8155.50418728")));
+    let perp = fixtures::block_on(clearinghouse_state(&transport, user, Dex::Main)).unwrap();
+    assert_eq!(perp.withdrawable, fixtures::dec("41085515.0539499968"));
+    let paths: Vec<String> = transport.sent.borrow().iter().map(|(path, _)| path.clone()).collect();
+    assert_eq!(paths, ["/info"; 3]);
+    assert_eq!(transport.asked(), asked);
 }

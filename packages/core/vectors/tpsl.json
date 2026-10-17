@@ -1,5 +1,5 @@
 {
-  "source": "An entry with its take profit, its stop loss, and both, one action grouped normalTpsl, each a session after the two approvals of desk.json (nonces from NOW + 2), sorted and signed by @nktkas/hyperliquid 0.24.3 (actionSorter, signL1Action) with the agent's private key.",
+  "source": "An entry with its take profit, its stop loss, and both, one action grouped normalTpsl, each a session after the two approvals of session.json (nonces from NOW + 2), sorted and signed by @nktkas/hyperliquid 0.24.3 (actionSorter, signL1Action) with the agent's private key.",
   "agent": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
   "cases": {
     "entry_tp": [

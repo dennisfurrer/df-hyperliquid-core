@@ -40,7 +40,7 @@ fn every_order_carries_the_builder_at_its_market_s_share_of_the_cap() {
 
 #[test]
 fn a_builder_fee_over_the_cap_for_its_kind_is_refused_with_the_reason() {
-    let flat = |fee: u64| BuilderSetting::flat(terminal(), BuilderFee::from_tenths(fee));
+    let flat = |fee: u64| BuilderSetting::flat(builder_address(), BuilderFee::from_tenths(fee));
     let perp = limit(Side::Buy, "84000", "0.001", Tif::Gtc);
     assert!(order(&btc(), &perp, Some(&flat(100))).is_ok(), "0.1% is the perp cap itself");
     assert_eq!(

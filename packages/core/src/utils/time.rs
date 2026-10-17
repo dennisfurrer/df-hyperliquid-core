@@ -1,156 +1,10 @@
-//! The calendar: instants and days in UTC, counted from 1970 in integers on the proleptic
-//! Gregorian calendar. There is no clock here: the caller passes now, in milliseconds.
-//!
-//! - [`At`]: an instant, read and written as RFC 3339.
-//! - [`Stamp`]: a minute as the venue writes one in an outcome's description, `YYYYMMDD-HHMM`.
-//! - [`civil`]: the year, month and day of an instant.
+//! A UTC minute as the venue writes one in an outcome's description, `YYYYMMDD-HHMM`, counted
+//! from 1970 in integers on the proleptic Gregorian calendar. There is no clock here: the caller
+//! passes now, in milliseconds.
 
-use std::{borrow::Cow, fmt, str::FromStr};
-
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-
-/// Milliseconds in a day.
-pub const DAY_MS: i64 = 86_400_000;
+use std::fmt;
 
 const MINUTE_MS: i64 = 60_000;
-
-const MONTHS: [&str; 12] = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/// An instant: milliseconds since 1970 in UTC. Read from RFC 3339 and written as RFC 3339 with
-/// milliseconds and a `Z` (`2026-09-01T10:00:00.000Z`), a fixed width that sorts as text.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-pub struct At(i64);
-
-impl At {
-    #[must_use]
-    pub const fn from_ms(ms: i64) -> At {
-        At(ms)
-    }
-
-    #[must_use]
-    pub const fn ms(self) -> i64 {
-        self.0
-    }
-
-    /// `YYYY-MM-DDTHH:MM:SS`, a fraction of a second if any (cut to the millisecond), and `Z` or
-    /// an offset `+HH:MM`. A space or a lowercase `t` may stand for the `T`, as RFC 3339
-    /// allows. `None` for anything else, a day that does not exist included.
-    #[must_use]
-    pub fn parse(text: &str) -> Option<At> {
-        let raw = text.as_bytes();
-        let at = |place: usize, byte: u8| raw.get(place) == Some(&byte);
-        let shaped = at(4, b'-') && at(7, b'-') && at(13, b':') && at(16, b':');
-        if !shaped || !matches!(raw.get(10), Some(b'T' | b't' | b' ')) {
-            return None;
-        }
-        let (year, month, day) = (digits(raw, 0, 4)?, digits(raw, 5, 2)?, digits(raw, 8, 2)?);
-        let (hour, minute, second) = (digits(raw, 11, 2)?, digits(raw, 14, 2)?, digits(raw, 17, 2)?);
-        if second > 59 {
-            return None;
-        }
-        let minutes = minutes_since_1970(year, month, day, hour, minute)?;
-        let mut place = 19;
-        let mut millis = 0i64;
-        if at(place, b'.') {
-            place += 1;
-            let start = place;
-            while let Some(digit) = raw.get(place).filter(|byte| byte.is_ascii_digit()) {
-                if place - start < 3 {
-                    millis = millis * 10 + i64::from(digit - b'0');
-                }
-                place += 1;
-            }
-            let read = place - start;
-            if read == 0 {
-                return None;
-            }
-            for _ in read..3 {
-                millis *= 10;
-            }
-        }
-        let offset = match raw.get(place..)? {
-            b"Z" | b"z" => 0,
-            [sign @ (b'+' | b'-'), _, _, b':', _, _] => {
-                let (hours, minutes) = (digits(raw, place + 1, 2)?, digits(raw, place + 4, 2)?);
-                if hours > 23 || minutes > 59 {
-                    return None;
-                }
-                let minutes = hours * 60 + minutes;
-                if *sign == b'-' { -minutes } else { minutes }
-            }
-            _ => return None,
-        };
-        Some(At(((minutes - offset) * 60 + second) * 1_000 + millis))
-    }
-
-    /// `days` whole days on, or back when negative.
-    #[must_use]
-    pub const fn plus_days(self, days: i64) -> At {
-        At(self.0.saturating_add(days.saturating_mul(DAY_MS)))
-    }
-
-    /// `months` calendar months on, or back, at the same time of day. A day the month does not
-    /// have becomes its last: the 31st of January a month on is the 28th of February, or the
-    /// 29th in a leap year.
-    #[must_use]
-    pub fn plus_months(self, months: i64) -> At {
-        let (year, month, day) = civil(self);
-        let counted = year * 12 + i64::from(month) - 1 + months;
-        let (year, month) = (counted.div_euclid(12), counted.rem_euclid(12) + 1);
-        let month = u32::try_from(month).unwrap_or(1);
-        let day = day.min(days_in(year, month));
-        At(days_from_civil(year, month, day) * DAY_MS + self.0.rem_euclid(DAY_MS))
-    }
-
-    /// The day, `YYYY-MM-DD`.
-    #[must_use]
-    pub fn date(self) -> String {
-        let (year, month, day) = civil(self);
-        format!("{year:04}-{month:02}-{day:02}")
-    }
-
-    /// The day, `YYYYMMDD`, as Hyperliquid names a builder's day file.
-    #[must_use]
-    pub fn compact(self) -> String {
-        let (year, month, day) = civil(self);
-        format!("{year:04}{month:02}{day:02}")
-    }
-}
-
-impl fmt::Display for At {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let (year, month, day) = civil(*self);
-        let within = self.0.rem_euclid(DAY_MS);
-        let (hour, minute) = (within / 3_600_000, within / MINUTE_MS % 60);
-        let (second, millis) = (within / 1_000 % 60, within % 1_000);
-        write!(f, "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}.{millis:03}Z")
-    }
-}
-
-impl FromStr for At {
-    type Err = BadAt;
-
-    fn from_str(text: &str) -> Result<Self, Self::Err> {
-        At::parse(text).ok_or_else(|| BadAt(text.to_owned()))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("`{0}` is not an RFC 3339 instant")]
-pub struct BadAt(pub String);
-
-impl Serialize for At {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.collect_str(self)
-    }
-}
-
-impl<'de> Deserialize<'de> for At {
-    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let text = <Cow<'de, str>>::deserialize(deserializer)?;
-        text.parse().map_err(de::Error::custom)
-    }
-}
 
 /// One UTC minute: `20261001-0000` on the wire, `2026-10-01 00:00Z` to read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -229,18 +83,6 @@ impl fmt::Display for Stamp {
         let (year, month, day, hour, minute) = self.parts();
         write!(f, "{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}Z")
     }
-}
-
-/// The year, month and day of an instant.
-#[must_use]
-pub fn civil(at: At) -> (i64, u32, u32) {
-    civil_from_days(at.0.div_euclid(DAY_MS))
-}
-
-/// A month's short English name, `Jan` for 1.
-#[must_use]
-pub fn month_name(month: u32) -> &'static str {
-    month.checked_sub(1).and_then(|at| MONTHS.get(usize::try_from(at).ok()?)).copied().unwrap_or("")
 }
 
 /// `count` ASCII digits from `from`, as a number; `None` where any is not a digit.

@@ -18,7 +18,7 @@ use crate::utils::{Address, Asset, Dec, hex};
 const KEY: &str = "0x0123456789012345678901234567890123456789012345678901234567890123";
 const NONCE: u64 = 1_712_345_678_000;
 /// The builder, checksummed as the vectors name it.
-const TERMINAL: &str = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843";
+const BUILDER: &str = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843";
 
 fn key() -> LocalKey {
     LocalKey::from_hex(KEY).unwrap()
@@ -65,7 +65,7 @@ fn vectors() -> Vec<Vector> {
         ),
         // a_market_buy_through_the_builder_signs_as_the_sdk_does
         (
-            Box::new(through(Order::market(asset(0), Side::Buy, dec("86501"), dec("0.0012")), TERMINAL, 0)),
+            Box::new(through(Order::market(asset(0), Side::Buy, dec("86501"), dec("0.0012")), BUILDER, 0)),
             r#"{"type":"order","orders":[{"a":0,"b":true,"p":"86501","s":"0.0012","r":false,"t":{"limit":{"tif":"FrontendMarket"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":0}}"#,
             "84a474797065a56f72646572a66f72646572739186a16100a162c3a170a53836353031a173a6302e30303132a172c2a17481a56c696d697481a3746966ae46726f6e74656e644d61726b6574a867726f7570696e67a26e61a76275696c64657282a162d92a307836393637643761636431656335663231306539353930363636343938653063633564313361383433a16600",
             "0xcf9b651fad75105f476fc4c35517491458eeab96bd3f04fff16668dc1ea24ac2",
@@ -247,7 +247,7 @@ fn vectors() -> Vec<Vector> {
         ),
         // an_order_at_each_market_s_fee_signs_as_the_sdk_does: a perp at 88
         (
-            Box::new(through(Order::market(asset(0), Side::Buy, dec("86501"), dec("0.0012")), TERMINAL, 88)),
+            Box::new(through(Order::market(asset(0), Side::Buy, dec("86501"), dec("0.0012")), BUILDER, 88)),
             r#"{"type":"order","orders":[{"a":0,"b":true,"p":"86501","s":"0.0012","r":false,"t":{"limit":{"tif":"FrontendMarket"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":88}}"#,
             "84a474797065a56f72646572a66f72646572739186a16100a162c3a170a53836353031a173a6302e30303132a172c2a17481a56c696d697481a3746966ae46726f6e74656e644d61726b6574a867726f7570696e67a26e61a76275696c64657282a162d92a307836393637643761636431656335663231306539353930363636343938653063633564313361383433a16658",
             "0xd3279f475d9f4d267bf239d58ba770327b5b43b1412869d56a855e411f769f9f",
@@ -257,7 +257,7 @@ fn vectors() -> Vec<Vector> {
         ),
         // a HIP-3 perp at 88
         (
-            Box::new(through(limit(110_001, Side::Sell, "340.18", "2.5", Tif::Gtc), TERMINAL, 88)),
+            Box::new(through(limit(110_001, Side::Sell, "340.18", "2.5", Tif::Gtc), BUILDER, 88)),
             r#"{"type":"order","orders":[{"a":110001,"b":false,"p":"340.18","s":"2.5","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":88}}"#,
             "84a474797065a56f72646572a66f72646572739186a161ce0001adb1a162c2a170a63334302e3138a173a3322e35a172c2a17481a56c696d697481a3746966a3477463a867726f7570696e67a26e61a76275696c64657282a162d92a307836393637643761636431656335663231306539353930363636343938653063633564313361383433a16658",
             "0xded8dfb64c97e501dab6d21ab32d985d14ad05177f3b3e1bf6a3a1028439ab68",
@@ -267,7 +267,7 @@ fn vectors() -> Vec<Vector> {
         ),
         // a spot pair at 880
         (
-            Box::new(through(limit(10_107, Side::Buy, "44", "1", Tif::Gtc), TERMINAL, 880)),
+            Box::new(through(limit(10_107, Side::Buy, "44", "1", Tif::Gtc), BUILDER, 880)),
             r#"{"type":"order","orders":[{"a":10107,"b":true,"p":"44","s":"1","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":880}}"#,
             "84a474797065a56f72646572a66f72646572739186a161cd277ba162c3a170a23434a173a131a172c2a17481a56c696d697481a3746966a3477463a867726f7570696e67a26e61a76275696c64657282a162d92a307836393637643761636431656335663231306539353930363636343938653063633564313361383433a166cd0370",
             "0xea5429ccf191d81c3d9b54df28da1706a0d66fbed3fc4cb69507f81dd603251b",
@@ -277,7 +277,7 @@ fn vectors() -> Vec<Vector> {
         ),
         // a HIP-4 outcome at 880, a market buy at the edge of the range
         (
-            Box::new(through(Order::market(asset(100_012_100), Side::Buy, dec("0.99999"), dec("20")), TERMINAL, 880)),
+            Box::new(through(Order::market(asset(100_012_100), Side::Buy, dec("0.99999"), dec("20")), BUILDER, 880)),
             r#"{"type":"order","orders":[{"a":100012100,"b":true,"p":"0.99999","s":"20","r":false,"t":{"limit":{"tif":"FrontendMarket"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":880}}"#,
             "84a474797065a56f72646572a66f72646572739186a161ce05f61044a162c3a170a7302e3939393939a173a23230a172c2a17481a56c696d697481a3746966ae46726f6e74656e644d61726b6574a867726f7570696e67a26e61a76275696c64657282a162d92a307836393637643761636431656335663231306539353930363636343938653063633564313361383433a166cd0370",
             "0xaa33e9f4b217c773b1b2497f6eef60caf9bba607f1ec2d61760fd0362c4c1418",
@@ -343,8 +343,8 @@ fn the_python_sdk_s_order_vectors_sign_the_same() {
 }
 
 /// The rule the whole family keeps: a market order is `FrontendMarket`, on
-/// either side, from the plain constructor and from the grid's, and nothing
-/// a market order posts says `Gtc`.
+/// either side, at a bound given or one the grid makes, and nothing a market
+/// order posts says `Gtc`.
 #[test]
 fn a_market_order_is_frontend_market_and_never_gtc() {
     for side in [Side::Buy, Side::Sell] {
@@ -355,7 +355,9 @@ fn a_market_order_is_frontend_market_and_never_gtc() {
         assert!(posted.contains(r#""tif":"FrontendMarket""#), "{posted}");
         assert!(!posted.contains("Gtc"), "{posted}");
 
-        let gridded = Grid::perp(5).market(asset(0), side, dec("86500"), dec("0.01"), dec("0.0012")).unwrap();
+        let grid = Grid::perp(5);
+        let bound = grid.market_bound(dec("86500"), dec("0.01"), side).unwrap();
+        let gridded = Order::market(asset(0), side, bound, grid.size(dec("0.0012")).unwrap());
         assert_eq!(gridded.tif(), Some(Tif::FrontendMarket), "{side:?}");
         assert!(gridded.is_market());
     }
@@ -374,7 +376,7 @@ fn the_key_order_is_the_wire_order() {
         ["a", "b", "p", "s", "r", "t", "c"]
     );
     assert_eq!(PlaceOrder::one(order).action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping"]);
-    let routed = through(order, TERMINAL, 10);
+    let routed = through(order, BUILDER, 10);
     assert_eq!(routed.action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping", "builder"]);
     assert_eq!(order.wire().to_msgpack()[0], 0x86, "an absent cloid leaves no key, not a nil");
 }

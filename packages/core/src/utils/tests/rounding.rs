@@ -1,10 +1,10 @@
 //! Every price row was run through `formatPrice` in `@nktkas/hyperliquid`
 //! 0.33.2, every size row through `formatSize`.
 
-use crate::utils::{Asset, Dec, Round};
+use crate::utils::{Dec, Round};
 
 use super::*;
-use crate::trade::orders::{Side, Tif};
+use crate::markets::Side;
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -92,12 +92,9 @@ fn a_limit_price_never_rounds_against_the_trader() {
     assert_eq!(Grid::perp(5).price(dec("81462.54"), Side::Buy), Some(dec("81462")));
     assert_eq!(Grid::spot(0).price(dec("0.1218708"), Side::Sell), Some(dec("0.12188")));
     assert_eq!(Grid::spot(0).price(dec("0.1218708"), Side::Buy), Some(dec("0.12187")));
-    let order = Grid::perp(3).limit(Asset::from_id(1), Side::Buy, dec("340.187"), dec("2.5009"), Tif::Alo).unwrap();
-    assert_eq!((order.price(), order.size(), order.tif()), (dec("340.18"), dec("2.5"), Some(Tif::Alo)));
-    assert_eq!(
-        Grid::perp(3).limit(Asset::from_id(1), Side::Buy, dec("1"), dec("0.0004"), Tif::Gtc),
-        Err(TradeError::NoSize(dec("0.0004")))
-    );
+    assert_eq!(Grid::perp(3).price(dec("340.187"), Side::Buy), Some(dec("340.18")));
+    assert_eq!(Grid::perp(3).size(dec("2.5009")), Some(dec("2.5")));
+    assert_eq!(Grid::perp(3).size(dec("0.0004")), None, "nothing left at three places");
 }
 
 /// The reference moved by the slippage on the side that costs more, rounded

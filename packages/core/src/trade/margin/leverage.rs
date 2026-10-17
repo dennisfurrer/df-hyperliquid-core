@@ -10,7 +10,7 @@ use crate::utils::sign::{L1Action, Map};
 use crate::utils::{Asset, Dec};
 
 /// How a position is margined, the same mode a position read back carries.
-pub use crate::account::clearinghouse::MarginMode;
+pub use crate::account::holdings::MarginMode;
 
 /// `updateLeverage`: `{type, asset, isCross, leverage}`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

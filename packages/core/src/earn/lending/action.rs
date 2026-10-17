@@ -1,7 +1,6 @@
 //! `borrowLend`: `{type, operation, token, amount}`, keys in that order.
 
-use crate::account::Signers;
-use crate::account::signers::ActionKind;
+use crate::account::{ActionKind, Signers};
 use crate::utils::Dec;
 use crate::utils::sign::{L1Action, Map, Value};
 

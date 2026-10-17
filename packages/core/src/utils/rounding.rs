@@ -1,11 +1,11 @@
-//! Where prices and sizes may sit on a perp or a spot pair: a price keeps at
-//! most `6 - szDecimals` places on a perp and `8 - szDecimals` on spot, then
-//! five significant figures unless it is whole; a size keeps `szDecimals`.
-//! HIP-4 outcomes have their own grid ([`crate::markets::outcomes::px`]).
+//! Where prices and sizes may sit on a perp or a spot pair: a price keeps at most
+//! `6 - szDecimals` places on a perp and `8 - szDecimals` on spot, then five significant figures
+//! unless it is whole; a size keeps `szDecimals`. A market order's bound is the reference moved by
+//! the slippage. HIP-4 outcomes have their own grid ([`crate::markets::outcomes::px`]).
 
+use crate::markets::Side;
 use crate::trade::error::TradeError;
-use crate::trade::orders::{Order, Side, Tif};
-use crate::utils::{Asset, Dec, Round};
+use crate::utils::{Dec, Round};
 
 /// A price keeps at most this many significant figures, unless it is whole.
 pub const SIGNIFICANT_FIGURES: u32 = 5;
@@ -109,29 +109,6 @@ impl Grid {
             .and_then(|factor| reference.checked_mul(factor))
             .and_then(|moved| self.price(moved, side))
             .ok_or(TradeError::NoPrice(reference))
-    }
-
-    /// A limit order with its price on the grid for its side and its size
-    /// cut toward zero.
-    pub fn limit(self, asset: Asset, side: Side, price: Dec, size: Dec, tif: Tif) -> Result<Order, TradeError> {
-        let price = self.price(price, side).ok_or(TradeError::NoPrice(price))?;
-        let size = self.size(size).ok_or(TradeError::NoSize(size))?;
-        Ok(Order::limit(asset, side, price, size, tif))
-    }
-
-    /// A market order bounded `slippage` past `reference` (the mid, or else
-    /// the mark): always `FrontendMarket`.
-    pub fn market(
-        self,
-        asset: Asset,
-        side: Side,
-        reference: Dec,
-        slippage: Dec,
-        size: Dec,
-    ) -> Result<Order, TradeError> {
-        let bound = self.market_bound(reference, slippage, side)?;
-        let size = self.size(size).ok_or(TradeError::NoSize(size))?;
-        Ok(Order::market(asset, side, bound, size))
     }
 
     /// The smallest size worth [`MINIMUM_ORDER_VALUE`] at `price`, rounded up

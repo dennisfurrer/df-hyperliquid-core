@@ -2,7 +2,7 @@
 //! agent `Agent{source, connectionId}` under `Exchange/1/1337/0x0`. The
 //! source is `"a"` on mainnet and `"b"` on testnet; the hash has no network.
 
-use crate::account::signer::Signature;
+use crate::account::Signature;
 use crate::client::http::body;
 use crate::client::network::Network;
 use crate::utils::address::Address;
