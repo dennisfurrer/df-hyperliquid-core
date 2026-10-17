@@ -179,7 +179,7 @@ dependencies = [
 
 [[package]]
 name = "df-hyperliquid-core"
-version = "0.0.8-beta"
+version = "0.0.8-beta.1"
 dependencies = [
  "futures-util",
  "getrandom 0.2.17",
