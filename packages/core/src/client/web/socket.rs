@@ -1,6 +1,7 @@
 //! The websocket in the browser and Workers: a [`Feed`] carries one [`crate::live::Session`]
-//! over the global `WebSocket`. Subscriptions made while down are sent on the next open; a
-//! post made while down is refused, and one cut off by a drop is reported, never resent.
+//! over the global `WebSocket` and hands back [`crate::live::Event`]s. Subscriptions made
+//! while down are sent on the next open; a post made while down is refused, and one cut off
+//! by a drop is reported, never resent.
 //!
 //! Everything runs on the one JS thread: the socket's events and the timer call into the
 //! feed as tasks of their own, and [`Feed::next`] waits for the events they leave.
@@ -14,35 +15,10 @@ use std::{
 };
 
 use crate::client::web::clock;
-use crate::live::{BadFrame, Frame, PING, Post, Refused, Retry, Session, Subscription, Tick};
+use crate::live::{Event, FeedError, PING, Post, Session, Subscription, Tick};
 use js_sys::{Array, Function, Math, Reflect};
 use wasm_bindgen::{JsCast, JsValue, closure::Closure};
 use web_sys::{CloseEvent, MessageEvent, WebSocket};
-
-/// What a feed hands back, in the order it happened.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Event {
-    /// The socket opened and everything wanted was subscribed again.
-    Opened,
-    /// Boxed: a frame is large and most events are not frames.
-    Frame(Box<Frame>),
-    /// A frame that did not read. The socket is still alive.
-    Unreadable(BadFrame),
-    /// The socket closed, or could not open. The feed dials again after
-    /// `retry.after_ms`; the posts in `retry.unanswered` may or may not have
-    /// landed, so read the account to find out.
-    Closed { reason: String, retry: Retry },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum FeedError {
-    #[error(transparent)]
-    Refused(#[from] Refused),
-    /// The runtime gave no timer (no `setTimeout`, or one that threw), so the
-    /// feed could not keep its time and closed for good.
-    #[error("the feed has stopped")]
-    Stopped,
-}
 
 /// One websocket connection, kept open. Dropping the feed closes it.
 pub struct Feed {
@@ -107,7 +83,7 @@ impl Feed {
     }
 
     /// Sends an info request or a signed action over the socket, and gives
-    /// its id; the answer arrives as [`Frame::Post`] with the same id.
+    /// its id; the answer arrives as [`crate::live::Frame::Post`] with the same id.
     pub async fn post(&self, request: Post) -> Result<u64, FeedError> {
         self.with(|driver| {
             let (id, frame) = driver.session.post(&request)?;

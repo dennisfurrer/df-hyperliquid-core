@@ -70,9 +70,9 @@ fn every_viem_case_encodes_and_decodes_byte_for_byte() {
 }
 
 #[test]
-fn hip4_tuis_cases_encode_from_typed_text() {
-    let hip4 = fixtures::hip4_tui();
-    for case in hip4["abi"]["encoded"].as_array().unwrap() {
+fn recorded_cases_encode_from_typed_text() {
+    let file = fixtures::cases();
+    for case in file["abi"]["encoded"].as_array().unwrap() {
         let types = fixtures::text(&case["types"]);
         let shape = params(types).unwrap();
         let tokens: Vec<Token> = shape
@@ -86,8 +86,8 @@ fn hip4_tuis_cases_encode_from_typed_text() {
 
 #[test]
 fn live_and_viem_answers_decode_into_their_structs() {
-    let hip4 = fixtures::hip4_tui();
-    let answers = &hip4["abi"];
+    let file = fixtures::cases();
+    let answers = &file["abi"];
     let read = |types: &str, key: &str| {
         let shape = params(types).unwrap();
         let tokens = decode(&shape, &fixtures::bytes(&answers[key])).unwrap();

@@ -103,7 +103,7 @@ pub async fn dollars(transport: &impl Transport, user: Address) -> Result<Dollar
     let spot = spot_state(transport, user).await?;
     let perp = perp_state(transport, user).await?;
     Dollars::new(&mode, &spot, &perp).ok_or_else(|| ApiError::Unreadable {
-        path: crate::client::transport::INFO,
+        path: crate::client::http::transport::INFO,
         detail: format!("balances for {user} too large to add"),
     })
 }

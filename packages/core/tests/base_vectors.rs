@@ -1,10 +1,7 @@
-//! Every L1 vector on file, through the signing code alone: the action exactly as written (key
-//! order kept), its msgpack, its hash, and its signature on the network it was made for. The files
-//! are in `vectors/`, each naming the implementation that made it.
-//!
-//! - `l1.json`: `@nktkas/hyperliquid` 0.24.3.
-//! - `vault.json`: the venue's Python SDK 0.19.0, acting for a subaccount.
-//! - `nktkas-0.33.2.json`: `@nktkas/hyperliquid` 0.33.2, every action on mainnet and on testnet.
+//! `@nktkas/hyperliquid` 0.33.2's vectors (`vectors/nktkas-0.33.2.json`) through the signing
+//! code alone: each L1 action exactly as written (key order kept), its hash and its signature on
+//! the network it was made for, and a user-signed action on both networks. The other L1 files are
+//! rebuilt through the typed builders in `trade_vectors.rs`.
 
 // A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
@@ -15,8 +12,6 @@ use df_hyperliquid_core::utils::sign::user_signed::NonceKey;
 use df_hyperliquid_core::utils::sign::{L1Action, UserSigned};
 use df_hyperliquid_core::utils::{Address, Json, hex};
 
-const L1: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/l1.json"));
-const VAULT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/vault.json"));
 const NKTKAS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/nktkas-0.33.2.json"));
 
 fn parse(text: &str) -> Json {
@@ -35,7 +30,7 @@ fn network(case: &Json) -> Network {
     }
 }
 
-/// The Python SDK writes `r` and `s` without leading zeros.
+/// Some files write `r` and `s` without leading zeros.
 fn word(text: &str) -> String {
     format!("0x{:0>64}", text.trim_start_matches("0x"))
 }
@@ -57,33 +52,6 @@ fn check_l1(name: &str, case: &Json, key: &LocalKey, nonce: u64) {
     assert_eq!(signature.r_hex(), word(text(expected, "r")), "{name} on {network}: r");
     assert_eq!(signature.s_hex(), word(text(expected, "s")), "{name} on {network}: s");
     assert_eq!(u64::from(signature.v()), expected.get("v").and_then(Json::as_u64).unwrap(), "{name}: v");
-}
-
-#[test]
-fn every_atlas_l1_case_hashes_and_signs_as_recorded() {
-    let file = parse(L1);
-    let key = LocalKey::from_hex(text(&file, "key")).unwrap();
-    assert_eq!(key.address().to_hex(), text(&file, "address").to_lowercase());
-    let cases = file.get("cases").and_then(Json::as_array).unwrap();
-    assert_eq!(cases.len(), 16);
-    assert!(cases.iter().any(|case| network(case) == Network::Testnet), "a testnet case is on file");
-    for case in cases {
-        let nonce = case.get("nonce").and_then(Json::as_u64).unwrap();
-        check_l1(text(case, "name"), case, &key, nonce);
-    }
-}
-
-#[test]
-fn the_python_sdk_s_subaccount_cases_hash_and_sign_the_same() {
-    let file = parse(VAULT);
-    let cases = file.get("cases").and_then(Json::as_array).unwrap();
-    assert_eq!(cases.len(), 4);
-    for case in cases {
-        let name = text(case, "name");
-        let key = LocalKey::from_hex(text(case, "key")).unwrap();
-        assert_eq!(key.address().to_hex(), text(case, "address").to_lowercase(), "{name}");
-        check_l1(name, case, &key, case.get("nonce").and_then(Json::as_u64).unwrap());
-    }
 }
 
 #[test]

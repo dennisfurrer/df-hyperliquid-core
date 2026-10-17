@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 
 use crate::account::ClearinghouseState;
 use crate::account::FrontendOrder;
+use crate::account::fill::Fill;
+use crate::account::ledger::LedgerUpdate;
 use crate::account::positions::Position;
 use crate::account::{Abstraction, Beside, Collateral, Prices, Standing, Surface, Usable, Worth, combined};
 use crate::client::{Network, USDC_INDEX};
@@ -12,22 +14,25 @@ use crate::live::store::convert;
 use crate::live::store::interest::{Changes, Handle, Interest, Interests};
 use crate::live::store::market::{BARS, Context, Markets, fold_bar, fold_prints};
 use crate::live::store::stamp::Stamped;
-use crate::live::{Book, Candle, Frame, Interval, LedgerUpdate, Level, Limits, Refused, Session, Subscription, Trade};
+use crate::live::{Frame, Limits, Refused, Session, Subscription};
+use crate::markets::Mids;
+use crate::markets::book::{Book, Level};
+use crate::markets::candle::{Candle, Interval};
 use crate::markets::perps::{MetaAndAssetCtxs, PerpCtx, UserFunding};
 use crate::markets::split_coin;
 use crate::markets::spot::{SpotCtx, SpotMeta, SpotMetaAndAssetCtxs};
-use crate::markets::{L2Book, MarketTrade, Mids};
+use crate::markets::trades::Trade;
 use crate::utils::{Address, Dec};
 
 /// A typed `/info` answer for the store to fold.
 #[derive(Debug, Clone, Copy)]
 pub enum Read<'a> {
     /// `l2Book`, ungrouped.
-    Book(&'a L2Book),
+    Book(&'a Book),
     /// `recentTrades`, newest first.
-    Trades(&'a [MarketTrade]),
+    Trades(&'a [Trade]),
     /// `candleSnapshot`, oldest first: what the socket already sent of the same candles stays.
-    Candles(&'a [crate::markets::Candle]),
+    Candles(&'a [Candle]),
     /// `allMids` of one perp dex, `""` the first.
     Mids { dex: &'a str, mids: &'a Mids },
     /// `metaAndAssetCtxs`: the first dex's universe, collateral and contexts.
@@ -49,9 +54,9 @@ pub enum Read<'a> {
     /// `frontendOpenOrders` of one dex.
     Orders { user: Address, dex: &'a str, orders: &'a [FrontendOrder] },
     /// `userFills`: the latest, newest first, which replace what is held.
-    Fills { user: Address, fills: &'a [crate::account::fills::Fill] },
+    Fills { user: Address, fills: &'a [Fill] },
     /// `userFillsByTime`: a window, oldest first, added to what is held.
-    MoreFills { user: Address, fills: &'a [crate::account::fills::Fill] },
+    MoreFills { user: Address, fills: &'a [Fill] },
     /// `userFunding`: a window, oldest first, added to what is held.
     Fundings { user: Address, fundings: &'a [UserFunding] },
     /// `userNonFundingLedgerUpdates`: a window, oldest first, added to what is held, in the
@@ -474,7 +479,7 @@ impl Store {
         self.with(user, &wanted, |account| account.set_orders(now, dex, orders))
     }
 
-    fn fold_fills(&mut self, now: u64, user: Address, fills: Vec<crate::live::Fill>, whole: bool) -> Folded {
+    fn fold_fills(&mut self, now: u64, user: Address, fills: Vec<Fill>, whole: bool) -> Folded {
         let wanted = Subscription::UserFills { user, aggregate_by_time: false };
         self.with(user, &wanted, |account| account.fold_fills(now, fills, whole))
     }

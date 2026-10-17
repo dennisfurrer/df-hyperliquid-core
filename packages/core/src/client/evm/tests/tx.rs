@@ -77,11 +77,11 @@ fn check(name: &str, case: &Value, key: &LocalKey) {
 }
 
 #[test]
-fn hip4_tuis_transactions_are_rebuilt_byte_for_byte() {
-    let hip4 = fixtures::hip4_tui();
-    let key = key(fixtures::text(&hip4["key"]));
+fn recorded_transactions_are_rebuilt_byte_for_byte() {
+    let file = fixtures::cases();
+    let key = key(fixtures::text(&file["key"]));
     assert_eq!(key.address().to_hex(), "0x14791697260e4c9a71f18484c9f997b308e59325");
-    let cases = hip4["transactions"].as_array().unwrap();
+    let cases = file["transactions"].as_array().unwrap();
     assert_eq!(cases.len(), 3);
     for case in cases {
         check(fixtures::text(&case["name"]), case, &key);
@@ -159,8 +159,8 @@ fn a_signature_without_a_recovery_bit_is_refused() {
 #[test]
 fn a_call_becomes_the_transaction_viem_built_for_it() {
     // A CoreWriter order on testnet: base fee 100000000, tip 1000000.
-    let hip4 = fixtures::hip4_tui();
-    let case = &hip4["transactions"][2];
+    let file = fixtures::cases();
+    let case = &file["transactions"][2];
     let call = Call {
         to: Some(fixtures::address("0x3333333333333333333333333333333333333333")),
         value: U256::ZERO,

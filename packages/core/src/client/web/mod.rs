@@ -1,17 +1,25 @@
-//! HTTP and websocket for the browser and Workers: [`Web`] sends requests
-//! through the global `fetch`, [`clock`] is `Date.now()`, and a [`Feed`] keeps
-//! the websocket open over the global `WebSocket`. Hand the first two to
-//! [`crate::client::Api`]:
+//! HTTP and websocket for the browser and Workers: [`Web`] posts through the
+//! global `fetch`, [`clock`] is `Date.now()`, and a [`Feed`] keeps the
+//! websocket open over the global `WebSocket`. Hand the first two to a
+//! [`crate::Client`]:
 //!
 //! ```ignore
-//! let api = df_hyperliquid_core::client::Api::new(df_hyperliquid_core::client::web::Web, df_hyperliquid_core::client::Network::Mainnet, df_hyperliquid_core::client::web::clock);
+//! use df_hyperliquid_core::client::web::{Web, clock};
+//! use df_hyperliquid_core::{Client, Network};
+//!
+//! let client = Client::reader(Web, Network::Mainnet, clock);
 //! ```
 //!
-//! and an [`crate::live::Session`] to the feed, then read what it hands back:
+//! and a [`crate::live::Session`] to the feed, then read the
+//! [`crate::live::Event`]s it hands back:
 //!
 //! ```ignore
-//! let mut feed = df_hyperliquid_core::client::web::Feed::start(df_hyperliquid_core::live::Session::new(df_hyperliquid_core::client::Network::Mainnet));
-//! feed.subscribe(df_hyperliquid_core::live::Subscription::AllMids { dex: String::new() }).await?;
+//! use df_hyperliquid_core::Network;
+//! use df_hyperliquid_core::client::web::Feed;
+//! use df_hyperliquid_core::live::{Session, Subscription};
+//!
+//! let mut feed = Feed::start(Session::new(Network::Mainnet));
+//! feed.subscribe(Subscription::AllMids { dex: String::new() }).await?;
 //! while let Some(event) = feed.next().await {
 //!     // Opened, Frame, Unreadable, or Closed with the delay before the next dial.
 //! }
@@ -23,13 +31,14 @@
 
 pub mod socket;
 
-use crate::client::{Http, Method, Request, Response, TransportError};
+use crate::client::http::transport::JSON;
+use crate::client::{Http, Request, Response, TransportError};
 use js_sys::{Array, Function, Promise, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
 use web_sys::{Headers, RequestInit};
 
-pub use socket::{Event, Feed, FeedError};
+pub use socket::Feed;
 
 /// The global `fetch`.
 #[derive(Debug, Clone, Copy, Default)]
@@ -41,14 +50,9 @@ impl Http for Web {
         let fetch: Function =
             Reflect::get(&global, &JsValue::from_str("fetch")).map_err(unreachable)?.dyn_into().map_err(unreachable)?;
         let headers = Headers::new().map_err(unreachable)?;
-        for (name, value) in &request.headers {
-            headers.append(name, value).map_err(unreachable)?;
-        }
+        headers.append("Content-Type", JSON).map_err(unreachable)?;
         let init = RequestInit::new();
-        init.set_method(match request.method {
-            Method::Get => "GET",
-            Method::Post => "POST",
-        });
+        init.set_method("POST");
         init.set_headers(&headers);
         if !request.body.is_empty() {
             init.set_body(&Uint8Array::from(request.body.as_slice()));

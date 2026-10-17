@@ -1,20 +1,17 @@
-//! One network's `/info` and `/exchange` behind one rate-limit gate. [`Api`]
-//! is a [`Transport`], so every read and send passes the gate and the meter;
-//! the [`Http`] underneath knows nothing of networks.
+//! One network's `/info` and `/exchange` behind one rate-limit gate, the part of a
+//! [`crate::client::Client`] that posts. Every read and send passes the gate and the
+//! meter; the [`Http`] underneath knows nothing of networks.
 
 use std::sync::{Mutex, MutexGuard, PoisonError};
 
-use crate::client::limit::{Gate, Meter, Spent, action_weight, base_weight, per_items, read_weight};
+use crate::client::Clock;
+use crate::client::http::limit::{Gate, Meter, Spent, action_weight, base_weight, per_items, read_weight};
+use crate::client::http::transport::{Http, INFO, Request, Transport, TransportError};
 use crate::client::network::Network;
-use crate::client::transport::{Http, INFO, Request, Transport, TransportError};
 use crate::utils::json::Json;
 
 /// How the meter names a post to `/exchange`.
 const EXCHANGE_KIND: &str = "exchange";
-
-/// Unix milliseconds. Injected: std has no clock in the browser or Workers,
-/// and a test pins the time.
-pub type Clock = fn() -> u64;
 
 #[derive(Debug, Default)]
 struct Limiter {
@@ -23,7 +20,7 @@ struct Limiter {
 }
 
 /// One network's endpoints, rate limited.
-pub struct Api<H> {
+pub(crate) struct Api<H> {
     http: H,
     network: Network,
     clock: Clock,
@@ -31,22 +28,22 @@ pub struct Api<H> {
 }
 
 impl<H: Http> Api<H> {
-    pub fn new(http: H, network: Network, clock: Clock) -> Self {
+    pub(crate) fn new(http: H, network: Network, clock: Clock) -> Self {
         Api { http, network, clock, limiter: Mutex::new(Limiter::default()) }
     }
 
     #[must_use]
-    pub const fn network(&self) -> Network {
+    pub(crate) const fn network(&self) -> Network {
         self.network
     }
 
     #[must_use]
-    pub const fn http(&self) -> &H {
+    pub(crate) const fn http(&self) -> &H {
         &self.http
     }
 
     /// What went out over the last minute, and how long the gate stays closed.
-    pub fn spent(&self) -> Spent {
+    pub(crate) fn spent(&self) -> Spent {
         let now = (self.clock)();
         let mut limiter = self.limiter();
         let cooldown_ms = limiter.gate.cooldown_ms(now);
@@ -91,8 +88,7 @@ impl<H: Http> Transport for Api<H> {
         let response = answer?;
         if response.status == 429 {
             limiter.meter.refuse(now);
-            let retry_after_ms = response.header("retry-after").and_then(|seconds| seconds.trim().parse::<u64>().ok());
-            let wait = limiter.gate.struck(ticket, now, retry_after_ms.map(|seconds| seconds.saturating_mul(1_000)));
+            let wait = limiter.gate.struck(ticket, now, response.retry_after_ms());
             return Err(rate_limited(Some(wait)));
         }
         let text = response.text();

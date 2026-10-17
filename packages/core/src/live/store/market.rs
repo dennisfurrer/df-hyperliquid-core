@@ -9,9 +9,11 @@ use std::{
 
 use crate::account::Collateral;
 use crate::live::store::stamp::Stamped;
-use crate::live::{Book, Candle, Interval, Trade};
+use crate::markets::book::Book;
+use crate::markets::candle::{Candle, Interval};
 use crate::markets::perps::PerpCtx;
 use crate::markets::spot::{SpotCtx, SpotMeta};
+use crate::markets::trades::Trade;
 use crate::utils::Dec;
 
 /// Prints kept a market, newest first.

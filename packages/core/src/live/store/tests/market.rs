@@ -1,11 +1,14 @@
 use crate::client::Network;
+use crate::live::Frame;
 use crate::live::store::fixtures::{
     ALL_MIDS, CANDLE_SNAPSHOT, L2_BOOK, PARA, PERP_META, RECENT_TRADES, SPOT_META_TESTNET, changed, dec, dexes, frame,
     read, sent,
 };
 use crate::live::store::market::fold_bar;
 use crate::live::store::{BARS, Context, Folded, Handle, Interest, Read, Store};
-use crate::live::{Candle, Frame, Interval, Level, Trade};
+use crate::markets::book::Level;
+use crate::markets::candle::{Candle, Interval};
+use crate::markets::trades::Trade;
 use crate::markets::{L2Book, MarketTrade, Mids};
 use crate::utils::Dec;
 

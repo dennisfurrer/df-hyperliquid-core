@@ -2,7 +2,7 @@
 //! match what was sent is unreadable, never a partial success, except an error decided by the
 //! payload alone, which comes back once and stands for every item.
 
-use crate::client::transport::EXCHANGE;
+use crate::client::http::transport::EXCHANGE;
 use crate::client::{Accepted, ApiError, ExchangeResponse, Status, Transport, exchange};
 use crate::trade::orders::Cloid;
 use crate::utils::Dec;

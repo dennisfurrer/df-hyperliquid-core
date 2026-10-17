@@ -3,54 +3,13 @@
 //! what it wrote back, verbatim, and the expected values against node's
 //! `BigInt` over the same digits.
 
-use std::{
-    cell::RefCell,
-    collections::VecDeque,
-    future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
-};
-
 use crate::client::{Network, Response};
+use crate::test_support::{Wire, block_on, ok};
 use serde_json::{Value, json};
 
 use super::*;
 use crate::client::evm::fixtures;
 use crate::client::evm::records::BlockTransactions;
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
-}
-
-/// Answers from a queue and keeps every request. Nothing leaves the process.
-#[derive(Default)]
-struct Wire {
-    answers: RefCell<VecDeque<Result<Response, TransportError>>>,
-    sent: RefCell<Vec<Request>>,
-}
-
-impl Wire {
-    fn answering(answers: impl IntoIterator<Item = Result<Response, TransportError>>) -> Self {
-        Wire { answers: RefCell::new(answers.into_iter().collect()), sent: RefCell::default() }
-    }
-}
-
-impl Http for Wire {
-    fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>> {
-        self.sent.borrow_mut().push(request);
-        ready(self.answers.borrow_mut().pop_front().unwrap_or(Err(TransportError::Unreachable("dry".to_owned()))))
-    }
-}
-
-fn ok(text: &str) -> Result<Response, TransportError> {
-    Ok(Response { status: 200, headers: Vec::new(), body: text.as_bytes().to_vec() })
-}
 
 fn address(text: &str) -> Address {
     fixtures::address(text)
@@ -273,18 +232,14 @@ fn the_client_posts_json_to_its_url_and_reads_the_answer() {
     let rpc = Rpc::hyperevm(wire, Network::Mainnet);
     assert_eq!(rpc.url(), "https://rpc.hyperliquid.xyz/evm");
     assert_eq!(block_on(rpc.chain_id()), Ok(999));
-    let sent = rpc.http().sent.borrow();
-    assert_eq!(sent[0].url, "https://rpc.hyperliquid.xyz/evm");
-    assert_eq!(sent[0].method, crate::client::Method::Post);
-    assert_eq!(sent[0].header("content-type"), Some("application/json"));
-    assert_eq!(String::from_utf8(sent[0].body.clone()).unwrap(), eth::chain_id().body());
-    drop(sent);
-    assert_eq!(Rpc::hyperevm(Wire::default(), Network::Testnet).url(), "https://rpc.hyperliquid-testnet.xyz/evm");
+    let sent = rpc.http().bodies();
+    assert_eq!(sent, [("https://rpc.hyperliquid.xyz/evm".to_owned(), eth::chain_id().body())]);
+    assert_eq!(Rpc::hyperevm(Wire::answering([]), Network::Testnet).url(), "https://rpc.hyperliquid-testnet.xyz/evm");
     let arbitrum = Rpc::new(
         Wire::answering([ok(r#"{"jsonrpc":"2.0","id":1,"result":"0xa4b1"}"#)]),
         "https://arb1.arbitrum.io/rpc",
     );
-    assert_eq!(block_on(arbitrum.chain_id()), Ok(crate::client::evm::chain::ARBITRUM_ONE));
+    assert_eq!(block_on(arbitrum.chain_id()), Ok(Network::Mainnet.arbitrum_chain_id()));
 }
 
 #[test]
@@ -310,7 +265,7 @@ fn http_failures_are_kept_apart_from_node_refusals() {
     let rpc = Rpc::new(Wire::answering([Ok(refused)]), "https://rpc.example/evm");
     let Err(RpcError::Node { error, .. }) = block_on(rpc.block_number()) else { panic!() };
     assert_eq!(error.kind(), ErrorKind::InvalidParams);
-    let rpc = Rpc::new(Wire::default(), "https://rpc.example/evm");
+    let rpc = Rpc::new(Wire::answering([]), "https://rpc.example/evm");
     assert!(matches!(
         block_on(rpc.send_raw_transaction(&[0x02])),
         Err(RpcError::Transport(TransportError::Unreachable(_)))

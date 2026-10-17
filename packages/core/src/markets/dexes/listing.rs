@@ -2,7 +2,7 @@
 //! [`Dexes`] refuses the two out of line (a count mismatch, or a coin not named after its dex), since
 //! an asset id counted against the wrong dex would sign an order for another market.
 
-use crate::client::transport::INFO;
+use crate::client::http::transport::INFO;
 use crate::client::{ApiError, Transport, info};
 use crate::markets::dexes::dex::{DexAsset, DexMeta, PerpDex, PerpDexs, perp_dexs, request};
 use crate::markets::dexes::ids::{asset_parts, split_coin};

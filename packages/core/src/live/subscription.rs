@@ -4,10 +4,8 @@
 
 use std::fmt;
 
+use crate::markets::candle::Interval;
 use crate::utils::{Address, Json};
-
-/// A candle interval, every one the docs list; `candleSnapshot` takes the same.
-pub use crate::markets::candle::Interval;
 
 /// One feed. A coin is spelled as the venue spells it: `BTC`, `xyz:SP500` (HIP-3), `@107` or
 /// `PURR/USDC` (spot), `#14720` (an outcome side). A `dex` of `""` is the first perp dex.

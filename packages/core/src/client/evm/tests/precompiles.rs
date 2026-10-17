@@ -3,14 +3,8 @@
 //! answer against viem's `decodeAbiParameters` of the same live bytes
 //! (`viem_evm.json`), and a few against the info API.
 
-use std::{
-    cell::RefCell,
-    future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
-};
-
-use crate::client::{Http, Network, Request, Response, TransportError};
+use crate::client::Network;
+use crate::test_support::{Wire, block_on, ok};
 use crate::utils::Dec;
 use serde_json::Value;
 
@@ -310,27 +304,6 @@ fn an_answer_shorter_than_its_struct_is_refused() {
     assert!(position(a(SHORT), 0).decode(&[]).is_err());
 }
 
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
-}
-
-struct Answering(Vec<String>, RefCell<Vec<Request>>);
-
-impl Http for Answering {
-    fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>> {
-        let at = self.1.borrow().len();
-        self.1.borrow_mut().push(request);
-        let body = self.0.get(at).cloned().unwrap_or_default().into_bytes();
-        ready(Ok(Response { status: 200, headers: Vec::new(), body }))
-    }
-}
-
 #[test]
 fn the_client_reads_a_precompile_and_keeps_its_refusal_typed() {
     let file = fixtures::mainnet();
@@ -338,13 +311,11 @@ fn the_client_reads_a_precompile_and_keeps_its_refusal_typed() {
         let call = file["precompiles"].as_array().unwrap().iter().find(|call| call["name"] == name).unwrap();
         fixtures::text(&call["answer"]).to_owned()
     };
-    let rpc = Rpc::hyperevm(
-        Answering(vec![answer("bbo"), answer("borrowLendUserState")], RefCell::default()),
-        Network::Mainnet,
-    );
+    let rpc =
+        Rpc::hyperevm(Wire::answering([ok(&answer("bbo")), ok(&answer("borrowLendUserState"))]), Network::Mainnet);
     let read = block_on(rpc.read(&bbo(0))).unwrap();
     assert_eq!(read.bid.to_string(), s(&viem("bbo")["bid"]));
-    let sent: Value = serde_json::from_slice(&rpc.http().1.borrow()[0].body).unwrap();
+    let sent: Value = serde_json::from_slice(&rpc.http().sent()[0].body).unwrap();
     assert_eq!(
         sent["params"],
         serde_json::json!([{"to": "0x000000000000000000000000000000000000080e", "data": format!("0x{}", "0".repeat(64))}, "latest"])

@@ -3,14 +3,13 @@
 //! 0.24.3) and `vectors/nktkas-0.33.2.json`, both on testnet.
 
 use std::{
-    cell::{Cell, RefCell},
+    cell::Cell,
     future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
 };
 
 use crate::account::{LocalKey, SignError, Signature, Signer};
-use crate::client::{ApiError, Http, Network, Request, Response, TransportError};
+use crate::client::{ApiError, Network};
+use crate::test_support::{Wire, block_on};
 use crate::utils::sign::{Domain, NonceKey, TypedStruct, UserAction, UserSigned};
 use crate::utils::{Address, Json};
 
@@ -27,43 +26,6 @@ thread_local! {
 
 fn clock() -> u64 {
     NOW.with(Cell::get)
-}
-
-/// Answers every request with `answer` and keeps them all.
-struct Wire {
-    answer: String,
-    sent: RefCell<Vec<Request>>,
-}
-
-impl Wire {
-    fn answering(answer: &str) -> Self {
-        Wire { answer: answer.to_owned(), sent: RefCell::new(Vec::new()) }
-    }
-
-    fn bodies(&self) -> Vec<(String, String)> {
-        self.sent
-            .borrow()
-            .iter()
-            .map(|request| (request.url.clone(), String::from_utf8_lossy(&request.body).into_owned()))
-            .collect()
-    }
-}
-
-impl Http for Wire {
-    fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>> {
-        self.sent.borrow_mut().push(request);
-        ready(Ok(Response { status: 200, headers: Vec::new(), body: self.answer.clone().into_bytes() }))
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
 }
 
 fn parse(text: &str) -> Json {
@@ -100,7 +62,7 @@ fn an_l1_action_is_signed_for_the_client_s_network_and_posted_once() {
         .unwrap();
     let vault: Address = text(case, "vaultAddress").parse().unwrap();
     let key = LocalKey::from_hex(text(&file, "key")).unwrap();
-    let client = Client::new(Wire::answering(RESTING), Network::Testnet, clock, key).acting_for(vault);
+    let client = Client::new(Wire::always(RESTING), Network::Testnet, clock, key).acting_for(vault);
     let action = case.get("action").unwrap().to_action().unwrap();
     let nonce = case.get("nonce").and_then(Json::as_u64).unwrap();
     let accepted = block_on(client.send_at(&action, nonce)).unwrap();
@@ -136,7 +98,7 @@ fn a_user_signed_action_is_signed_under_the_network_s_chain() {
         .iter()
         .find(|case| text(case, "name") == "usdClassTransfer" && case.get("isTestnet") == Some(&Json::Bool(true)))
         .unwrap();
-    let client = Client::new(Wire::answering(OK), Network::Testnet, clock, key);
+    let client = Client::new(Wire::always(OK), Network::Testnet, clock, key);
     block_on(client.send_user(&ClassTransfer(nonce))).unwrap();
     let sent = client.http().bodies();
     assert_eq!(sent.len(), 1);
@@ -151,8 +113,7 @@ fn a_user_signed_action_is_signed_under_the_network_s_chain() {
 #[test]
 fn a_refusal_is_the_venue_s_words_and_is_never_sent_again() {
     let refused = r#"{"status":"err","response":"Insufficient margin to place order."}"#;
-    let client =
-        Client::new(Wire::answering(refused), Network::Mainnet, clock, LocalKey::from_bytes(&[7; 32]).unwrap());
+    let client = Client::new(Wire::always(refused), Network::Mainnet, clock, LocalKey::from_bytes(&[7; 32]).unwrap());
     let action = parse(r#"{"type":"noop"}"#).to_action().unwrap();
     let error = block_on(client.send(&action)).unwrap_err();
     assert_eq!(error, SendError::Api(ApiError::Refused("Insufficient margin to place order.".to_owned())));
@@ -160,8 +121,8 @@ fn a_refusal_is_the_venue_s_words_and_is_never_sent_again() {
 }
 
 #[test]
-fn every_crate_s_reads_go_through_the_client_and_its_gate() {
-    let client = Client::reader(Wire::answering(r#"{"BTC":"80459.5"}"#), Network::Mainnet, clock);
+fn every_module_s_reads_go_through_the_client_and_its_gate() {
+    let client = Client::reader(Wire::always(r#"{"BTC":"80459.5"}"#), Network::Mainnet, clock);
     let mids = block_on(crate::markets::reads::all_mids(&client, None)).unwrap();
     assert_eq!(mids.get("BTC"), Some("80459.5".parse().unwrap()));
     assert_eq!(client.http().bodies()[0].0, "https://api.hyperliquid.xyz/info");
@@ -193,7 +154,7 @@ impl Signer for Impostor {
 fn a_signature_from_anyone_but_the_signer_is_never_posted() {
     let claims = LocalKey::from_bytes(&[8; 32]).unwrap().address();
     let impostor = Impostor { key: LocalKey::from_bytes(&[7; 32]).unwrap(), claims };
-    let client = Client::new(Wire::answering(OK), Network::Mainnet, clock, impostor);
+    let client = Client::new(Wire::always(OK), Network::Mainnet, clock, impostor);
     let action = parse(r#"{"type":"noop"}"#).to_action().unwrap();
     let error = block_on(client.send(&action)).unwrap_err();
     assert!(matches!(error, SendError::Sign(SignError::WrongSigner { .. })), "{error:?}");
@@ -202,7 +163,7 @@ fn a_signature_from_anyone_but_the_signer_is_never_posted() {
 
 #[test]
 fn nonces_never_repeat_within_a_millisecond() {
-    let client = Client::new(Wire::answering(OK), Network::Mainnet, clock, LocalKey::from_bytes(&[7; 32]).unwrap());
+    let client = Client::new(Wire::always(OK), Network::Mainnet, clock, LocalKey::from_bytes(&[7; 32]).unwrap());
     let first = client.next_nonce();
     let second = client.next_nonce();
     assert_eq!((first, second), (clock(), clock() + 1));

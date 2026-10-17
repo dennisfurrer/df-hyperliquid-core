@@ -1,47 +1,7 @@
-use std::{
-    cell::RefCell,
-    future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
-};
-
 use serde::Deserialize;
 
 use super::*;
-
-/// Answers every post with the same text and keeps what was sent. Nothing
-/// leaves the process.
-struct Recorded {
-    answer: Result<String, TransportError>,
-    sent: RefCell<Vec<(String, String)>>,
-}
-
-impl Recorded {
-    fn answering(text: &str) -> Self {
-        Recorded { answer: Ok(text.to_owned()), sent: RefCell::new(Vec::new()) }
-    }
-
-    fn failing(error: TransportError) -> Self {
-        Recorded { answer: Err(error), sent: RefCell::new(Vec::new()) }
-    }
-}
-
-impl Transport for Recorded {
-    fn post(&self, path: &str, body: String) -> impl Future<Output = Result<String, TransportError>> {
-        self.sent.borrow_mut().push((path.to_owned(), body));
-        ready(self.answer.clone())
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
-}
+use crate::test_support::{Recorded, block_on};
 
 #[test]
 fn an_account_read_names_its_type_and_user() {
@@ -105,7 +65,7 @@ fn an_info_read_posts_to_info_and_reads_the_answer() {
     let transport = Recorded::answering(r#"{"fee":"1.0","unknown":true}"#);
     let read: Answer = block_on(info(&transport, r#"{"type":"x"}"#.to_owned())).unwrap();
     assert_eq!(read, Answer { fee: crate::utils::Dec::ONE });
-    assert_eq!(transport.sent.borrow().as_slice(), [("/info".to_owned(), r#"{"type":"x"}"#.to_owned())]);
+    assert_eq!(transport.sent(), [("/info".to_owned(), r#"{"type":"x"}"#.to_owned())]);
 
     let garbled = Recorded::answering("<html>busy</html>");
     let error = block_on(info::<Answer>(&garbled, "{}".to_owned())).unwrap_err();
@@ -118,7 +78,7 @@ fn a_transfer_accepted_answers_default_with_no_statuses() {
     let accepted = block_on(exchange(&transport, "{}".to_owned())).unwrap();
     assert_eq!(accepted, Accepted { kind: "default".to_owned(), statuses: Vec::new(), data: None });
     assert_eq!(accepted.errors().count(), 0);
-    assert_eq!(transport.sent.borrow()[0].0, "/exchange");
+    assert_eq!(transport.sent()[0].0, "/exchange");
 }
 
 #[test]
@@ -167,27 +127,28 @@ fn an_exchange_post_is_made_once_even_when_no_answer_comes() {
     let transport = Recorded::failing(TransportError::Unreachable("timed out".to_owned()));
     let error = block_on(exchange(&transport, r#"{"action":{}}"#.to_owned())).unwrap_err();
     assert_eq!(error, ApiError::Transport(TransportError::Unreachable("timed out".to_owned())));
-    assert_eq!(transport.sent.borrow().len(), 1, "never retried");
+    assert_eq!(transport.sent().len(), 1, "never retried");
 }
 
 #[test]
-fn a_request_carries_its_method_headers_and_body() {
-    let post =
-        Request::post_json("https://example.test/info", r#"{"type":"meta"}"#.to_owned()).with_header("X-Key", "k");
-    assert_eq!(post.method, Method::Post);
-    assert_eq!(post.header("Content-Type"), Some("application/json"));
-    assert_eq!(post.header("x-key"), Some("k"), "a header is found whatever its case");
+fn a_request_carries_its_url_and_body() {
+    let post = Request::post_json("https://example.test/info", r#"{"type":"meta"}"#.to_owned());
+    assert_eq!(post.url, "https://example.test/info");
     assert_eq!(post.body, br#"{"type":"meta"}"#.to_vec());
-    let get = Request::get("https://example.test/stats");
-    assert_eq!((get.method, get.body.len(), get.headers.len()), (Method::Get, 0, 0));
 }
 
 #[test]
 fn a_response_reads_its_headers_and_text() {
     let answer =
         Response { status: 429, headers: vec![("retry-after".to_owned(), "3".to_owned())], body: b"null".to_vec() };
-    assert_eq!(answer.header("Retry-After"), Some("3"));
+    assert_eq!(answer.header("Retry-After"), Some("3"), "a header is found whatever its case");
+    assert_eq!(answer.retry_after_ms(), Some(3_000));
     assert!(!answer.is_success());
     assert_eq!(answer.text(), "null");
-    assert!(Response { status: 204, headers: Vec::new(), body: Vec::new() }.is_success());
+    let empty = Response { status: 204, headers: Vec::new(), body: Vec::new() };
+    assert!(empty.is_success());
+    assert_eq!(empty.retry_after_ms(), None);
+    let dated =
+        Response { headers: vec![("Retry-After".to_owned(), "Wed, 21 Oct 2026 07:28:00 GMT".to_owned())], ..empty };
+    assert_eq!(dated.retry_after_ms(), None, "only whole seconds are read");
 }

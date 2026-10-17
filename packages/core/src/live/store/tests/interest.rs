@@ -1,7 +1,8 @@
 use crate::client::Network;
-use crate::live::store::fixtures::{FIRST, SECOND, TUI, address, frame, tui_frame};
+use crate::live::store::fixtures::{FIRST, HOLDER, SECOND, address, frame, portfolio_frame};
 use crate::live::store::{Changes, Interest, OtherNetwork, Store};
-use crate::live::{BadSubscription, Frame, Interval, Limits, Refused, Session, Subscription, subscribe, unsubscribe};
+use crate::live::{BadSubscription, Frame, Limits, Refused, Session, Subscription, subscribe, unsubscribe};
+use crate::markets::candle::Interval;
 use crate::utils::Address;
 
 fn store() -> Store {
@@ -55,8 +56,8 @@ fn each_interest_asks_for_what_the_venue_acknowledged() {
     }
     let state = Interest::State { user: first }.subscriptions();
     assert_eq!(state[1], acked(frame("ack.spotState")), "spot with portfolio margin read, not ignored");
-    let state = Interest::State { user: address(TUI) }.subscriptions();
-    assert_eq!(state[0], acked(tui_frame("ack.allDexsClearinghouseState")));
+    let state = Interest::State { user: address(HOLDER) }.subscriptions();
+    assert_eq!(state[0], acked(portfolio_frame("ack.allDexsClearinghouseState")));
 }
 
 #[test]

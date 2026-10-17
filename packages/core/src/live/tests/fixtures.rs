@@ -1,16 +1,17 @@
-//! The recorded frames under `fixtures/`. Each manifest says where its frames came from in its
-//! `source`, and in `notes` which frames were trimmed; every other frame is the text as received.
+//! The recorded frames under `fixtures/ws`. Each manifest says where its frames came from in its
+//! `source`, and which were trimmed in its `notes` or its `source`; every other frame is the text
+//! as received.
 //!
 //! - `mainnet.json`: recorded from mainnet on 2026-10-08, subscriptions and info posts only.
 //! - `testnet.json`: recorded from testnet the same day, with one refused action post.
-//! - A mainnet account's portfolio frames, recorded 2026-09-26.
+//! - `portfolio.json`: one mainnet account's clearinghouse frames, recorded 2026-09-26.
 //! - `docs.json`: the post-requests page's sample answer to an order.
 
 use crate::utils::Json;
 
 const MAINNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/mainnet.json"));
 const TESTNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/testnet.json"));
-const HIP4_TUI: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/hip4-tui.json"));
+const PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/portfolio.json"));
 const DOCS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/docs.json"));
 
 fn frames(manifest: &str) -> Vec<(String, String)> {
@@ -40,8 +41,8 @@ pub fn testnet(name: &str) -> String {
     named(TESTNET, name)
 }
 
-pub fn hip4_tui(name: &str) -> String {
-    named(HIP4_TUI, name)
+pub fn portfolio(name: &str) -> String {
+    named(PORTFOLIO, name)
 }
 
 pub fn docs(name: &str) -> String {
@@ -50,5 +51,5 @@ pub fn docs(name: &str) -> String {
 
 /// Every recorded frame, from every manifest.
 pub fn all() -> Vec<(String, String)> {
-    [MAINNET, TESTNET, HIP4_TUI, DOCS].into_iter().flat_map(frames).collect()
+    [MAINNET, TESTNET, PORTFOLIO, DOCS].into_iter().flat_map(frames).collect()
 }

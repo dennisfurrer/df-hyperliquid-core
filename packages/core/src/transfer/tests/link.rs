@@ -28,8 +28,8 @@ fn decimals_on_each_side_follow_the_link() {
 #[test]
 fn hype_goes_home_as_a_plain_value_transfer() {
     // A recorded "HYPE back to Core" transaction, which viem 2.55.4 signed.
-    let hip4 = fixtures::hip4_tui();
-    let case = &hip4["transactions"][1];
+    let file = fixtures::cases();
+    let case = &file["transactions"][1];
     let call = Linked::hype(8).to_core(dec("1.5")).unwrap();
     assert_eq!(call.to, Some(HYPE_SYSTEM));
     assert!(call.data.is_empty());

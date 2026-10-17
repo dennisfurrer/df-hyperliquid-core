@@ -91,7 +91,7 @@ pub struct Kind {
 /// The last minute of requests: when each went out, its kind and weight; and
 /// when each refusal came.
 #[derive(Debug, Default)]
-pub struct Meter {
+pub(crate) struct Meter {
     sent: VecDeque<(u64, String, u32)>,
     refused: VecDeque<u64>,
 }
@@ -108,19 +108,19 @@ impl Meter {
         }
     }
 
-    pub fn record(&mut self, now: u64, kind: &str, weight: u32) {
+    pub(crate) fn record(&mut self, now: u64, kind: &str, weight: u32) {
         self.prune(now);
         self.sent.push_back((now, kind.to_owned(), weight));
     }
 
-    pub fn refuse(&mut self, now: u64) {
+    pub(crate) fn refuse(&mut self, now: u64) {
         self.prune(now);
         self.refused.push_back(now);
     }
 
     /// How long a read of `need` waits at `now`, so the last minute stays
     /// within [`SOFT`]: none while it fits, else until enough has rolled off.
-    pub fn wait_for(&mut self, now: u64, need: u32) -> Option<u64> {
+    pub(crate) fn wait_for(&mut self, now: u64, need: u32) -> Option<u64> {
         self.prune(now);
         let spent = self.sent.iter().fold(0u32, |sum, (_, _, weight)| sum.saturating_add(*weight));
         let mut over = spent.saturating_add(need).checked_sub(SOFT).filter(|over| *over > 0)?;
@@ -134,7 +134,7 @@ impl Meter {
     }
 
     /// The last minute at `now`, with no cooldown: the [`Gate`] knows that.
-    pub fn spent(&mut self, now: u64) -> Spent {
+    pub(crate) fn spent(&mut self, now: u64) -> Spent {
         self.prune(now);
         let mut kinds: Vec<Kind> = Vec::new();
         for (_, name, weight) in &self.sent {
@@ -161,12 +161,12 @@ impl Meter {
 /// What a request carries out through the [`Gate`]: how many strikes there
 /// had been when it went out, so a burst sent before a 429 counts once.
 #[derive(Debug, Clone, Copy)]
-pub struct Ticket(u64);
+pub(crate) struct Ticket(u64);
 
 /// Closed by a 429 for every request, reads and actions alike: the venue
 /// limits by IP, so one refusal means the next request would be refused too.
 #[derive(Debug, Default)]
-pub struct Gate {
+pub(crate) struct Gate {
     until: u64,
     /// Consecutive strikes, a burst counting once.
     strikes: u32,
@@ -176,7 +176,7 @@ pub struct Gate {
 
 impl Gate {
     /// A ticket out, or how long the gate stays closed.
-    pub fn open(&self, now: u64) -> Result<Ticket, u64> {
+    pub(crate) fn open(&self, now: u64) -> Result<Ticket, u64> {
         match self.until > now {
             true => Err(self.until - now),
             false => Ok(Ticket(self.epoch)),
@@ -185,7 +185,7 @@ impl Gate {
 
     /// The request was answered: room again, unless a 429 struck since it
     /// went out.
-    pub fn passed(&mut self, ticket: Ticket) {
+    pub(crate) fn passed(&mut self, ticket: Ticket) {
         if ticket.0 == self.epoch {
             self.strikes = 0;
         }
@@ -194,7 +194,7 @@ impl Gate {
     /// A 429 came back at `now`. The first of a burst strikes: two seconds,
     /// doubling to a minute, or a longer `Retry-After`. The rest of the burst
     /// only moves the gate for a longer `Retry-After`. Gives the wait.
-    pub fn struck(&mut self, ticket: Ticket, now: u64, retry_after_ms: Option<u64>) -> u64 {
+    pub(crate) fn struck(&mut self, ticket: Ticket, now: u64, retry_after_ms: Option<u64>) -> u64 {
         let wait = match ticket.0 == self.epoch {
             true => {
                 self.epoch += 1;
@@ -209,7 +209,7 @@ impl Gate {
     }
 
     #[must_use]
-    pub const fn cooldown_ms(&self, now: u64) -> u64 {
+    pub(crate) const fn cooldown_ms(&self, now: u64) -> u64 {
         self.until.saturating_sub(now)
     }
 }

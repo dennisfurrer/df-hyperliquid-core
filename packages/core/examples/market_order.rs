@@ -1,5 +1,5 @@
-//! Reads what a BTC perp ticket needs from mainnet and prints the exact order a $20 market buy would send,
-//! unsigned and unsent: `cargo run -p df-hyperliquid-core --example perps_page`.
+//! Reads BTC's meta, book and context from mainnet and prints the unsigned market order a $20 buy
+//! would send: `cargo run -p df-hyperliquid-core --example market_order`.
 
 use std::error::Error;
 

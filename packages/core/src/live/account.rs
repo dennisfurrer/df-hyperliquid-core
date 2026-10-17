@@ -1,16 +1,19 @@
-//! What the websocket says about one account: fills, orders, events, funding, the ledger, each
-//! dex's clearinghouse, spot balances, TWAPs, and what it may trade. Amounts are exact [`Dec`];
-//! the venue writes them as strings. Frames that open with history say so in `is_snapshot`.
+//! The websocket's own frames about one account: fills, order updates, events, funding, the
+//! ledger, each dex's clearinghouse, spot balances, TWAPs and `webData3`. Rows the `/info` reads
+//! answer too (a fill, an order, a clearinghouse) are the [`crate::account`] types. Amounts are
+//! exact [`Dec`]; the venue writes them as strings. Frames that open with history say so in
+//! `is_snapshot`.
 
 use std::fmt;
 
-use crate::live::market::Side;
+use crate::account::ClearinghouseState;
+use crate::account::fill::{Fill, TwapSliceFill};
+use crate::account::ledger::LedgerUpdate;
+use crate::account::order::{FrontendOrder, OpenOrder, OrderRecord};
+use crate::markets::Side;
 use crate::utils::{Address, Dec};
 use serde::{Deserialize, Deserializer, de};
 use serde_json::value::RawValue;
-
-/// One fill, as `userFills`, `userEvents` and the TWAP feeds send it, and a TWAP slice's fill.
-pub use crate::account::fill::{Fill, FillLiquidation, TwapSliceFill};
 
 /// `userFills`: the last fills first (`is_snapshot`), then each new one as it happens.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -22,23 +25,16 @@ pub struct UserFills {
     pub fills: Vec<Fill>,
 }
 
-/// An order as `orderUpdates` sends it, the shape of an `openOrders` row.
-pub use crate::account::order::OpenOrder as Order;
-
 /// One order's new status on `orderUpdates`: `open`, `filled`, `canceled`, `triggered`,
 /// `rejected`, `marginCanceled`, `badAloPxRejected` and the rest the info docs list.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderUpdate {
-    pub order: Order,
+    pub order: OpenOrder,
     pub status: String,
     /// Milliseconds.
     pub status_timestamp: u64,
 }
-
-/// A resting order with its trigger and type, as `openOrders` and `userHistoricalOrders` send it,
-/// the shape of a `frontendOpenOrders` row.
-pub use crate::account::order::FrontendOrder as OpenOrder;
 
 /// `userEvents`, on the channel `user`: one kind of event a frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -148,16 +144,6 @@ pub struct Ledger {
     pub updates: Vec<LedgerUpdate>,
 }
 
-/// One ledger row, as `userNonFundingLedgerUpdates` answers it. A type this build does not read is
-/// kept as written.
-pub use crate::account::ledger::{Delta, LedgerUpdate};
-
-/// One dex's clearinghouse, its margin and positions, a position's leverage (or what the account
-/// has set on a coin) and whether it shares the account's balance, as `clearinghouseState` answers.
-pub use crate::account::clearinghouse::{
-    AssetPosition, Clearinghouse, CumFunding, Leverage, MarginMode as Margin, MarginSummary, Position,
-};
-
 /// `clearinghouseState`: one dex's clearinghouse (`dex` empty for the first).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -165,7 +151,7 @@ pub struct DexState {
     pub dex: String,
     pub user: Address,
     #[serde(rename = "clearinghouseState")]
-    pub state: Clearinghouse,
+    pub state: ClearinghouseState,
 }
 
 /// `allDexsClearinghouseState`: every dex's clearinghouse, the first named `""`.
@@ -174,15 +160,15 @@ pub struct DexState {
 pub struct AllDexsState {
     pub user: Address,
     #[serde(rename = "clearinghouseStates")]
-    pub states: Vec<(String, Clearinghouse)>,
+    pub states: Vec<(String, ClearinghouseState)>,
 }
 
-/// `openOrders`: every resting order on one dex.
+/// `openOrders`: every resting order on one dex, with its trigger and type.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct OpenOrders {
     pub dex: String,
     pub user: Address,
-    pub orders: Vec<OpenOrder>,
+    pub orders: Vec<FrontendOrder>,
 }
 
 /// `spotState`: spot balances, outcome sides among them (`+14720`, with no token).
@@ -192,12 +178,8 @@ pub struct SpotState {
     pub user: Address,
     /// The shape `spotClearinghouseState` answers.
     #[serde(rename = "spotState")]
-    pub state: crate::account::clearinghouse::SpotState,
+    pub state: crate::account::SpotState,
 }
-
-/// One token's balance. `total` already includes `hold`; under portfolio margin a hold may be
-/// negative, room to borrow. A row of `spotClearinghouseState`.
-pub use crate::account::clearinghouse::SpotBalance as Balance;
 
 /// `twapStates`: the account's running TWAPs on one dex, by id.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -313,9 +295,6 @@ pub struct LeadingVault {
     pub name: String,
 }
 
-/// `activeAssetData`: what the account may trade on one perp, buy then sell.
-pub use crate::account::clearinghouse::ActiveAssetData as AssetData;
-
 /// `userHistoricalOrders`: orders and what became of them, the latest first.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -324,8 +303,5 @@ pub struct HistoricalOrders {
     #[serde(default)]
     pub is_snapshot: bool,
     #[serde(rename = "orderHistory")]
-    pub orders: Vec<HistoricalOrder>,
+    pub orders: Vec<OrderRecord>,
 }
-
-/// An order and what became of it, the shape of a `historicalOrders` row.
-pub use crate::account::order::OrderRecord as HistoricalOrder;

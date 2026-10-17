@@ -498,11 +498,7 @@ impl<H: Http> Rpc<H> {
     pub async fn run<T>(&self, query: Query<T>) -> Result<T, RpcError> {
         let response = self.http.send(Request::post_json(self.url.clone(), query.body())).await?;
         if response.status == 429 {
-            let seconds = response.header("retry-after").and_then(|seconds| seconds.trim().parse::<u64>().ok());
-            return Err(TransportError::RateLimited {
-                retry_after_ms: seconds.map(|seconds| seconds.saturating_mul(1_000)),
-            }
-            .into());
+            return Err(TransportError::RateLimited { retry_after_ms: response.retry_after_ms() }.into());
         }
         let text = response.text();
         match (response.is_success(), query.answer(&text)) {

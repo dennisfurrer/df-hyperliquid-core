@@ -28,7 +28,6 @@
 //! # Ok(())
 //! # }
 //! ```
-#![deny(clippy::float_arithmetic)]
 
 pub mod account;
 mod convert;

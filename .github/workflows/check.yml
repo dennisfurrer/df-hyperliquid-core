@@ -15,9 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
+      # The toolchain pinned in rust-toolchain.toml. Since rustup 1.28 `rustup show` no longer installs it.
+      - run: rustup toolchain install
 
       - uses: Swatinem/rust-cache@v2
 

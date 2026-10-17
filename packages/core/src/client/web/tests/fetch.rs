@@ -7,8 +7,8 @@ use wasm_bindgen_test::wasm_bindgen_test;
 use super::*;
 
 #[wasm_bindgen_test]
-async fn a_get_reads_the_status_headers_and_body() {
-    let response = Web.send(Request::get(r#"data:application/json,{"ok":true}"#)).await.unwrap();
+async fn a_post_reads_the_status_headers_and_body() {
+    let response = Web.send(Request::post_json(r#"data:application/json,{"ok":true}"#, "{}".to_owned())).await.unwrap();
     assert_eq!(response.status, 200);
     assert_eq!(response.header("Content-Type"), Some("application/json"));
     assert_eq!(response.text(), r#"{"ok":true}"#);
@@ -16,7 +16,8 @@ async fn a_get_reads_the_status_headers_and_body() {
 
 #[wasm_bindgen_test]
 async fn a_binary_body_comes_back_byte_for_byte() {
-    let response = Web.send(Request::get("data:application/octet-stream;base64,AAH/gA==")).await.unwrap();
+    let request = Request::post_json("data:application/octet-stream;base64,AAH/gA==", "{}".to_owned());
+    let response = Web.send(request).await.unwrap();
     assert_eq!(response.body, vec![0x00, 0x01, 0xff, 0x80]);
 }
 

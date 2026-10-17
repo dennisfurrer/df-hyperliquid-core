@@ -1,10 +1,11 @@
 //! The websocket for native programs: a [`Feed`] carries one [`crate::live::Session`]
-//! over tokio-tungstenite. Subscriptions made while down are sent on the next open; a
-//! post made while down is refused, and one cut off by a drop is reported, never resent.
+//! over tokio-tungstenite and hands back [`crate::live::Event`]s. Subscriptions made while
+//! down are sent on the next open; a post made while down is refused, and one cut off by a
+//! drop is reported, never resent.
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use crate::live::{BadFrame, Frame, PING, Post, Refused, Retry, Session, Subscription, Tick};
+use crate::live::{Event, FeedError, PING, Post, Refused, Session, Subscription, Tick};
 use futures_util::{SinkExt, StreamExt};
 use tokio::{
     net::TcpStream,
@@ -15,29 +16,6 @@ use tokio::{
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
 use crate::client::native::clock;
-
-/// What a feed hands back, in the order it happened.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Event {
-    /// The socket opened and everything wanted was subscribed again.
-    Opened,
-    /// Boxed: a frame is large and most events are not frames.
-    Frame(Box<Frame>),
-    /// A frame that did not read. The socket is still alive.
-    Unreadable(BadFrame),
-    /// The socket closed, or could not open. The feed dials again after
-    /// `retry.after_ms`; the posts in `retry.unanswered` may or may not have
-    /// landed, so read the account to find out.
-    Closed { reason: String, retry: Retry },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-pub enum FeedError {
-    #[error(transparent)]
-    Refused(#[from] Refused),
-    #[error("the feed has stopped")]
-    Stopped,
-}
 
 enum Command {
     Subscribe(Subscription, oneshot::Sender<Result<(), Refused>>),
@@ -82,7 +60,7 @@ impl Feed {
     }
 
     /// Sends an info request or a signed action over the socket, and gives
-    /// its id; the answer arrives as [`Frame::Post`] with the same id.
+    /// its id; the answer arrives as [`crate::live::Frame::Post`] with the same id.
     pub async fn post(&self, request: Post) -> Result<u64, FeedError> {
         let (reply, answer) = oneshot::channel();
         self.commands.send(Command::Post(request, reply)).map_err(|_| FeedError::Stopped)?;

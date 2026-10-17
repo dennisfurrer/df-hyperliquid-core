@@ -5,7 +5,8 @@
 use std::fmt;
 
 use crate::account::Signature;
-use crate::client::{ApiError, Network, Transport, body, info, user_request};
+use crate::client::http::body;
+use crate::client::{ApiError, Network, Transport, info, user_request};
 use crate::utils::Address;
 use crate::utils::sign::{Field, Map, NonceKey, UserAction, UserSigned, Value};
 use serde::Deserialize;

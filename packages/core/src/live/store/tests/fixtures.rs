@@ -9,7 +9,7 @@ use crate::utils::{Address, Dec};
 use serde::de::DeserializeOwned;
 
 const WS_MAINNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/mainnet.json"));
-const WS_HIP4_TUI: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/hip4-tui.json"));
+const WS_PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/portfolio.json"));
 
 pub const L2_BOOK: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/l2_book.json"));
 pub const RECENT_TRADES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/recent_trades.json"));
@@ -61,7 +61,7 @@ pub const SPOT_PORTFOLIO_MARGIN: &str =
 pub const FIRST: &str = "0x42f1b36fb856769e075dfbf25938464fb3c92c70";
 pub const SECOND: &str = "0x78dce96236804d6958bf3c4598cf5efbc371629c";
 /// The account the 2026-09-26 frames follow.
-pub const TUI: &str = "0x8d1548a936241928cef288a1c377919a5d511f7a";
+pub const HOLDER: &str = "0x8d1548a936241928cef288a1c377919a5d511f7a";
 /// The recorded unified account, its subaccount, and the standard account.
 pub const UNIFIED: &str = "0x114dc2c90b61ef68b6ccb45d8e9902609cb08f9d";
 pub const UNIFIED_SUB: &str = "0x1a16ca90bc961b6bce46f400be2afb0f9f71b93f";
@@ -90,7 +90,7 @@ fn manifest(cell: &'static OnceLock<serde_json::Value>, text: &str) -> &'static 
 }
 
 static MAINNET: OnceLock<serde_json::Value> = OnceLock::new();
-static HIP4_TUI: OnceLock<serde_json::Value> = OnceLock::new();
+static PORTFOLIO: OnceLock<serde_json::Value> = OnceLock::new();
 
 /// A frame recorded from mainnet, as received.
 pub fn sent(name: &str) -> String {
@@ -103,8 +103,8 @@ pub fn frame(name: &str) -> Frame {
 }
 
 /// A frame from the 2026-09-26 recording, read.
-pub fn tui_frame(name: &str) -> Frame {
-    decode(&text(manifest(&HIP4_TUI, WS_HIP4_TUI), name)).unwrap()
+pub fn portfolio_frame(name: &str) -> Frame {
+    decode(&text(manifest(&PORTFOLIO, WS_PORTFOLIO), name)).unwrap()
 }
 
 /// A recorded frame with `change` made to its JSON first: for a frame the venue did not send.

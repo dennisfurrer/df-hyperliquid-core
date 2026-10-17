@@ -137,9 +137,9 @@ fn every_action_id_encodes_as_viem_encodes_it() {
 }
 
 #[test]
-fn hip4_tuis_payloads_and_calldata_are_rebuilt() {
-    let hip4 = fixtures::hip4_tui();
-    for case in hip4["corewriter"]["encoded"].as_array().unwrap() {
+fn recorded_payloads_and_calldata_are_rebuilt() {
+    let file = fixtures::cases();
+    for case in file["corewriter"]["encoded"].as_array().unwrap() {
         let payload = fixtures::bytes(&case["payload"]);
         let read = Action::decode(&payload).unwrap();
         assert_eq!(u64::from(read.id()), case["id"].as_u64().unwrap());
@@ -154,9 +154,9 @@ fn hip4_tuis_payloads_and_calldata_are_rebuilt() {
 }
 
 #[test]
-fn hip4_tuis_live_logs_decode_and_round_trip() {
-    let hip4 = fixtures::hip4_tui();
-    let logs = hip4["corewriter"]["logs"].as_array().unwrap();
+fn live_mainnet_logs_decode_and_round_trip() {
+    let file = fixtures::cases();
+    let logs = file["corewriter"]["logs"].as_array().unwrap();
     assert_eq!(logs.len(), 8);
     for raw in logs {
         let read = RawAction::from_log(&log(raw)).unwrap();
@@ -240,9 +240,9 @@ fn what_the_table_does_not_have_is_called_out() {
 #[test]
 fn a_send_is_a_valueless_transaction_to_corewriter() {
     // A CoreWriter order on testnet, which viem 2.50.4 built and signed.
-    let hip4 = fixtures::hip4_tui();
-    let case = &hip4["transactions"][2];
-    let order = Action::decode(&fixtures::bytes(&hip4["corewriter"]["encoded"][3]["payload"])).unwrap();
+    let file = fixtures::cases();
+    let case = &file["transactions"][2];
+    let order = Action::decode(&fixtures::bytes(&file["corewriter"]["encoded"][3]["payload"])).unwrap();
     let call = order.call();
     assert_eq!((call.to, call.value), (Some(CORE_WRITER), U256::ZERO), "value voids an action");
     let fees = Fees::over_base(U256::from(100_000_000u64), U256::from(1_000_000u64));

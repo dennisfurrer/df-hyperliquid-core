@@ -1,11 +1,15 @@
 //! Exact 256-bit integers, the EVM's word: balances and fees in wei, gas
-//! prices, ABI integers. JSON-RPC writes them as quantities, `0x` and hex
-//! digits without leading zeros. Nothing here passes through a float.
+//! prices, ABI integers, and the native coin's 18 decimals. JSON-RPC writes
+//! them as quantities, `0x` and hex digits without leading zeros. Nothing here
+//! passes through a float.
 
 use std::{fmt, str::FromStr};
 
 use crate::utils::{Address, Dec, Round, hex};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+
+/// HYPE on HyperEVM and ETH on Arbitrum both have 18 decimals.
+pub const NATIVE_DECIMALS: u32 = 18;
 
 /// An unsigned 256-bit integer. The limbs are most significant first, so the
 /// derived order is the numeric one.

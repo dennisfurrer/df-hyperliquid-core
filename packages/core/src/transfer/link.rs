@@ -2,9 +2,8 @@
 //! its system address. Core to EVM is a `spotSend` or `sendAsset` to [`Linked::system`]; EVM to
 //! Core is a HyperEVM transaction to the same address ([`Linked::to_core`]).
 
-use crate::client::evm::chain::NATIVE_DECIMALS;
 use crate::client::evm::tx::Call;
-use crate::client::evm::u256::{BadAmount, U256};
+use crate::client::evm::u256::{BadAmount, NATIVE_DECIMALS, U256};
 use crate::transfer::erc20;
 use crate::utils::{Address, Dec};
 

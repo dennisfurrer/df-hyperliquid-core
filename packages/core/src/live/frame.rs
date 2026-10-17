@@ -1,16 +1,22 @@
-//! Received frames (`{"channel":..,"data":..}`) read into a type per channel ([`decode`]), numbers
-//! as exact decimals, never floats. An unknown channel is [`Frame::Other`], kept as written; a
-//! frame that does not read is a [`BadFrame`], never a panic.
+//! Received frames (`{"channel":..,"data":..}`) read into a type per channel ([`decode`]): live's
+//! own frame types, or the [`crate::account`] and [`crate::markets`] types where the socket sends
+//! the shape `/info` answers. Numbers are exact decimals, never floats. An unknown channel is
+//! [`Frame::Other`], kept as written; a frame that does not read is a [`BadFrame`], never a panic.
 
 use std::{borrow::Cow, fmt};
 
+use crate::account::ActiveAssetData;
 use crate::client::ExchangeResponse;
 use crate::live::account::{
-    AllDexsState, AssetData, DexState, HistoricalOrders, Ledger, OpenOrders, OrderUpdate, SpotState, TwapHistory,
-    TwapSliceFills, TwapStates, UserEvent, UserFills, UserFundings, WebData3,
+    AllDexsState, DexState, HistoricalOrders, Ledger, OpenOrders, OrderUpdate, SpotState, TwapHistory, TwapSliceFills,
+    TwapStates, UserEvent, UserFills, UserFundings, WebData3,
 };
-use crate::live::market::{Bbo, Book, Candle, Mids, PerpCtx, SpotCtx, Trade};
+use crate::live::market::{Bbo, Mids};
 use crate::live::subscription::{BadSubscription, Subscription};
+use crate::markets::book::Book;
+use crate::markets::candle::Candle;
+use crate::markets::context::{PerpCtx, SpotCtx};
+use crate::markets::trades::Trade;
 use crate::utils::Json;
 use serde::Deserialize;
 use serde_json::value::RawValue;
@@ -43,7 +49,7 @@ pub enum Frame {
         ctx: SpotCtx,
     },
     /// `activeAssetData`.
-    AssetData(AssetData),
+    AssetData(ActiveAssetData),
     UserFills(UserFills),
     OrderUpdates(Vec<OrderUpdate>),
     /// `user`: what `userEvents` sends.

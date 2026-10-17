@@ -1,34 +1,36 @@
-//! Connecting to Hyperliquid: `/info` and `/exchange` over HTTP, the websocket, HyperEVM RPC, rate limits, and the [`Client`] that signs and sends.
+//! Connecting to Hyperliquid: the [`Client`] that reads, signs and sends over one network's
+//! rate-limited `/info` and `/exchange` ([`http`]), the networks, HyperEVM ([`evm`]), and the
+//! native and browser wires and websockets.
 
-pub mod api;
-pub mod body;
 pub mod evm;
-pub mod limit;
+pub mod http;
 #[cfg(feature = "native")]
 pub mod native;
 pub mod network;
 pub(crate) mod request;
-pub mod transport;
 #[cfg(feature = "web")]
 pub mod web;
 
 use crate::account::SignError;
 #[cfg(feature = "sign")]
 use crate::account::Signer;
+use crate::client::http::Api;
 #[cfg(feature = "sign")]
 use crate::utils::sign::{Domain, L1Action, UserAction};
 use crate::utils::{Address, NonceClock};
 use std::sync::{Mutex, PoisonError};
 
-pub use api::{Api, Clock};
-pub use limit::Spent;
+pub use http::{
+    Accepted, ApiError, ExchangeResponse, Http, Request, Response, Spent, Status, Transport, TransportError, exchange,
+    info, info_request, user_request,
+};
 pub use network::{
     L1_CHAIN_ID, MAINNET_HYPE, MAINNET_USDC, Network, TESTNET_HYPE, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork,
 };
-pub use transport::{
-    Accepted, ApiError, ExchangeResponse, Http, Method, Request, Response, Status, Transport, TransportError, exchange,
-    info, info_request, user_request,
-};
+
+/// Unix milliseconds. Injected: std has no clock in the browser or Workers,
+/// and a test pins the time.
+pub type Clock = fn() -> u64;
 
 /// Why an action was not taken. An action whose answer never came
 /// ([`TransportError::Unreachable`]) may have landed, so it is never resent.
@@ -81,11 +83,6 @@ impl<H: Http, S> Client<H, S> {
     #[must_use]
     pub const fn network(&self) -> Network {
         self.api.network()
-    }
-
-    #[must_use]
-    pub const fn api(&self) -> &Api<H> {
-        &self.api
     }
 
     #[must_use]

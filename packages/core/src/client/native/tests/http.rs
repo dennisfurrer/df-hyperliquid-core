@@ -8,7 +8,7 @@ use std::{
     thread,
 };
 
-use crate::client::{Http, Method, Request, TransportError};
+use crate::client::{Http, Request, TransportError};
 
 use super::*;
 
@@ -59,26 +59,25 @@ fn answer(status: &str, headers: &[&str], body: &[u8]) -> Vec<u8> {
 }
 
 #[tokio::test]
-async fn a_post_carries_its_method_headers_and_body() {
+async fn a_post_carries_its_content_type_and_body() {
     let (url, received) = serve_once(answer("200 OK", &[], b"{}"));
-    let request = Request::post_json(format!("{url}/info"), r#"{"type":"meta"}"#.to_owned()).with_header("X-Key", "k1");
+    let request = Request::post_json(format!("{url}/info"), r#"{"type":"meta"}"#.to_owned());
     let response = Native::new().send(request).await.unwrap();
     assert_eq!((response.status, response.text()), (200, "{}".to_owned()));
     let sent = String::from_utf8(received.recv().unwrap()).unwrap();
     assert!(sent.starts_with("POST /info HTTP/1.1\r\n"), "{sent}");
-    let lower = sent.to_lowercase();
-    assert!(lower.contains("content-type: application/json\r\n"), "{sent}");
-    assert!(lower.contains("x-key: k1\r\n"), "{sent}");
+    assert!(sent.to_lowercase().contains("content-type: application/json\r\n"), "{sent}");
     assert!(sent.ends_with(r#"{"type":"meta"}"#), "{sent}");
 }
 
 #[tokio::test]
-async fn a_get_goes_without_a_body() {
+async fn an_empty_post_goes_without_a_body() {
     let (url, received) = serve_once(answer("200 OK", &[], b"[]"));
-    let response = Native::new().send(Request::get(format!("{url}/stats?days=7"))).await.unwrap();
+    let response = Native::new().send(Request::post_json(format!("{url}/stats?days=7"), String::new())).await.unwrap();
     assert_eq!(response.text(), "[]");
     let sent = String::from_utf8(received.recv().unwrap()).unwrap();
-    assert!(sent.starts_with("GET /stats?days=7 HTTP/1.1\r\n"), "{sent}");
+    assert!(sent.starts_with("POST /stats?days=7 HTTP/1.1\r\n"), "{sent}");
+    assert!(sent.ends_with("\r\n\r\n"), "{sent}");
 }
 
 #[tokio::test]
@@ -94,7 +93,7 @@ async fn any_status_is_an_answer_with_its_headers() {
 async fn a_binary_body_comes_back_byte_for_byte() {
     let bytes: Vec<u8> = (0..=255).collect();
     let (url, _received) = serve_once(answer("200 OK", &["content-type: application/octet-stream"], &bytes));
-    let response = Native::new().send(Request::get(url)).await.unwrap();
+    let response = Native::new().send(Request::post_json(url, "{}".to_owned())).await.unwrap();
     assert_eq!(response.body, bytes);
 }
 
@@ -105,12 +104,6 @@ async fn no_answer_is_unreachable() {
     drop(listener);
     let error = Native::new().send(Request::post_json(url, "{}".to_owned())).await.unwrap_err();
     assert!(matches!(error, TransportError::Unreachable(_)), "{error:?}");
-}
-
-#[test]
-fn a_request_s_method_maps_to_the_wire_s() {
-    assert_eq!(method(Method::Get), reqwest::Method::GET);
-    assert_eq!(method(Method::Post), reqwest::Method::POST);
 }
 
 #[test]

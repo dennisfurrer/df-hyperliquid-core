@@ -3,10 +3,15 @@ use crate::client::{Accepted, ExchangeResponse, Status};
 use crate::utils::{Address, Dec};
 
 use super::*;
-use crate::live::account::{Delta, Fill, FillLiquidation, Leverage, Margin, TwapState, UserEvent};
-use crate::live::fixtures::{all, docs, hip4_tui, mainnet, testnet};
-use crate::live::market::{Book, Level, Side};
-use crate::live::subscription::{Interval, Subscription};
+use crate::account::clearinghouse::{Leverage, MarginMode};
+use crate::account::fill::{Fill, FillLiquidation};
+use crate::account::ledger::Delta;
+use crate::live::account::{TwapState, UserEvent};
+use crate::live::fixtures::{all, docs, mainnet, portfolio, testnet};
+use crate::live::subscription::Subscription;
+use crate::markets::Side;
+use crate::markets::book::{Book, Level};
+use crate::markets::candle::Interval;
 
 const FIRST: &str = "0x42f1b36fb856769e075dfbf25938464fb3c92c70";
 const SECOND: &str = "0x78dce96236804d6958bf3c4598cf5efbc371629c";
@@ -147,7 +152,7 @@ fn the_contexts_of_every_dex_one_dex_and_spot_read_alike() {
 fn what_an_account_may_trade_reads_both_sides() {
     let Frame::AssetData(data) = read(&mainnet("activeAssetData")) else { panic!("asset data") };
     assert_eq!((data.user, data.coin.as_str()), (address(FIRST), "BTC"));
-    assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (Margin::Cross, 40, None));
+    assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (MarginMode::Cross, 40, None));
     assert_eq!(data.max_trade_szs, [dec("6.95458"), dec("8.53351")]);
     assert_eq!(data.available_to_trade, [dec("13988.094483"), dec("17163.875338")]);
     assert_eq!(data.mark_px, dec("80454.0"));
@@ -367,7 +372,10 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
         (house.asset_positions[0].kind.as_str(), position.coin.as_str(), position.szi),
         ("oneWay", "BTC", dec("-12.07087"))
     );
-    assert_eq!((position.leverage.mode(), position.leverage.value(), position.max_leverage), (Margin::Cross, 11, 40));
+    assert_eq!(
+        (position.leverage.mode(), position.leverage.value(), position.max_leverage),
+        (MarginMode::Cross, 11, 40)
+    );
     assert_eq!((position.entry_px, position.liquidation_px), (Some(dec("81063.7")), Some(dec("87657.4305040273"))));
     assert_eq!(position.cum_funding.as_ref().map(|paid| paid.all_time), Some(dec("-12707.648999")));
 
@@ -377,13 +385,13 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     assert_eq!((every.user, every.states[0].1.asset_positions.len()), (address(SECOND), 1));
 
     // The 2026-09-26 recording: an isolated position, which carries its raw USD.
-    let Frame::AllDexsClearinghouseState(older) = read(&hip4_tui("allDexsClearinghouseState")) else {
+    let Frame::AllDexsClearinghouseState(older) = read(&portfolio("allDexsClearinghouseState")) else {
         panic!("states")
     };
     assert_eq!(older.user, address("0x8d1548a936241928cef288a1c377919a5d511f7a"));
     let btc = &older.states[0].1.asset_positions[0].position;
     assert_eq!(btc.leverage, Leverage::Isolated { value: 4, raw_usd: dec("-3828.81778") });
-    assert_eq!(btc.leverage.mode(), Margin::Isolated);
+    assert_eq!(btc.leverage.mode(), MarginMode::Isolated);
     assert_eq!(older.states[0].1.margin_summary.account_value, dec("8456.677271"));
     assert_eq!(older.states[1].0, "xyz");
 }
@@ -392,7 +400,7 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
 /// refused, never read as none put up.
 #[test]
 fn an_isolated_position_without_its_raw_usd_is_refused_not_read_as_zero() {
-    let sent = hip4_tui("allDexsClearinghouseState");
+    let sent = portfolio("allDexsClearinghouseState");
     assert!(decode(&sent).is_ok());
     let without = sent.replace(r#","rawUsd":"-3828.81778""#, "");
     assert_ne!(without, sent);
@@ -533,7 +541,7 @@ fn acks_pongs_and_refusals_are_frames_of_their_own() {
     let Frame::Ack(ack) = read(&mainnet("ack.unsubscribe")) else { panic!("an ack") };
     assert_eq!(ack.method, Method::Unsubscribe);
     assert_eq!(ack.echo.compact(), r#"{"type":"trades","coin":"@107"}"#);
-    let Frame::Ack(ack) = read(&hip4_tui("ack.allDexsClearinghouseState")) else { panic!("an ack") };
+    let Frame::Ack(ack) = read(&portfolio("ack.allDexsClearinghouseState")) else { panic!("an ack") };
     assert_eq!(ack.method, Method::Subscribe);
     assert_eq!(
         ack.subscription(),
@@ -586,7 +594,7 @@ fn post_answers_are_matched_by_id_and_keep_what_was_answered() {
     let Frame::Post(state) = read(&mainnet("post.info.clearinghouseState")) else { panic!("an answer") };
     let Answer::Info { kind, data } = state.answer else { panic!("an info answer") };
     assert_eq!((state.id, kind.as_str()), (12, "clearinghouseState"));
-    let house: crate::live::account::Clearinghouse = serde_json::from_str(&data).unwrap();
+    let house: crate::account::ClearinghouseState = serde_json::from_str(&data).unwrap();
     assert_eq!(house.margin_summary.account_value, dec("96828.21505"));
 
     assert_eq!(

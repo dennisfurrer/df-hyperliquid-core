@@ -51,16 +51,3 @@ todo = "deny"
 unimplemented = "deny"
 dbg_macro = "deny"
 float_cmp = "warn"
-
-[profile.release]
-opt-level = 3
-lto = "thin"
-codegen-units = 1
-
-# Browser and Worker wasm: `cargo build --profile wasm`.
-[profile.wasm]
-inherits = "release"
-opt-level = "s"
-lto = "fat"
-panic = "abort"
-strip = "debuginfo"

@@ -7,7 +7,8 @@ use std::{
     sync::mpsc::{self, Receiver, Sender},
 };
 
-use crate::live::{Interval, Limits, Refused, Subscription};
+use crate::live::{Limits, Refused, Subscription};
+use crate::markets::candle::Interval;
 use crate::utils::Address;
 
 /// What a reader needs kept live. A coin is spelled as the venue spells it: `BTC`, `xyz:XYZ100`

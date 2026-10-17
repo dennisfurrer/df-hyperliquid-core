@@ -52,8 +52,6 @@ pub const ORDER_DECIMALS: u32 = 8;
 pub const USD_DECIMALS: u32 = 6;
 /// Staking and delegation `wei`: HYPE.
 pub const HYPE_DECIMALS: u32 = 8;
-/// `maxFeeRate` in tenths of a basis point, to a percent.
-pub const DECIBPS_DECIMALS: u32 = 3;
 /// The dex id `sendAsset` gives spot.
 pub const SPOT_DEX: u32 = u32::MAX;
 

@@ -1,13 +1,14 @@
+use crate::account::ledger::LedgerUpdate;
 use crate::account::{Abstraction, SpotState};
 use crate::account::{ClearinghouseState, Leverage};
 use crate::account::{FrontendOrder, OrderKind};
 use crate::client::Network;
+use crate::live::Frame;
 use crate::live::store::fixtures::{
-    FIRST, FRONTEND_OPEN_ORDERS, SECOND, SPOT_PORTFOLIO_MARGIN, TUI, USER_FILLS, USER_FUNDING, address, answered,
-    changed, dec, frame, read, tui_frame,
+    FIRST, FRONTEND_OPEN_ORDERS, HOLDER, SECOND, SPOT_PORTFOLIO_MARGIN, USER_FILLS, USER_FUNDING, address, answered,
+    changed, dec, frame, portfolio_frame, read,
 };
 use crate::live::store::{Folded, Handle, Interest, Read, Store};
-use crate::live::{Frame, LedgerUpdate};
 use crate::markets::perps::UserFunding;
 use crate::trade::Cloid;
 use crate::utils::Address;
@@ -219,12 +220,12 @@ fn every_dex_s_clearinghouse_in_one_frame() {
 #[test]
 fn an_isolated_position_keeps_the_margin_put_up() {
     let mut store = store();
-    let tui = address(TUI);
-    let _state = wanting(&mut store, [Interest::State { user: tui }]);
-    let _ = store.apply(1_000, &tui_frame("allDexsClearinghouseState"));
-    let btc = store.positions(tui)[0].clone();
+    let holder = address(HOLDER);
+    let _state = wanting(&mut store, [Interest::State { user: holder }]);
+    let _ = store.apply(1_000, &portfolio_frame("allDexsClearinghouseState"));
+    let btc = store.positions(holder)[0].clone();
     assert_eq!(btc.leverage, Leverage::Isolated { value: 4, raw_usd: dec("-3828.81778") });
-    let held = &store.account(tui).unwrap().standing().dex("").unwrap().asset_positions[0].position;
+    let held = &store.account(holder).unwrap().standing().dex("").unwrap().asset_positions[0].position;
     assert_eq!(held.leverage, btc.leverage, "the account view holds the one type");
 }
 

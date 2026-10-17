@@ -7,7 +7,7 @@
 //! nonce under its own name, as the `@nktkas/hyperliquid` SDK writes them.
 
 use crate::account::signer::Signature;
-use crate::client::body;
+use crate::client::http::body;
 use crate::client::network::Network;
 use crate::utils::sign::eip712::{Domain, Field, TypedStruct};
 use crate::utils::sign::msgpack::Map;

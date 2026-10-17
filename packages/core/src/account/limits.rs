@@ -1,5 +1,5 @@
 //! What an address may still send (`userRateLimit`) and how fast that runs down. Action limits are
-//! per address, a subaccount having its own; reads are the IP's ([`crate::client::limit`]).
+//! per address, a subaccount having its own; reads are the IP's ([`crate::client::http::limit`]).
 //! Nothing here keeps a clock: the time is passed in.
 
 use crate::client::{ApiError, Transport, info, user_request};

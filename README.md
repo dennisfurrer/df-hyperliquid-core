@@ -62,7 +62,7 @@ flowchart TB
 
 | Example | What it does |
 |---|---|
-| `cargo run -p df-hyperliquid-core --example perps_page` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
+| `cargo run -p df-hyperliquid-core --example market_order` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
 
 ## Reference implementations
 

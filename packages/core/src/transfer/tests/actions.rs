@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::account::{LocalKey, Signature, recover, verify};
-use crate::client::transport::exchange;
+use crate::client::http::transport::exchange;
 use crate::client::{Transport, TransportError};
 use crate::utils::sign::digest_of_wallet_json;
 use crate::utils::{Dec, hex};

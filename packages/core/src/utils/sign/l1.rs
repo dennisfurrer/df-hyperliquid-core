@@ -3,7 +3,7 @@
 //! source is `"a"` on mainnet and `"b"` on testnet; the hash has no network.
 
 use crate::account::signer::Signature;
-use crate::client::body;
+use crate::client::http::body;
 use crate::client::network::Network;
 use crate::utils::address::Address;
 use crate::utils::sign::eip712::{Domain, Field, TypedStruct};
