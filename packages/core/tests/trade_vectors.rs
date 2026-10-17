@@ -4,8 +4,8 @@
 //! with this crate's reading of the recorded JSON. Each file names the implementation that made it:
 //!
 //! - `l1.json`: `@nktkas/hyperliquid` 0.24.3.
-//! - `tpsl.json`, `leverage.json`, `desk.json`, `outcomes.json`: desk and outcome sessions by the same SDK,
-//!   signed by the desk's agent.
+//! - `tpsl.json`, `leverage.json`, `session.json`, `outcomes.json`: trading and outcome sessions by the same
+//!   SDK, signed by the session's agent.
 //! - `vault.json`: the venue's Python SDK 0.19.0, acting for a subaccount.
 //! - `nktkas-0.33.2-trade.json`: order vectors from `@nktkas/hyperliquid` 0.33.2 on both networks, the Python
 //!   SDK's signing tests, and hashes.
@@ -27,16 +27,16 @@ use df_hyperliquid_core::utils::{Address, Asset, Dec, Json, OutcomeSide, hex};
 const L1: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/l1.json"));
 const TPSL: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/tpsl.json"));
 const LEVERAGE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/leverage.json"));
-const DESK: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/desk.json"));
+const SESSION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/session.json"));
 const OUTCOMES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/outcomes.json"));
 const VAULT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/vault.json"));
 const TRADE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/nktkas-0.33.2-trade.json"));
 
-/// Hardhat's account #1, the desk vectors' agent: a published test key.
+/// Hardhat's account #1, the session vectors' agent: a published test key.
 const AGENT_KEY: &str = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 
-/// The builder the desk and 0.33.2 vectors name.
-const TERMINAL: &str = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843";
+/// The builder the session and 0.33.2 vectors name.
+const BUILDER: &str = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843";
 
 fn parse(text: &str) -> Json {
     Json::parse(text).unwrap()
@@ -136,7 +136,7 @@ fn exit(side: Side, size: &str, tpsl: Tpsl, at: &str, n: Option<u128>) -> Trigge
     }
 }
 
-fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
+fn l1_0_24_3(name: &str, now: u64) -> Box<dyn L1Action> {
     let builder = flat("0xAbC0000000000000000000000000000000000001", 10);
     let outcome = |side| Asset::outcome(1234, side).unwrap();
     match name {
@@ -202,7 +202,7 @@ fn atlas_l1(name: &str, now: u64) -> Box<dyn L1Action> {
 }
 
 #[test]
-fn every_atlas_l1_case_is_built_by_a_typed_builder() {
+fn every_0_24_3_l1_case_is_built_by_a_typed_builder() {
     let file = parse(L1);
     let key = LocalKey::from_hex(text(&file, "key")).unwrap();
     assert_eq!(key.address().to_hex(), text(&file, "address").to_lowercase());
@@ -211,7 +211,7 @@ fn every_atlas_l1_case_is_built_by_a_typed_builder() {
     let now = cases[0].get("nonce").and_then(Json::as_u64).unwrap();
     for case in cases {
         let name = text(case, "name");
-        check(name, atlas_l1(name, now).as_ref(), case, &key);
+        check(name, l1_0_24_3(name, now).as_ref(), case, &key);
         // where another builder disarms with `time: null`, the SDK and this crate leave the key out
         if let Some(theirs) = case.get("reference") {
             assert_ne!(Some(text(theirs, "msgpack")), case.get("msgpack").and_then(Json::as_str), "{name}");
@@ -226,7 +226,7 @@ fn every_atlas_l1_case_is_built_by_a_typed_builder() {
 fn an_entry_with_its_exits_is_the_sdk_s_grouped_order() {
     let file = parse(TPSL);
     assert_eq!(agent().address().to_hex(), text(&file, "agent").to_lowercase());
-    let builder = flat(TERMINAL, 100);
+    let builder = flat(BUILDER, 100);
     let cases = file.get("cases").unwrap();
     for (name, tp, sl) in [
         ("entry_tp", Some("90000"), None),
@@ -247,11 +247,11 @@ fn an_entry_with_its_exits_is_the_sdk_s_grouped_order() {
     }
 }
 
-/// The desk's leverage sessions: the order alone, or `updateLeverage` first.
+/// The leverage sessions: the order alone, or `updateLeverage` first.
 #[test]
-fn the_desk_s_leverage_cases_sign_the_same() {
+fn the_leverage_cases_sign_the_same() {
     let file = parse(LEVERAGE);
-    let builder = flat(TERMINAL, 100);
+    let builder = flat(BUILDER, 100);
     let order = |n| orders::order(&btc(), &market_buy("0.001", "80000", "0.005", n), Some(&builder)).unwrap();
     let mut count = 0;
     for (_, session) in file.get("cases").and_then(Json::as_object).unwrap() {
@@ -271,17 +271,17 @@ fn the_desk_s_leverage_cases_sign_the_same() {
 }
 
 #[test]
-fn the_desk_s_first_session_signs_the_same() {
-    let file = parse(DESK);
+fn the_first_session_signs_the_same() {
+    let file = parse(SESSION);
     assert_eq!(agent().address().to_hex(), text(&file, "agent").to_lowercase());
-    let builder = flat(TERMINAL, 100);
+    let builder = flat(BUILDER, 100);
     let routed = Some(&builder);
     let mut checked = 0;
     for case in file.get("cases").and_then(Json::as_array).unwrap() {
         let name = text(case, "name");
         let typed: Box<dyn L1Action> = match name {
             // user-signed approvals, not L1 actions
-            "approve_agent_atlas" | "approve_builder_fee" => continue,
+            "approve_agent" | "approve_builder_fee" => continue,
             "btc_market_buy" => {
                 Box::new(orders::order(&btc(), &market_buy("0.00375", "80000", "0.005", 1), routed).unwrap())
             }
@@ -326,7 +326,7 @@ fn the_desk_s_first_session_signs_the_same() {
 #[test]
 fn the_outcome_session_s_orders_sign_the_same() {
     let file = parse(OUTCOMES);
-    let builder = flat(TERMINAL, 100).on(df_hyperliquid_core::utils::AssetKind::Outcome).unwrap();
+    let builder = flat(BUILDER, 100).on(df_hyperliquid_core::utils::AssetKind::Outcome).unwrap();
     let yes = Asset::outcome(1473, OutcomeSide::Yes).unwrap();
     let no = Asset::outcome(1473, OutcomeSide::No).unwrap();
     let mut checked = 0;
@@ -380,8 +380,8 @@ fn the_python_sdk_s_subaccount_orders_sign_the_same() {
     assert_eq!(checked, 3);
 }
 
-fn terminal_paying(order: Order, fee: u64) -> PlaceOrder {
-    PlaceOrder::one(order).through(Builder::new(address(TERMINAL), BuilderFee::from_tenths(fee)))
+fn paying_builder(order: Order, fee: u64) -> PlaceOrder {
+    PlaceOrder::one(order).through(Builder::new(address(BUILDER), BuilderFee::from_tenths(fee)))
 }
 
 fn trigger(asset: u32, side: Side, price: &str, size: &str, at: &str, tpsl: Tpsl, is_market: bool) -> Order {
@@ -389,13 +389,13 @@ fn trigger(asset: u32, side: Side, price: &str, size: &str, at: &str, tpsl: Tpsl
 }
 
 /// The 0.33.2 order vectors, each built through the typed builders and, where one fits, the ticket.
-fn hip4_tui(name: &str) -> Box<dyn L1Action> {
-    let at_88 = BuilderSetting::share_of_cap(address(TERMINAL), 88).unwrap();
+fn l1_0_33_2(name: &str) -> Box<dyn L1Action> {
+    let at_88 = BuilderSetting::share_of_cap(address(BUILDER), 88).unwrap();
     let market_buy = || Order::market(id(0), Side::Buy, dec("86501"), dec("0.0012"));
     match name {
         "a_perp_market_buy_is_frontend_market_with_its_bound" => Box::new(PlaceOrder::one(market_buy())),
         "a_market_buy_through_the_terminal_s_builder_signs_as_the_sdk_does" => {
-            Box::new(terminal_paying(market_buy(), 0))
+            Box::new(paying_builder(market_buy(), 0))
         }
         "a_hip3_post_only_carries_its_cloid_and_the_builder_last" => {
             let order = Order::limit(id(110_003), Side::Sell, dec("340.18"), dec("2.5"), Tif::Alo)
@@ -499,7 +499,7 @@ fn hip4_tui(name: &str) -> Box<dyn L1Action> {
 }
 
 #[test]
-fn every_hip4_tui_order_vector_signs_on_mainnet_and_testnet() {
+fn every_0_33_2_order_vector_signs_on_mainnet_and_testnet() {
     let file = parse(TRADE);
     let key = LocalKey::from_hex(text(&file, "key")).unwrap();
     let mut networks = (0, 0);
@@ -511,7 +511,7 @@ fn every_hip4_tui_order_vector_signs_on_mainnet_and_testnet() {
                 Network::Mainnet => networks.0 += 1,
                 Network::Testnet => networks.1 += 1,
             }
-            check(name, hip4_tui(name).as_ref(), case, &key);
+            check(name, l1_0_33_2(name).as_ref(), case, &key);
             count += 1;
         }
     }

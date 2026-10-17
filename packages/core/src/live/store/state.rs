@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 
 use crate::account::ClearinghouseState;
 use crate::account::FrontendOrder;
-use crate::account::positions::Position;
+use crate::account::Position;
 use crate::account::{Abstraction, Beside, Collateral, Prices, Standing, Surface, Usable, Worth, combined};
 use crate::client::{Network, USDC_INDEX};
 use crate::live::store::account::{Account, Keep};
@@ -49,9 +49,9 @@ pub enum Read<'a> {
     /// `frontendOpenOrders` of one dex.
     Orders { user: Address, dex: &'a str, orders: &'a [FrontendOrder] },
     /// `userFills`: the latest, newest first, which replace what is held.
-    Fills { user: Address, fills: &'a [crate::account::fills::Fill] },
+    Fills { user: Address, fills: &'a [crate::account::history::Fill] },
     /// `userFillsByTime`: a window, oldest first, added to what is held.
-    MoreFills { user: Address, fills: &'a [crate::account::fills::Fill] },
+    MoreFills { user: Address, fills: &'a [crate::account::history::Fill] },
     /// `userFunding`: a window, oldest first, added to what is held.
     Fundings { user: Address, fundings: &'a [UserFunding] },
     /// `userNonFundingLedgerUpdates`: a window, oldest first, added to what is held, in the

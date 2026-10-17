@@ -7,7 +7,7 @@ use crate::trade::*;
 use crate::utils::sign::L1Action;
 use crate::utils::{Address, Asset, Dec};
 
-use crate::account::orders::FrontendOrder;
+use crate::account::FrontendOrder;
 use crate::trade::builder::BuilderSetting;
 use crate::trade::orders::{Side, Tif};
 
@@ -47,12 +47,12 @@ pub fn wire(placed: Result<impl L1Action, Refusal>) -> String {
     placed.unwrap().wire()
 }
 
-pub fn terminal() -> Address {
+pub fn builder_address() -> Address {
     "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843".parse().unwrap()
 }
 
 pub fn at_88_percent() -> BuilderSetting {
-    BuilderSetting::share_of_cap(terminal(), 88).unwrap()
+    BuilderSetting::share_of_cap(builder_address(), 88).unwrap()
 }
 
 /// A resting order as `frontendOpenOrders` writes one, in the venue's own

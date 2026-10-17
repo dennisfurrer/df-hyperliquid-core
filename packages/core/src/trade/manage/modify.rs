@@ -1,6 +1,6 @@
 //! `modify` and `batchModify`: a resting order replaced in place.
 
-use crate::account::orders::FrontendOrder;
+use crate::account::FrontendOrder;
 use crate::trade::orders::Tif;
 use crate::trade::orders::limit::limit_on;
 use crate::trade::orders::tpsl::Covers;

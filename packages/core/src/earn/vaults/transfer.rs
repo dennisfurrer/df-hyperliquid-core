@@ -1,7 +1,7 @@
 //! `vaultTransfer`: `{type, vaultAddress, isDeposit, usd}`, keys in that order, `usd` in
 //! millionths. HLP's address and a vault's lockup differ between the networks.
 
-use crate::account::signers::ActionKind;
+use crate::account::ActionKind;
 use crate::client::Network;
 use crate::earn::vaults::plan::Key;
 use crate::utils::sign::{L1Action, Map};

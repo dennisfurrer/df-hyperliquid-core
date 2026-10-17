@@ -2,7 +2,7 @@
 //! its nonce, the key it needs, the equity that should change once it lands,
 //! and when a deposit unlocks.
 
-use crate::account::signers::ActionKind;
+use crate::account::ActionKind;
 use crate::client::Network;
 use crate::earn::vaults::reads::{VaultDetails, VaultEquity};
 use crate::earn::vaults::transfer::{USD_DECIMALS, VaultTransfer, lockup_ms};
@@ -10,7 +10,7 @@ use crate::utils::{Address, BadUnits, Dec, cut_units};
 
 /// Who may sign an action: `Main` is the account's own key only; `Either` also
 /// takes an agent the account approved.
-pub use crate::account::signers::Signers as Key;
+pub use crate::account::Signers as Key;
 
 /// The vault actions.
 const KINDS: [ActionKind; 1] = [ActionKind::VaultTransfer];

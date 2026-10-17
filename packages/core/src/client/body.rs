@@ -1,7 +1,7 @@
 //! The `/exchange` body, keys in the official Python SDK's order. The venue
 //! reads it as JSON, so only the action's own key order reaches a hash.
 
-use crate::account::signer::Signature;
+use crate::account::Signature;
 use crate::utils::address::Address;
 use crate::utils::json::Json;
 use crate::utils::sign::msgpack::Map;

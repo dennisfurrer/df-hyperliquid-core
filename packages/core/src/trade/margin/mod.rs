@@ -1,6 +1,6 @@
 //! Leverage and margin on a perp: the leverage and mode a position takes, isolated margin in and
 //! out, and the margin tables that cap leverage by size. The account-wide mode is
-//! [`crate::account::mode`].
+//! [`crate::account::settings::mode`].
 
 pub mod dexes;
 pub mod isolated;

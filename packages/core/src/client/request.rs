@@ -2,7 +2,7 @@
 //! docs list them, so a request reads the same wherever it is logged.
 
 use crate::client::info_request;
-use crate::utils::{Address, Json};
+use crate::utils::Json;
 
 /// `{"type":kind, ...fields}`.
 pub(crate) fn body(kind: &str, fields: impl IntoIterator<Item = (&'static str, Json)>) -> String {
@@ -11,10 +11,6 @@ pub(crate) fn body(kind: &str, fields: impl IntoIterator<Item = (&'static str, J
 
 pub(crate) fn text(value: &str) -> Json {
     Json::String(value.to_owned())
-}
-
-pub(crate) fn user(user: Address) -> (&'static str, Json) {
-    ("user", Json::String(user.to_hex()))
 }
 
 pub(crate) fn number(value: u64) -> Json {

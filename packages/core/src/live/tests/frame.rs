@@ -1,5 +1,5 @@
-use crate::account::order::Cloid;
 use crate::client::{Accepted, ExchangeResponse, Status};
+use crate::trade::Cloid;
 use crate::utils::{Address, Dec};
 
 use super::*;

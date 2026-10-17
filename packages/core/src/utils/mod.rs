@@ -21,4 +21,4 @@ pub use nonce::NonceClock;
 pub use rounding::{
     Grid, MAX_SLIPPAGE, MINIMUM_ORDER_VALUE, PERP_PRICE_PLACES, SIGNIFICANT_FIGURES, SPOT_PRICE_PLACES,
 };
-pub use units::{BadUnits, cut_units, exact_units};
+pub use units::{BadUnits, USDC_DECIMALS, cut_units, exact_units};

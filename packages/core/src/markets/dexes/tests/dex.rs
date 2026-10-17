@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::client::TransportError;
-use crate::trade::{MarginMode, PlaceOrder, Side, Tif, UpdateLeverage};
+use crate::trade::{MarginMode, Order, PlaceOrder, Side, Tif, UpdateLeverage};
 use crate::utils::sign::L1Action;
 
 use super::*;
@@ -58,7 +58,14 @@ fn an_order_and_leverage_on_a_hip3_perp_name_its_asset_id() {
     let both: DexMetaAndAssetCtxs = serde_json::from_str(&format!("[{XYZ},{XYZ_CTXS}]")).unwrap();
     let (asset, tsla, ctx) = both.find(1, "xyz:TSLA").unwrap();
     assert_eq!((ctx.mark_px, ctx.reference()), (dec("381.29"), dec("381.285")));
-    let order = tsla.grid().limit(asset, Side::Sell, dec("340.187"), dec("2.5"), Tif::Gtc).unwrap();
+    let grid = tsla.grid();
+    let order = Order::limit(
+        asset,
+        Side::Sell,
+        grid.price(dec("340.187"), Side::Sell).unwrap(),
+        grid.size(dec("2.5")).unwrap(),
+        Tif::Gtc,
+    );
     assert_eq!(
         PlaceOrder::one(order).wire(),
         r#"{"type":"order","orders":[{"a":110001,"b":false,"p":"340.19","s":"2.5","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na"}"#,

@@ -1,18 +1,22 @@
-//! Orders: the wire every order type ends in ([`Order`], [`PlaceOrder`]), and one module per
-//! type. Keys go in the order the venue hashes: `a b p s r t c` for an order, then `grouping`,
-//! then `builder` last.
+//! Orders: the wire every order type ends in ([`Order`], [`PlaceOrder`]), what an order's `t`
+//! says, its client id, and one module per type. Keys go in the order the venue hashes:
+//! `a b p s r t c` for an order, then `grouping`, then `builder` last.
 
+pub mod cloid;
 pub mod close;
 pub mod entry;
 pub mod limit;
 pub mod market;
+pub mod order_type;
 pub mod scale;
 pub mod tpsl;
 pub mod trigger;
 pub mod twap;
 
+pub use cloid::Cloid;
 pub use close::{Close, close};
 pub use entry::{OrderIntent, Price, order};
+pub use order_type::{Grouping, OrderType, Tif, Tpsl};
 pub use scale::{LEAST_LEVELS, MOST_LEVELS, Scale, scale};
 pub use tpsl::{Covers, TriggerIntent, trigger};
 pub use trigger::{Exit, ExitPrice, TRIGGER_SLIPPAGE};
@@ -24,58 +28,6 @@ use crate::utils::{Asset, AssetKind, Dec};
 
 /// Which way an order trades, the same `B` and `A` the reads and the socket carry.
 pub use crate::markets::Side;
-
-/// How long an order may rest, which way a trigger fires, and a client order id, the same types
-/// the orders read back carry.
-pub use crate::account::order::{Cloid, Tif, Tpsl};
-
-/// How the orders of one action relate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum Grouping {
-    /// Each order stands alone.
-    #[default]
-    Na,
-    /// An entry and its take profit and stop loss.
-    NormalTpsl,
-    /// A take profit or stop loss on the whole position.
-    PositionTpsl,
-}
-
-impl Grouping {
-    #[must_use]
-    pub const fn wire(self) -> &'static str {
-        match self {
-            Grouping::Na => "na",
-            Grouping::NormalTpsl => "normalTpsl",
-            Grouping::PositionTpsl => "positionTpsl",
-        }
-    }
-}
-
-/// What an order's `t` says.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum OrderType {
-    Limit(Tif),
-    /// Rests off the book until the mark crosses `trigger`; then a market
-    /// order bounded by the order's price (`is_market`), or a limit at it.
-    Trigger {
-        is_market: bool,
-        trigger: Dec,
-        tpsl: Tpsl,
-    },
-}
-
-impl OrderType {
-    fn wire(self) -> Map {
-        match self {
-            OrderType::Limit(tif) => Map::new().put("limit", Map::new().put("tif", tif.wire())),
-            OrderType::Trigger { is_market, trigger, tpsl } => Map::new().put(
-                "trigger",
-                Map::new().put("isMarket", is_market).put("triggerPx", trigger.to_wire()).put("tpsl", tpsl.wire()),
-            ),
-        }
-    }
-}
 
 /// One order on any market. Price and size go on the wire exactly as given,
 /// so put them on the asset's grid first ([`crate::utils::Grid`]).

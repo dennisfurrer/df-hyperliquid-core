@@ -2,13 +2,10 @@
 //! the key below, nonce 1790412105001 and a transport that kept the body. User-signed digests are
 //! viem's `hashTypedData`; L1 connection ids are the SDK's `createL1ActionHash`.
 
-use crate::account::agent::ApproveAgent;
-use crate::account::builder::ApproveBuilderFee;
-use crate::account::mode::{AbstractionMode, AgentSetAbstraction, UserSetAbstraction};
-use crate::account::referral::{BadCode, SetReferrer};
-use crate::account::state::Abstraction;
-use crate::account::sub_account::{CreateSubAccount, SubAccountSpotTransfer, SubAccountTransfer};
-use crate::account::{LocalKey, recover};
+use crate::account::{
+    Abstraction, AbstractionMode, AgentSetAbstraction, ApproveAgent, ApproveBuilderFee, BadCode, CreateSubAccount,
+    LocalKey, SetReferrer, SubAccountSpotTransfer, SubAccountTransfer, UserSetAbstraction, recover,
+};
 use crate::client::Network;
 use crate::trade::builder::fee::BuilderFee;
 use crate::utils::sign::{L1Action, UserAction, digest_of_wallet_json};
@@ -224,7 +221,7 @@ mod files {
     /// `@nktkas/hyperliquid` 0.24.3, the unnamed agent posted as null.
     const USER_SIGNED: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/user_signed.json"));
     /// A session made by hand, the owner's two approvals.
-    const DESK: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/desk.json"));
+    const SESSION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/session.json"));
 
     fn text<'a>(json: &'a Json, key: &str) -> &'a str {
         json.get(key).and_then(Json::as_str).unwrap_or_else(|| panic!("no {key}"))
@@ -371,7 +368,7 @@ mod files {
     /// Approvals made with `@nktkas/hyperliquid` 0.24.3 on mainnet: a named agent, the unnamed one
     /// posted with a null name, and 0.1% to a builder.
     #[test]
-    fn every_atlas_approval_matches() {
+    fn every_0_24_3_approval_matches() {
         let file = Json::parse(USER_SIGNED).unwrap();
         let key = LocalKey::from_hex(text(&file, "key")).unwrap();
         assert_eq!(key.address(), text(&file, "address").parse::<Address>().unwrap());
@@ -390,12 +387,12 @@ mod files {
         }
     }
 
-    /// The desk's owner approvals, to the body posted.
+    /// The session owner's approvals, to the body posted.
     #[test]
-    fn the_desk_s_approvals_post_the_body_it_recorded() {
-        let file = Json::parse(DESK).unwrap();
+    fn the_session_s_approvals_post_the_body_it_recorded() {
+        let file = Json::parse(SESSION).unwrap();
         let owner: Address = text(&file, "owner").parse().unwrap();
-        // Hardhat's first account, the desk's owner.
+        // Hardhat's first account, the session's owner.
         let key = LocalKey::from_hex("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").unwrap();
         assert_eq!(key.address(), owner);
         let cases: Vec<&Json> = file

@@ -2,7 +2,7 @@
 //! its nonce, the key it needs, the balance that should change once it lands,
 //! and when what it moved is free again.
 
-use crate::account::signers::ActionKind;
+use crate::account::ActionKind;
 use crate::client::Network;
 use crate::earn::staking::actions::{CDeposit, CWithdraw, TokenDelegate};
 use crate::earn::staking::reads::{Delegation, DelegatorSummary, MAX_PENDING_WITHDRAWALS, locked_until, unstaking_ms};
@@ -10,7 +10,7 @@ use crate::utils::{Address, BadUnits, Dec};
 
 /// Who may sign an action: `Main` is the account's own key only; `Either` also
 /// takes an agent the account approved.
-pub use crate::account::signers::Signers as Key;
+pub use crate::account::Signers as Key;
 
 /// The staking actions.
 const KINDS: [ActionKind; 3] = [ActionKind::CDeposit, ActionKind::CWithdraw, ActionKind::TokenDelegate];

@@ -6,7 +6,7 @@ use std::{
 };
 
 use crate::client::TransportError;
-use crate::trade::{MarginMode, Side, Tif};
+use crate::trade::{MarginMode, Order, Side, Tif};
 use crate::utils::Dec;
 use crate::utils::sign::L1Action;
 
@@ -72,7 +72,8 @@ fn a_context_says_its_day_change_and_its_open_interest_at_the_mark() {
 fn a_market_order_goes_out_on_the_perp_s_grid_as_frontend_market() {
     let both = both();
     let (asset, btc, ctx) = both.find("BTC").unwrap();
-    let order = btc.grid().market(asset, Side::Buy, ctx.reference(), dec("0.01"), dec("0.001234")).unwrap();
+    let bound = btc.grid().market_bound(ctx.reference(), dec("0.01"), Side::Buy).unwrap();
+    let order = Order::market(asset, Side::Buy, bound, btc.grid().size(dec("0.001234")).unwrap());
     assert_eq!((order.price(), order.size(), order.tif()), (dec("86490"), dec("0.00123"), Some(Tif::FrontendMarket)));
 }
 

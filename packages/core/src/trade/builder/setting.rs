@@ -1,7 +1,8 @@
 //! Builder fees as a setting: what each market kind pays the caller's builder, held to that kind's
-//! cap, and whether the account has approved that much. Whether the builder can be paid at all is
-//! [`crate::account::builder_readiness`].
+//! cap, and what an order paying it needs first, by what the account has approved and which key
+//! signs. Whether the builder can be paid at all is [`crate::account::builder_readiness`].
 
+use crate::account::Key;
 use crate::trade::builder::fee::{Builder, BuilderFee, OverCap};
 use crate::trade::orders::PlaceOrder;
 use crate::utils::{Address, Asset, AssetKind};
@@ -91,8 +92,8 @@ impl BuilderSetting {
     }
 
     /// What `order` needs before it is sent, by what the account has approved this builder to charge
-    /// and by who signs.
-    pub fn approval(&self, order: &PlaceOrder, approved: &Approved, by: SignedBy) -> Result<Approval, ApprovalRefused> {
+    /// and by which key signs. Only the account's own key may sign `approveBuilderFee`.
+    pub fn approval(&self, order: &PlaceOrder, approved: &Approved, by: Key) -> Result<Approval, ApprovalRefused> {
         let Some(builder) = order.builder().filter(|builder| builder.fee() > BuilderFee::ZERO) else {
             return Ok(Approval::Goes);
         };
@@ -108,8 +109,8 @@ impl BuilderSetting {
         };
         let rate = self.most().max(fee);
         match by {
-            SignedBy::Account => Ok(Approval::ApproveFirst { approved, rate }),
-            SignedBy::Agent => Err(ApprovalRefused::AgentCannotApprove { approved, rate }),
+            Key::Main => Ok(Approval::ApproveFirst { approved, rate }),
+            Key::Agent => Err(ApprovalRefused::AgentCannotApprove { approved, rate }),
         }
     }
 }
@@ -138,14 +139,6 @@ impl Approved {
             Approved::Failed(why) => format!("would not read: {why}"),
         }
     }
-}
-
-/// Whose key signs the order. Only the account's own may sign
-/// `approveBuilderFee`; an agent's may not.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SignedBy {
-    Account,
-    Agent,
 }
 
 /// What an order paying a builder needs before it is sent.

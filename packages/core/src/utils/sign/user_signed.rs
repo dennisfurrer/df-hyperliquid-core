@@ -6,7 +6,7 @@
 //! `signatureChainId`, `hyperliquidChain`, the action's own keys, then the
 //! nonce under its own name, as the `@nktkas/hyperliquid` SDK writes them.
 
-use crate::account::signer::Signature;
+use crate::account::Signature;
 use crate::client::body;
 use crate::client::network::Network;
 use crate::utils::sign::eip712::{Domain, Field, TypedStruct};

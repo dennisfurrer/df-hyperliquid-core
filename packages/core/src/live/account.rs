@@ -10,7 +10,7 @@ use serde::{Deserialize, Deserializer, de};
 use serde_json::value::RawValue;
 
 /// One fill, as `userFills`, `userEvents` and the TWAP feeds send it, and a TWAP slice's fill.
-pub use crate::account::fill::{Fill, FillLiquidation, TwapSliceFill};
+pub use crate::account::history::fills::{Fill, FillLiquidation, TwapSliceFill};
 
 /// `userFills`: the last fills first (`is_snapshot`), then each new one as it happens.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -23,7 +23,7 @@ pub struct UserFills {
 }
 
 /// An order as `orderUpdates` sends it, the shape of an `openOrders` row.
-pub use crate::account::order::OpenOrder as Order;
+pub use crate::account::history::orders::OpenOrder as Order;
 
 /// One order's new status on `orderUpdates`: `open`, `filled`, `canceled`, `triggered`,
 /// `rejected`, `marginCanceled`, `badAloPxRejected` and the rest the info docs list.
@@ -38,7 +38,7 @@ pub struct OrderUpdate {
 
 /// A resting order with its trigger and type, as `openOrders` and `userHistoricalOrders` send it,
 /// the shape of a `frontendOpenOrders` row.
-pub use crate::account::order::FrontendOrder as OpenOrder;
+pub use crate::account::history::orders::FrontendOrder as OpenOrder;
 
 /// `userEvents`, on the channel `user`: one kind of event a frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -150,12 +150,13 @@ pub struct Ledger {
 
 /// One ledger row, as `userNonFundingLedgerUpdates` answers it. A type this build does not read is
 /// kept as written.
-pub use crate::account::ledger::{Delta, LedgerUpdate};
+pub use crate::account::history::ledger::{Delta, LedgerUpdate};
 
 /// One dex's clearinghouse, its margin and positions, a position's leverage (or what the account
 /// has set on a coin) and whether it shares the account's balance, as `clearinghouseState` answers.
-pub use crate::account::clearinghouse::{
-    AssetPosition, Clearinghouse, CumFunding, Leverage, MarginMode as Margin, MarginSummary, Position,
+pub use crate::account::holdings::perps::{
+    AssetPosition, ClearinghouseState as Clearinghouse, CumFunding, Leverage, MarginMode as Margin, MarginSummary,
+    Position,
 };
 
 /// `clearinghouseState`: one dex's clearinghouse (`dex` empty for the first).
@@ -192,12 +193,12 @@ pub struct SpotState {
     pub user: Address,
     /// The shape `spotClearinghouseState` answers.
     #[serde(rename = "spotState")]
-    pub state: crate::account::clearinghouse::SpotState,
+    pub state: crate::account::holdings::spot::SpotState,
 }
 
 /// One token's balance. `total` already includes `hold`; under portfolio margin a hold may be
 /// negative, room to borrow. A row of `spotClearinghouseState`.
-pub use crate::account::clearinghouse::SpotBalance as Balance;
+pub use crate::account::holdings::spot::SpotBalance as Balance;
 
 /// `twapStates`: the account's running TWAPs on one dex, by id.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -314,7 +315,7 @@ pub struct LeadingVault {
 }
 
 /// `activeAssetData`: what the account may trade on one perp, buy then sell.
-pub use crate::account::clearinghouse::ActiveAssetData as AssetData;
+pub use crate::account::holdings::active::ActiveAssetData as AssetData;
 
 /// `userHistoricalOrders`: orders and what became of them, the latest first.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -328,4 +329,4 @@ pub struct HistoricalOrders {
 }
 
 /// An order and what became of it, the shape of a `historicalOrders` row.
-pub use crate::account::order::OrderRecord as HistoricalOrder;
+pub use crate::account::history::orders::OrderRecord as HistoricalOrder;

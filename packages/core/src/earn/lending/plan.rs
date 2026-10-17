@@ -2,7 +2,7 @@
 //! its nonce, the key it needs, and the position that should change once it
 //! lands. A token is its spot index from the caller's `spotMeta`.
 
-use crate::account::signers::ActionKind;
+use crate::account::ActionKind;
 use crate::client::Network;
 use crate::earn::lending::action::{BadLend, BorrowLend};
 use crate::earn::lending::state::{ReserveState, UserState, reserve};
@@ -10,7 +10,7 @@ use crate::utils::Dec;
 
 /// Who may sign an action: `Main` is the account's own key only; `Either` also
 /// takes an agent the account approved.
-pub use crate::account::signers::Signers as Key;
+pub use crate::account::Signers as Key;
 
 /// The lending actions.
 const KINDS: [ActionKind; 1] = [ActionKind::BorrowLend];
