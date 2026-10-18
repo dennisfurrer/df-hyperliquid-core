@@ -15,18 +15,32 @@ Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers
 
 ```text
 df-hyperliquid-core
-├── client        /info, /exchange, websocket, HyperEVM RPC, rate limits, Client
-│   ├── evm       JSON-RPC, transactions, ABI, precompiles, CoreWriter
-│   ├── native    reqwest and tokio transport (feature native)
-│   └── web       fetch and WebSocket transport (feature web)
-├── markets       perps, spot, HIP-3 dexes, outcomes, books, candles, trades, funding
-├── account       balances, positions, orders, fills, fees, modes, subaccounts, API wallets
-├── trade         orders, cancel, modify, TWAP, TP/SL, leverage, margin, builder fees
-├── transfer      sends, withdrawals, Arbitrum deposits, perps and spot, HyperCore to HyperEVM
-├── earn          staking, vaults, lending
-├── deploy        spot tokens, HIP-3 dexes, HIP-4 outcome markets
-├── live          websocket subscriptions, frames, connection state, store
-└── utils         decimals, rounding, asset ids, units, time, hex, nonces, signing
+├── client          the Client, networks, rate limits
+│   ├── http        /info and /exchange, the wire, the limit gate
+│   ├── evm         HyperEVM JSON-RPC, transactions, ABI, precompiles, CoreWriter
+│   ├── native      reqwest and tokio-tungstenite (feature native)
+│   └── web         fetch and WebSocket (feature web)
+├── markets         what is listed and what it trades at
+│   ├── perps       meta, funding, margin tables
+│   ├── spot        meta, token details
+│   ├── dexes       HIP-3 dexes and their limits
+│   └── outcomes    HIP-4 meta, books, prices, templates
+├── account         what an address holds and who may sign for it
+│   ├── holdings    perps, spot, outcomes, worth, what an order may use
+│   ├── history     fills, orders, ledger, portfolio, fees
+│   ├── keys        signers, API wallets, builder approvals
+│   └── settings    margin mode, subaccounts, referrals, rate limits
+├── trade           orders on every market
+│   ├── orders      market, limit, trigger, TP/SL, scale, TWAP, close
+│   ├── manage      cancel, modify, dead man's switch
+│   ├── margin      leverage, isolated margin, margin tables
+│   ├── builder     builder fees and their caps
+│   └── outcomes    outcome fees, split and merge
+├── transfer        sends, withdrawals, Arbitrum deposits, HyperCore to HyperEVM
+├── earn            staking, vaults, lending
+├── deploy          spot tokens, deploy auctions, HIP-3 dexes, HIP-4 outcome markets
+├── live            websocket subscriptions, frames, connection state, a kept store
+└── utils           decimals, rounding, asset ids, units, time, hex, nonces, signing
 ```
 
 ```mermaid
