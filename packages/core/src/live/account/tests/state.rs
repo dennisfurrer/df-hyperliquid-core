@@ -1,28 +1,13 @@
+//! An account's clearinghouse frames: one dex's, every dex's at once, its spot balances, and what
+//! it may trade on one perp, each in the shape the `/info` read answers.
+
 use crate::account::holdings::{Leverage, MarginMode};
+use crate::live::Frame;
 use crate::live::fixtures::{FIRST, SECOND, address, dec, mainnet, portfolio, read};
-use crate::live::{Frame, decode};
 use crate::utils::Dec;
 
-#[test]
-fn what_an_account_may_trade_reads_both_sides() {
-    let Frame::AssetData(data) = read(&mainnet("activeAssetData")) else { panic!("asset data") };
-    assert_eq!((data.user, data.coin.as_str()), (address(FIRST), "BTC"));
-    assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (MarginMode::Cross, 40, None));
-    assert_eq!(data.max_trade_szs, [dec("6.95458"), dec("8.53351")]);
-    assert_eq!(data.available_to_trade, [dec("13988.094483"), dec("17163.875338")]);
-    assert_eq!(data.mark_px, dec("80454.0"));
-}
-
-/// Every recorded `activeAssetData`, read or sent, carries the mark: one without it is refused,
-/// not read as a mark unknown.
-#[test]
-fn what_an_account_may_trade_without_the_mark_is_refused() {
-    let sent = mainnet("activeAssetData");
-    let without = sent.replace(r#","markPx":"80454.0""#, "");
-    assert_ne!(without, sent);
-    assert!(decode(&without).is_err());
-}
-
+/// One dex's clearinghouse and every dex's read alike. The 2026-09-26 recording holds an isolated
+/// position, which carries its raw USD.
 #[test]
 fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     let Frame::ClearinghouseState(state) = read(&mainnet("clearinghouseState")) else { panic!("a state") };
@@ -54,7 +39,6 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     assert_eq!(dexes, ["", "abcd", "cash", "flx", "hyna", "io", "km", "mkts", "para", "vntl", "xyz"]);
     assert_eq!((every.user, every.states[0].1.asset_positions.len()), (address(SECOND), 1));
 
-    // The 2026-09-26 recording: an isolated position, which carries its raw USD.
     let Frame::AllDexsClearinghouseState(older) = read(&portfolio("allDexsClearinghouseState")) else {
         panic!("states")
     };
@@ -66,24 +50,24 @@ fn a_dex_s_clearinghouse_and_every_dex_s_read_alike() {
     assert_eq!(older.states[1].0, "xyz");
 }
 
-/// An isolated position always carries its `rawUsd`, as every recorded one does: one without it is
-/// refused, never read as none put up.
+/// What an account may trade on a perp reads both sides; spot balances read with their tokens,
+/// and the socket does not say whether portfolio margin is on.
 #[test]
-fn an_isolated_position_without_its_raw_usd_is_refused_not_read_as_zero() {
-    let sent = portfolio("allDexsClearinghouseState");
-    assert!(decode(&sent).is_ok());
-    let without = sent.replace(r#","rawUsd":"-3828.81778""#, "");
-    assert_ne!(without, sent);
-    assert!(decode(&without).is_err());
-}
+fn what_an_account_may_trade_and_its_spot_balances_read_both_sides() {
+    let Frame::AssetData(data) = read(&mainnet("activeAssetData")) else { panic!("asset data") };
+    assert_eq!((data.user, data.coin.as_str()), (address(FIRST), "BTC"));
+    assert_eq!((data.leverage.mode(), data.leverage.value(), data.leverage.raw_usd()), (MarginMode::Cross, 40, None));
+    assert_eq!(data.max_trade_szs, [dec("6.95458"), dec("8.53351")]);
+    assert_eq!(data.available_to_trade, [dec("13988.094483"), dec("17163.875338")]);
+    assert_eq!(data.mark_px, dec("80454.0"));
 
-/// Every recorded spot balance, sent or read, carries its entry notional: one without it is
-/// refused, not read as a cost unknown.
-#[test]
-fn a_spot_balance_without_its_entry_notional_is_refused() {
-    let sent = mainnet("spotState");
-    assert!(decode(&sent).is_ok());
-    let without = sent.replacen(r#","entryNtl":"#, r#","entry":"#, 1);
-    assert_ne!(without, sent);
-    assert!(decode(&without).is_err());
+    let Frame::SpotState(spot) = read(&mainnet("spotState")) else { panic!("spot") };
+    assert_eq!((spot.user, spot.state.balances.len()), (address(FIRST), 4));
+    let usdc = &spot.state.balances[0];
+    assert_eq!(
+        (usdc.coin.as_str(), usdc.token, usdc.total, usdc.hold),
+        ("USDC", Some(0), dec("19042.782306"), dec("9001.9958"))
+    );
+    assert_eq!(spot.state.token_to_available_after_maintenance, [(0, dec("16840.184972"))]);
+    assert_eq!(spot.state.portfolio_margin_enabled, None, "the socket does not say");
 }

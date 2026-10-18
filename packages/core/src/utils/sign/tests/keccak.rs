@@ -87,26 +87,34 @@ fn permute_portable(state: &mut [u64; 25]) {
     }
 }
 
+/// The published vectors, and any input the same however it is fed in: across the 136-byte
+/// block, in pieces, or all at once.
 #[test]
-fn the_published_vectors_hold() {
-    assert_eq!(hex::encode(&keccak256(b"")), "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
-    assert_eq!(hex::encode(&keccak256(b"abc")), "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45");
-    assert_eq!(
-        hex::encode(&keccak256(b"The quick brown fox jumps over the lazy dog")),
-        "4d741b6f1eb29cb2a9b9911c82f56fa8d73b04959d3d9d222895df6c0b28aa15"
-    );
-}
-
-#[test]
-fn input_split_into_pieces_hashes_the_same() {
+fn the_published_vectors_hold_however_the_input_is_split() {
+    for (input, digest) in [
+        (&b""[..], "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
+        (&b"abc"[..], "4e03657aea45a94fc7d47ba826c8d667c0d1e6e33a64a036ec44f58fa12d6c45"),
+        (
+            &b"The quick brown fox jumps over the lazy dog"[..],
+            "4d741b6f1eb29cb2a9b9911c82f56fa8d73b04959d3d9d222895df6c0b28aa15",
+        ),
+    ] {
+        assert_eq!(hex::encode(&keccak256(input)), digest);
+        let mut sponge = Keccak256::default();
+        for byte in input {
+            sponge.update(&[*byte]);
+        }
+        assert_eq!(hex::encode(&sponge.finalize()), digest, "a byte at a time");
+    }
     let whole = b"the quick brown fox jumps over the lazy dog, repeatedly, \
                   for long enough to cross a 136 byte block boundary and \
                   then some more so the tail is short";
-    assert!(whole.len() > RATE, "this test needs to span two blocks");
+    assert!(whole.len() > RATE, "this needs to span two blocks");
     for split in [0, 1, 7, 8, RATE - 1, RATE, RATE + 1, whole.len()] {
         let pieced = Keccak256::new().chain(&whole[..split]).chain(&whole[split..]).finalize();
         assert_eq!(pieced, keccak256(whole), "split at {split}");
     }
+    assert_eq!(format!("{:?}", Keccak256::new()), "Keccak256", "the state is never shown");
 }
 
 #[test]

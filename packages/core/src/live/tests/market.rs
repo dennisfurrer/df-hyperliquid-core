@@ -1,3 +1,6 @@
+//! The market frames as recorded on mainnet: books, prints, the best bid and offer, mids,
+//! candles and contexts, every price and size exact.
+
 use crate::live::Frame;
 use crate::live::fixtures::{address, dec, level, mainnet, read, testnet};
 use crate::markets::{Interval, Side};
@@ -72,8 +75,10 @@ fn bbo_mids_and_candles_read_as_sent() {
     );
 }
 
+/// A perp's context and a spot pair's or an outcome side's come on their own channels; every
+/// dex's, one dex's and spot's read alike. Outcome changes and the fast contexts are kept as sent.
 #[test]
-fn a_perp_and_a_spot_context_come_on_their_own_channels() {
+fn every_context_reads_exactly_on_its_own_channel() {
     let Frame::AssetCtx { coin, ctx } = read(&mainnet("activeAssetCtx")) else { panic!("a perp context") };
     assert_eq!(coin, "BTC");
     assert_eq!((ctx.funding, ctx.open_interest), (dec("0.0000078567"), dec("39907.5661399998")));
@@ -91,10 +96,7 @@ fn a_perp_and_a_spot_context_come_on_their_own_channels() {
     let Frame::SpotAssetCtx { coin, ctx } = read(&mainnet("activeSpotAssetCtx.outcome")) else { panic!("an outcome") };
     assert_eq!((coin.as_str(), ctx.mid_px, ctx.mark_px), ("#14720", None, dec("0.5")));
     assert_eq!(ctx.total_supply, Some(dec("184467440737095.53125")), "eight places past an f64's reach");
-}
 
-#[test]
-fn the_contexts_of_every_dex_one_dex_and_spot_read_alike() {
     let Frame::AllDexsAssetCtxs(dexes) = read(&mainnet("allDexsAssetCtxs")) else { panic!("contexts") };
     let names: Vec<&str> = dexes.iter().map(|(dex, _)| dex.as_str()).collect();
     assert_eq!(names, ["", "abcd"]);
@@ -108,10 +110,7 @@ fn the_contexts_of_every_dex_one_dex_and_spot_read_alike() {
     let Frame::SpotAssetCtxs(spot) = read(&mainnet("spotAssetCtxs")) else { panic!("contexts") };
     assert_eq!((spot[0].coin.as_str(), spot[1].coin.as_str()), ("PURR/USDC", "@1"));
     assert_eq!(spot[0].circulating_supply, dec("594775181.7359199524"));
-}
 
-#[test]
-fn outcome_changes_and_fast_contexts_are_kept_as_sent() {
     let Frame::OutcomeMetaUpdates(changes) = read(&testnet("outcomeMetaUpdates")) else { panic!("changes") };
     assert_eq!(changes.compact(), r#"[{"outcomeSettled":23205}]"#);
     let Frame::FastAssetCtxs(payload) = read(&mainnet("fastAssetCtxs")) else { panic!("fast contexts") };

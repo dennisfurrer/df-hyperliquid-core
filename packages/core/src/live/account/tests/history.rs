@@ -1,6 +1,9 @@
+//! An account's histories on the socket: fills, fundings and ledger rows, each saying whether it
+//! opens with the past, every amount exact.
+
 use crate::account::history::{Delta, FillLiquidation};
 use crate::live::Frame;
-use crate::live::fixtures::{FIRST, SECOND, address, dec, mainnet, read, rebate};
+use crate::live::fixtures::{FIRST, SECOND, address, dec, mainnet, read, rebate, vault};
 use crate::markets::Side;
 use crate::utils::Dec;
 
@@ -46,6 +49,7 @@ fn fills_say_whether_they_are_the_snapshot_and_keep_every_field() {
     );
 }
 
+/// Fundings and ledger rows, a vault's deposits and withdrawals among them.
 #[test]
 fn fundings_and_ledger_updates_keep_their_amounts_exact() {
     let Frame::UserFundings(fundings) = read(&mainnet("userFundings")) else { panic!("fundings") };
@@ -74,4 +78,22 @@ fn fundings_and_ledger_updates_keep_their_amounts_exact() {
     let Delta::Send { amount, fee, destination_dex, nonce, .. } = &send.delta else { panic!("a send") };
     assert_eq!((send.kind(), *amount, *fee), ("send", dec("9.75306"), Dec::ZERO));
     assert_eq!((destination_dex.as_str(), *nonce), ("", Some(3_217_031)));
+
+    // The HLP vault's own ledger: a depositor withdrawing from it, and a deposit into it.
+    let Frame::Ledger(vaulted) = read(&vault("userNonFundingLedgerUpdates")) else { panic!("ledger") };
+    let hlp = address("0xdfc24b077bc1425ad1dea75bcb6f8158e10df303");
+    assert_eq!((vaulted.user, vaulted.is_snapshot), (hlp, true));
+    assert_eq!(
+        vaulted.updates[0].delta,
+        Delta::VaultWithdraw {
+            vault: hlp,
+            user: address("0x6eaeaacf2a58eb87eaf3b45e876cbd773c7d446c"),
+            requested_usd: dec("157.043793"),
+            commission: Dec::ZERO,
+            closing_cost: Dec::ZERO,
+            basis: dec("115.006569"),
+            net_withdrawn_usd: dec("157.043793"),
+        }
+    );
+    assert_eq!(vaulted.updates[1].delta, Delta::VaultDeposit { vault: hlp, usdc: dec("79999.61") });
 }

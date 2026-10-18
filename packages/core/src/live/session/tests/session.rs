@@ -1,3 +1,6 @@
+//! One connection's subscriptions and posts: what is wanted is sent on every socket, once each,
+//! and a post waits for its answer by id and is never sent again.
+
 use crate::client::Network;
 
 use super::*;
@@ -12,23 +15,18 @@ fn fast_book(coin: &str) -> Subscription {
     Subscription::L2Book { coin: coin.to_owned(), n_sig_figs: None, mantissa: None, fast: true }
 }
 
-fn open(at: u64) -> Session {
-    let mut session = Session::new(Network::Mainnet);
-    let _ = session.opened(at);
-    session
-}
-
+/// A session names its own network's socket. Subscriptions wait while it is closed and all go out
+/// in order on open, on every socket: the venue keeps nothing for a new one. While open a new one
+/// goes out at once, and one already wanted does not (sent twice, the venue answers `Already
+/// subscribed`). An unsubscribe sends the same object the subscribe did: one whose options
+/// differ is refused (`error.unsubscribe.fast`).
 #[test]
-fn a_session_names_its_own_network_s_socket() {
+fn what_is_wanted_goes_out_on_every_socket_once_each() {
     for network in Network::ALL {
         let session = Session::new(network);
         assert_eq!((session.network(), session.url()), (network, network.ws_url()));
         assert!(!session.is_open());
     }
-}
-
-#[test]
-fn subscriptions_wait_while_closed_and_all_go_out_in_order_on_open() {
     let mut session = Session::new(Network::Mainnet);
     assert_eq!(session.subscribe(trades("BTC")), Ok(None));
     assert_eq!(session.subscribe(fast_book("SOL")), Ok(None));
@@ -36,35 +34,20 @@ fn subscriptions_wait_while_closed_and_all_go_out_in_order_on_open() {
     let all = vec![subscribe(&trades("BTC")), subscribe(&fast_book("SOL"))];
     assert_eq!(session.opened(1_000), all);
     assert!(session.is_open());
-    // Every reconnect resubscribes everything: the venue keeps nothing for a new socket.
     let _ = session.closed(2_000, 0);
     assert!(!session.is_open());
     assert_eq!(session.opened(3_000), all);
-}
 
-#[test]
-fn while_open_a_new_subscription_goes_out_at_once_and_a_repeat_does_not() {
-    let mut session = open(0);
-    assert_eq!(session.subscribe(trades("BTC")), Ok(Some(subscribe(&trades("BTC")))));
-    // Sent twice, the venue answers `Already subscribed` (`error.alreadySubscribed`).
-    assert_eq!(session.subscribe(trades("BTC")), Ok(None));
-    assert_eq!(session.wanted(), [trades("BTC")]);
-}
-
-#[test]
-fn unsubscribing_sends_the_same_object_the_subscribe_did() {
-    // An unsubscribe whose options differ from the subscribe's is refused (`error.unsubscribe.fast`).
-    let mut session = open(0);
-    let _ = session.subscribe(fast_book("SOL"));
-    let _ = session.subscribe(trades("BTC"));
+    assert_eq!(session.subscribe(trades("ETH")), Ok(Some(subscribe(&trades("ETH")))));
+    assert_eq!(session.subscribe(trades("ETH")), Ok(None));
     let stop = session.unsubscribe(&fast_book("SOL")).unwrap();
     assert_eq!(stop, unsubscribe(&fast_book("SOL")));
     assert!(stop.contains(r#""fast":true"#));
     assert_eq!(session.unsubscribe(&fast_book("SOL")), None, "no longer wanted");
-    assert_eq!(session.wanted(), [trades("BTC")]);
-    let _ = session.closed(10, 0);
+    assert_eq!(session.wanted(), [trades("BTC"), trades("ETH")]);
+    let _ = session.closed(10_000, 0);
     assert_eq!(session.unsubscribe(&trades("BTC")), None, "nothing to send while closed");
-    assert!(session.opened(20).is_empty(), "and nothing comes back on open");
+    assert_eq!(session.opened(20_000), [subscribe(&trades("ETH"))], "and it is not asked for again on open");
 }
 
 #[test]

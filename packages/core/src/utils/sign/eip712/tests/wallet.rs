@@ -20,17 +20,15 @@ fn every_kind() -> TypedStruct<'static> {
         .field("nonce", Field::Uint64(1_790_412_105_001))
 }
 
+/// The same digest for every field kind under either domain, and a different one for any changed
+/// value or order.
 #[test]
-fn wallet_json_hashes_back_to_the_digest_for_every_field_kind() {
+fn wallet_json_hashes_back_to_the_digest_and_to_another_for_any_change() {
     for domain in [Domain::user_signed(Network::Mainnet), Domain::EXCHANGE] {
         let data = every_kind();
         let json = data.wallet_json(&domain);
         assert_eq!(digest_of_wallet_json(&json), Ok(data.digest(&domain)), "{json}");
     }
-}
-
-#[test]
-fn the_json_hasher_notices_a_changed_value_or_order() {
     let data = every_kind();
     let json = data.wallet_json(&Domain::user_signed(Network::Mainnet));
     let right = data.digest(&Domain::user_signed(Network::Mainnet));
@@ -48,6 +46,15 @@ fn the_json_hasher_notices_a_changed_value_or_order() {
         let changed = json.replacen(from, to, 1);
         assert_ne!(digest_of_wallet_json(&changed), Ok(right), "{from} -> {to}");
     }
-    assert!(digest_of_wallet_json(r#"{"types":{}}"#).is_err());
-    assert!(digest_of_wallet_json(&json.replacen(r#""toPerp":false"#, r#""toPerp":"false""#, 1)).is_err());
+    for broken in [
+        r#"{"types":{}}"#.to_owned(),
+        "not json".to_owned(),
+        json.replacen(r#""toPerp":false"#, r#""toPerp":"false""#, 1),
+        json.replacen(r#""primaryType""#, r#""primary""#, 1),
+        json.replacen(r#""message""#, r#""messages""#, 1),
+        json.replacen(r#""toPerp":false,"#, "", 1),
+        json.replacen(r#"{"name":"toPerp","type":"bool"}"#, r#"{"name":"toPerp"}"#, 1),
+    ] {
+        assert!(digest_of_wallet_json(&broken).is_err(), "{broken}");
+    }
 }

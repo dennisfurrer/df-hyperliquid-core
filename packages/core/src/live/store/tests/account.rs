@@ -1,3 +1,7 @@
+//! One account's histories in the store: fills, fundings and ledger rows held newest first and
+//! once each, a snapshot or a whole read replacing them and anything else adding to them, and
+//! each piece kept while an interest wants it.
+
 use crate::account::history::LedgerUpdate;
 use crate::client::Network;
 use crate::live::Frame;
@@ -48,66 +52,37 @@ fn fills_frame(snapshot: bool, ids: &[(u64, u64)]) -> Frame {
     })
 }
 
-/// The recorded snapshot (30 fills, oldest first) is kept newest first; the live fill after it
-/// is added; the same live fill from a second frame is not added again.
+/// The recorded snapshot (30 fills, oldest first) is kept newest first, the fills of one
+/// transaction sharing a hash all kept; the live fill after it is added once. A fill is the same
+/// fill by its `tid` and `oid`: the two sides of one trade share a `tid` and can both be the
+/// account's. A snapshot is the whole history again.
 #[test]
-fn a_fills_snapshot_then_live_fills_each_held_once() {
+fn fills_from_the_socket_are_held_newest_first_once_each() {
     let mut store = store();
     let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
     assert_eq!(store.apply(1_000, &frame("userFills.liquidation")), Folded::Changed);
     let held = fills(&store, second());
     assert_eq!((held.len(), held[0]), (30, (1791480439114, 359101774658102)));
     assert!(held.windows(2).all(|pair| pair[0].0 >= pair[1].0), "newest first");
+    let hash = "0x179eeccffddc7852191804461fff2d02121c00b598df9724bb679822bcd0523c";
+    let account = store.account(second()).unwrap();
+    assert_eq!(account.fills().unwrap().iter().filter(|fill| fill.hash == hash).count(), 2);
     assert_eq!(store.apply(2_000, &frame("userFills")), Folded::Changed);
     assert_eq!(fills(&store, second())[0], (1791480468944, 167376889247413));
     assert_eq!(store.apply(3_000, &frame("userFills")), Folded::Same, "the same fill again");
-    let account = store.account(second()).unwrap();
-    let kept = account.fills().unwrap();
+    let kept = store.account(second()).unwrap().fills().unwrap();
     assert_eq!((kept.len(), kept.heard, kept.changed), (31, 3_000, 2_000));
     assert_eq!(kept.iter().filter(|fill| fill.liquidation.is_some()).count(), 3, "liquidations kept on their fills");
-}
 
-/// One order crossing several levels makes several fills in one transaction: they share a hash
-/// and are all kept (the recorded snapshot has two such pairs).
-#[test]
-fn fills_of_one_transaction_share_a_hash_and_are_all_kept() {
-    let mut store = store();
-    let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
-    let _ = store.apply(1_000, &frame("userFills.liquidation"));
-    let account = store.account(second()).unwrap();
-    let hash = "0x179eeccffddc7852191804461fff2d02121c00b598df9724bb679822bcd0523c";
-    assert_eq!(account.fills().unwrap().iter().filter(|fill| fill.hash == hash).count(), 2);
-}
-
-#[test]
-fn a_fills_snapshot_replaces_the_history_and_a_live_frame_extends_it() {
-    let mut store = store();
+    let mut store = self::store();
     let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
     let _ = store.apply(1, &fills_frame(true, &[(1, 1), (2, 2)]));
-    assert_eq!(fills(&store, second()).len(), 2);
-    let _ = store.apply(2, &fills_frame(false, &[(3, 3)]));
-    assert_eq!(fills(&store, second()).len(), 3, "a live frame is news");
-    let _ = store.apply(3, &fills_frame(true, &[(9, 9)]));
-    assert_eq!(fills(&store, second()), [(1791480468944, 9)], "and a snapshot is the whole history again");
-}
-
-#[test]
-fn fills_are_not_counted_twice_when_frames_overlap() {
-    let mut store = store();
-    let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
-    let _ = store.apply(1, &fills_frame(false, &[(1, 1), (2, 2)]));
     let _ = store.apply(2, &fills_frame(false, &[(2, 2), (3, 3)]));
-    assert_eq!(fills(&store, second()).len(), 3);
-}
-
-/// The two sides of one trade share its `tid`; an account on both sides of it (its own orders
-/// crossing) has two fills, told apart by their orders.
-#[test]
-fn both_sides_of_one_trade_are_two_fills() {
-    let mut store = store();
-    let _fills = wanting(&mut store, [Interest::Fills { user: second() }]);
-    let _ = store.apply(1, &fills_frame(false, &[(5, 1), (5, 2)]));
-    assert_eq!(fills(&store, second()).len(), 2);
+    assert_eq!(fills(&store, second()).len(), 3, "a live frame is news, an overlap is not counted twice");
+    let _ = store.apply(3, &fills_frame(false, &[(5, 1), (5, 2)]));
+    assert_eq!(fills(&store, second()).len(), 5, "both sides of one trade are two fills");
+    let _ = store.apply(4, &fills_frame(true, &[(9, 9)]));
+    assert_eq!(fills(&store, second()), [(1791480468944, 9)], "a snapshot is the whole history again");
 }
 
 /// `userFills` read whole replaces what is held; `userFillsByTime` adds a window to it.
@@ -128,12 +103,16 @@ fn a_fills_read_is_a_whole_and_a_window_adds_to_it() {
 }
 
 /// The recorded `userFundings` snapshot (100 payments, oldest first) is kept newest first; told
-/// again it is the same; a `userFunding` read adds its window, each payment once.
+/// again it is the same; a `userFunding` read adds its window, each payment once. The recorded
+/// ledger snapshot (23 rows) likewise, and a live row is added once.
 #[test]
-fn fundings_snapshot_then_reads_each_held_once() {
+fn fundings_and_ledger_rows_are_held_newest_first_once_each() {
     let mut store = store();
     let hlp = address("0x010461c14e146ac35fe42271bdc1134ee31c703a");
-    let _fundings = wanting(&mut store, [Interest::Fundings { user: first() }, Interest::Fundings { user: hlp }]);
+    let _held = wanting(
+        &mut store,
+        [Interest::Fundings { user: first() }, Interest::Fundings { user: hlp }, Interest::Ledger { user: first() }],
+    );
     assert_eq!(store.apply(1_000, &frame("userFundings")), Folded::Changed);
     assert_eq!(store.apply(2_000, &frame("userFundings")), Folded::Same);
     let held = store.account(first()).unwrap().fundings().unwrap();
@@ -148,13 +127,7 @@ fn fundings_snapshot_then_reads_each_held_once() {
         [("DYDX", dec("0.44349")), ("ETH", dec("0.107324")), ("BTC", dec("-0.495632"))],
         "read oldest first"
     );
-}
 
-/// The recorded ledger snapshot (23 rows) is kept newest first; a live row is added once.
-#[test]
-fn ledger_snapshot_then_live_rows_each_held_once() {
-    let mut store = store();
-    let _ledger = wanting(&mut store, [Interest::Ledger { user: first() }]);
     assert_eq!(store.apply(1_000, &frame("userNonFundingLedgerUpdates")), Folded::Changed);
     let newest = store.account(first()).unwrap().ledger().unwrap()[0].clone();
     assert_eq!((newest.time, newest.kind()), (1790318031225, "send"));
@@ -172,26 +145,19 @@ fn ledger_snapshot_then_live_rows_each_held_once() {
     assert_eq!(store.read(4_000, Read::Ledger { user: first(), rows: &rows }), Folded::Same);
 }
 
-/// An account's pieces go with the interest that wanted them; the rest stay.
+/// An account's pieces go with the interest that wanted them; the rest stay. It was last heard
+/// when any piece was; its standing, when its state was.
 #[test]
 fn an_account_s_pieces_go_with_their_interests() {
     let mut store = store();
     let mut held = wanting(&mut store, [Interest::State { user: second() }, Interest::Fills { user: second() }]);
     let _ = store.apply(1_000, &frame("clearinghouseState"));
-    let _ = store.apply(1_000, &frame("userFills"));
+    let _ = store.apply(5_000, &frame("userFills"));
+    let account = store.account(second()).unwrap();
+    assert_eq!((account.heard(), account.standing().heard), (Some(5_000), Some(1_000)));
     store.release(held.remove(1));
     let account = store.account(second()).unwrap();
     assert!(account.fills().is_none());
     assert_eq!(account.positions().count(), 1);
-    assert_eq!(store.apply(2_000, &frame("userFills")), Folded::Dropped);
-}
-
-#[test]
-fn an_account_was_last_heard_when_any_piece_was() {
-    let mut store = store();
-    let _held = wanting(&mut store, [Interest::State { user: second() }, Interest::Fills { user: second() }]);
-    let _ = store.apply(1_000, &frame("clearinghouseState"));
-    let _ = store.apply(5_000, &frame("userFills"));
-    let account = store.account(second()).unwrap();
-    assert_eq!((account.heard(), account.standing().heard), (Some(5_000), Some(1_000)));
+    assert_eq!(store.apply(6_000, &frame("userFills")), Folded::Dropped);
 }

@@ -1,3 +1,6 @@
+//! What readers need kept live, counted: the subscriptions each interest asks for, kept while any
+//! interest needs them, and refused whole past the venue's limits.
+
 use crate::client::Network;
 use crate::live::store::fixtures::{FIRST, HOLDER, SECOND, address, frame, portfolio_frame};
 use crate::live::store::{Changes, Interest, Store};
@@ -40,9 +43,9 @@ fn unsubscribing(subscriptions: &[Subscription]) -> Changes {
 
 /// What each interest asks for is what the venue acknowledged on 2026-10-08, echo for echo:
 /// a full book (no grouping, not fast), a candle, the mids of the first dex and of `xyz`, and
-/// fills not aggregated.
+/// fills not aggregated. A page's interests ask in the order they were taken, and are told once.
 #[test]
-fn each_interest_asks_for_what_the_venue_acknowledged() {
+fn each_interest_asks_for_what_the_venue_acknowledged_in_the_order_taken() {
     let first = address(FIRST);
     let cases = [
         (book("BTC"), "ack.l2Book"),
@@ -58,84 +61,57 @@ fn each_interest_asks_for_what_the_venue_acknowledged() {
     assert_eq!(state[1], acked(frame("ack.spotState")), "spot with portfolio margin read, not ignored");
     let state = Interest::State { user: address(HOLDER) }.subscriptions();
     assert_eq!(state[0], acked(portfolio_frame("ack.allDexsClearinghouseState")));
-}
+    assert_eq!(Interest::PerpContexts.subscriptions(), [Subscription::AllDexsAssetCtxs]);
+    assert_eq!(Interest::SpotContexts.subscriptions(), [Subscription::SpotAssetCtxs]);
 
-#[test]
-fn a_market_page_asks_for_its_book_prints_and_candles_in_order() {
     let mut store = store();
     let coin = "xyz:NVDA";
     let _book = store.register(book(coin)).unwrap();
     let _trades = store.register(Interest::Trades { coin: coin.to_owned() }).unwrap();
     let _candles =
         store.register(Interest::Candles { coin: coin.to_owned(), interval: Interval::FifteenMinutes }).unwrap();
-    let expected = [
-        l2(coin),
-        Subscription::Trades { coin: coin.to_owned() },
-        Subscription::Candle { coin: coin.to_owned(), interval: Interval::FifteenMinutes },
-    ];
-    assert_eq!(store.wanted(), expected);
-    assert_eq!(store.changes(), subscribing(&expected));
-    assert!(store.changes().is_empty(), "told once");
-}
-
-#[test]
-fn an_account_asks_for_its_state_and_its_orders_dex_by_dex() {
-    let mut store = store();
     let user = someone(0x22);
     let _state = store.register(Interest::State { user }).unwrap();
     let _main = store.register(Interest::Orders { user, dex: String::new() }).unwrap();
     let _xyz = store.register(Interest::Orders { user, dex: "xyz".to_owned() }).unwrap();
-    assert_eq!(
-        store.wanted(),
-        [
-            Subscription::AllDexsClearinghouseState { user },
-            Subscription::SpotState { user, ignore_portfolio_margin: false },
-            Subscription::WebData3 { user },
-            Subscription::OpenOrders { user, dex: String::new() },
-            Subscription::OpenOrders { user, dex: "xyz".to_owned() },
-        ]
-    );
+    let expected = [
+        l2(coin),
+        Subscription::Trades { coin: coin.to_owned() },
+        Subscription::Candle { coin: coin.to_owned(), interval: Interval::FifteenMinutes },
+        Subscription::AllDexsClearinghouseState { user },
+        Subscription::SpotState { user, ignore_portfolio_margin: false },
+        Subscription::WebData3 { user },
+        Subscription::OpenOrders { user, dex: String::new() },
+        Subscription::OpenOrders { user, dex: "xyz".to_owned() },
+    ];
+    assert_eq!(store.wanted(), expected);
+    assert_eq!(store.changes(), subscribing(&expected));
+    assert!(store.changes().is_empty(), "told once");
     assert_eq!(store.followed(), [user]);
 }
 
+/// Released or dropped, a handle ends its interest. What one interest needs and another does
+/// not goes; what both need stays; letting go and taking hold again in between sends nothing.
 #[test]
 fn a_subscription_stays_while_any_interest_needs_it() {
     let mut store = store();
     let one = store.register(book("BTC")).unwrap();
     let two = store.register(book("BTC")).unwrap();
+    assert_eq!(one.interest(), &book("BTC"));
     assert_eq!(store.changes(), subscribing(&[l2("BTC")]), "subscribed once");
     store.release(one);
     assert!(store.changes().is_empty(), "the other page still reads it");
     assert_eq!(store.wanted(), [l2("BTC")]);
-    store.release(two);
+    drop(two);
     assert_eq!(store.changes(), unsubscribing(&[l2("BTC")]));
     assert!(store.wanted().is_empty());
-}
 
-#[test]
-fn dropping_a_handle_ends_its_interest() {
-    let mut store = store();
-    let handle = store.register(book("ETH")).unwrap();
-    assert_eq!(handle.interest(), &book("ETH"));
+    let again = store.register(book("SOL")).unwrap();
     let _ = store.changes();
-    drop(handle);
-    assert_eq!(store.changes(), unsubscribing(&[l2("ETH")]));
-}
-
-#[test]
-fn letting_go_and_taking_hold_again_in_between_sends_nothing() {
-    let mut store = store();
-    let handle = store.register(book("SOL")).unwrap();
-    let _ = store.changes();
-    drop(handle);
+    drop(again);
     let _again = store.register(book("SOL")).unwrap();
-    assert!(store.changes().is_empty());
-}
+    assert!(store.changes().is_empty(), "let go and taken again between two changes");
 
-/// What one interest needs and another does not goes; what both need stays.
-#[test]
-fn an_account_s_state_and_its_fills_are_counted_apart() {
-    let mut store = store();
     let user = someone(7);
     let state = store.register(Interest::State { user }).unwrap();
     let _fills = store.register(Interest::Fills { user }).unwrap();
@@ -152,10 +128,30 @@ fn an_account_s_state_and_its_fills_are_counted_apart() {
     assert_eq!(store.followed(), [user], "still followed for its fills");
 }
 
-/// The venue allows an IP ten users across its user subscriptions (`MAX_USERS`). Another
-/// interest in an account already followed is not an eleventh.
 #[test]
-fn an_eleventh_user_is_refused() {
+fn followed_users_come_in_the_order_first_wanted_and_go_with_their_last_interest() {
+    let mut store = store();
+    let (first, second) = (address(FIRST), address(SECOND));
+    let a = store.register(Interest::Fills { user: second }).unwrap();
+    let b = store.register(Interest::State { user: first }).unwrap();
+    let c = store.register(Interest::Ledger { user: second }).unwrap();
+    let _d = store.register(book("BTC")).unwrap();
+    let _e = store.register(Interest::Fundings { user: first }).unwrap();
+    assert_eq!(store.followed(), [second, first]);
+    store.release(a);
+    assert_eq!(store.followed(), [second, first], "its ledger still follows it");
+    store.release(c);
+    store.release(b);
+    assert_eq!(store.followed(), [first], "followed for its fundings");
+}
+
+/// The venue allows an IP ten users across its user subscriptions (`MAX_USERS`); another
+/// interest in an account already followed is not an eleventh. A store sharing the IP with
+/// another session takes a part of its subscriptions: past it a new subscription is refused
+/// whole, and one already wanted is shared and costs nothing. One the venue would not take (no
+/// coin, which drops the socket) is never asked for.
+#[test]
+fn an_interest_past_the_limits_or_one_the_venue_would_not_take_is_refused_whole() {
     let mut store = store();
     let held: Vec<_> = (1..=10).map(|n| store.register(Interest::State { user: someone(n) }).unwrap()).collect();
     assert_eq!(store.register(Interest::Fills { user: someone(11) }).err(), Some(Refused::Users { limit: 10 }));
@@ -163,13 +159,8 @@ fn an_eleventh_user_is_refused() {
     assert_eq!(store.followed(), (1..=10).map(someone).collect::<Vec<_>>(), "the first kept first");
     drop(held);
     assert!(store.register(Interest::Fills { user: someone(11) }).is_ok(), "room once the others let go");
-}
 
-/// A store sharing the IP with another session takes a part of its allowance. Past it, a new
-/// subscription is refused whole; one already wanted is shared, and costs nothing.
-#[test]
-fn past_the_subscription_limit_an_interest_is_refused_whole() {
-    let mut store = store().with_limits(Limits { subscriptions: 3, users: 10, posts: 100 });
+    let mut store = self::store().with_limits(Limits { subscriptions: 3, users: 10, posts: 100 });
     let btc = store.register(book("BTC")).unwrap();
     let _trades = store.register(Interest::Trades { coin: "BTC".to_owned() }).unwrap();
     assert_eq!(store.register(Interest::State { user: someone(1) }).err(), Some(Refused::Subscriptions { limit: 3 }));
@@ -180,27 +171,8 @@ fn past_the_subscription_limit_an_interest_is_refused_whole() {
     store.release(btc);
     assert!(store.register(book("ETH")).is_err(), "the other BTC page still holds it");
     store.release(shared);
-    assert!(store.register(book("ETH")).is_ok());
-}
+    let _eth = store.register(book("ETH")).unwrap();
 
-/// The venue drops the socket for some subscriptions it cannot serve; one with no coin is never
-/// asked for.
-#[test]
-fn an_interest_the_venue_would_not_take_is_refused() {
-    let mut store = store();
     assert_eq!(store.register(book("")).err(), Some(Refused::Bad(BadSubscription::EmptyCoin)));
-    assert!(store.wanted().is_empty());
-}
-
-#[test]
-fn followed_users_come_in_the_order_first_wanted_and_go_with_their_last_interest() {
-    let mut store = store();
-    let (first, second) = (address(FIRST), address(SECOND));
-    let a = store.register(Interest::Fills { user: second }).unwrap();
-    let _b = store.register(Interest::State { user: first }).unwrap();
-    let _c = store.register(Interest::Ledger { user: second }).unwrap();
-    let _d = store.register(book("BTC")).unwrap();
-    assert_eq!(store.followed(), [second, first]);
-    store.release(a);
-    assert_eq!(store.followed(), [second, first], "its ledger still follows it");
+    assert_eq!(store.wanted().len(), 3, "nothing of it is wanted");
 }

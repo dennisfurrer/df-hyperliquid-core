@@ -6,6 +6,8 @@
 //! - `testnet.json`: recorded from testnet the same day, with one refused action post.
 //! - `portfolio.json`: one mainnet account's clearinghouse frames, recorded 2026-09-26.
 //! - `docs.json`: the post-requests page's sample answer to an order.
+//! - `vault.json`: the HLP vault's frames, recorded 2026-10-18: the vaults it leads, deposits into it
+//!   and withdrawals from it, and its order history's snapshot.
 
 use crate::account::history::Fill;
 use crate::live::{Frame, decode};
@@ -16,6 +18,7 @@ const MAINNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture
 const TESTNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/testnet.json"));
 const PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/portfolio.json"));
 const DOCS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/docs.json"));
+const VAULT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/vault.json"));
 
 /// The two accounts the mainnet recording followed on 2026-10-08.
 pub const FIRST: &str = "0x42f1b36fb856769e075dfbf25938464fb3c92c70";
@@ -56,9 +59,13 @@ pub fn docs(name: &str) -> String {
     named(DOCS, name)
 }
 
+pub fn vault(name: &str) -> String {
+    named(VAULT, name)
+}
+
 /// Every recorded frame, from every manifest.
 pub fn all() -> Vec<(String, String)> {
-    [MAINNET, TESTNET, PORTFOLIO, DOCS].into_iter().flat_map(frames).collect()
+    [MAINNET, TESTNET, PORTFOLIO, DOCS, VAULT].into_iter().flat_map(frames).collect()
 }
 
 pub fn dec(text: &str) -> Dec {

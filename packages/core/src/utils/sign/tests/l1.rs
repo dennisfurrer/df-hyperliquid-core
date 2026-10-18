@@ -63,9 +63,9 @@ fn hlp() -> VaultTransfer {
     }
 }
 
-/// `(action, posted json, connection id, r, s, v)`.
+/// `(action, posted json, connection id, r, s, v)`, and the body posted for the first.
 #[test]
-fn every_l1_action_hashes_and_signs_as_the_sdk_does() {
+fn every_l1_action_hashes_signs_and_posts_as_the_sdk_does() {
     let key = key();
     let cases: [(&dyn L1Action, &str, &str, &str, &str, u8); 3] = [
         (
@@ -107,12 +107,8 @@ fn every_l1_action_hashes_and_signs_as_the_sdk_does() {
             "{json}: wallet json"
         );
     }
-}
-
-#[test]
-fn an_l1_body_is_action_nonce_signature_and_a_null_vault() {
     let action = hlp();
-    let signature = key().sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
+    let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
     assert_eq!(
         action.body(NONCE, &signature, None),
         concat!(
@@ -121,7 +117,8 @@ fn an_l1_body_is_action_nonce_signature_and_a_null_vault() {
             r#""signature":{"r":"0xd7b57bb7650ca10752a733ed62df2a5a8931e1c4f7290e0a143bcf96b22ad1fb","#,
             r#""s":"0x63045ef3dfa4f14c26ac85dc03a76b4c332bbca837fb52ea4f9cf84bfcabe450","v":28},"#,
             r#""vaultAddress":null}"#,
-        )
+        ),
+        "the body: action, nonce, signature and a null vault"
     );
 }
 
@@ -168,20 +165,16 @@ fn every_part_of_the_envelope_reaches_the_hash() {
     assert_eq!(plain, keccak256(&bare));
 }
 
+/// The hash has no network; the phantom agent names it, `a` or `b`, so a testnet signature is
+/// never a mainnet one.
 #[test]
-fn the_phantom_agent_names_its_network_as_a_or_b() {
+fn the_phantom_agent_names_its_network_and_the_same_action_signs_apart_on_each() {
     for (network, source) in [(Network::Mainnet, "a"), (Network::Testnet, "b")] {
         let agent = phantom_agent([9; 32], network);
         assert_eq!(agent.type_signature(), "Agent(string source,bytes32 connectionId)");
         assert_eq!(agent.fields()[0].1, Field::String(source), "{network}");
     }
-}
-
-#[test]
-fn the_same_action_signs_apart_on_the_two_networks() {
     let action = hlp();
-    let mainnet = action.digest(NONCE, None, Network::Mainnet);
-    let testnet = action.digest(NONCE, None, Network::Testnet);
-    assert_ne!(mainnet, testnet, "a testnet signature must never be a mainnet one");
-    assert_eq!(action.connection_id(NONCE, None), action.connection_id(NONCE, None), "the hash itself has no network");
+    assert_ne!(action.digest(NONCE, None, Network::Mainnet), action.digest(NONCE, None, Network::Testnet));
+    assert_eq!(action.connection_id(NONCE, None), action.connection_id(NONCE, None));
 }

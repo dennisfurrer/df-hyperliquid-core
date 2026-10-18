@@ -1,3 +1,6 @@
+//! An account's TWAPs on the socket: the running ones, each slice as it fills, and each one's
+//! history, as recorded.
+
 use super::*;
 use crate::live::Frame;
 use crate::live::fixtures::{address, dec, mainnet, read};

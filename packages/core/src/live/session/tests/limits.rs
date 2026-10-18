@@ -1,3 +1,6 @@
+//! The venue's per-IP limits held by one session: subscriptions, users and posts in flight, and a
+//! subscription the venue would not take, each refused before anything is sent.
+
 use crate::client::Network;
 use crate::utils::Address;
 
@@ -28,10 +31,10 @@ fn answer(id: u64) -> String {
     )
 }
 
+/// The rate limits page, per IP: 1000 subscriptions, 10 unique users across user
+/// subscriptions, 100 posts in flight. A bad subscription is refused and not kept.
 #[test]
 fn the_venue_s_limits_are_refused_before_anything_is_sent() {
-    // The rate limits page, per IP: 1000 subscriptions, 10 unique users across user
-    // subscriptions, 100 posts in flight.
     assert_eq!(Limits::VENUE, Limits { subscriptions: 1_000, users: 10, posts: 100 });
     assert_eq!(Limits::default(), Limits::VENUE);
 
@@ -59,10 +62,15 @@ fn the_venue_s_limits_are_refused_before_anything_is_sent() {
     let _ = session.unsubscribe(&Subscription::OrderUpdates { user: someone(1) });
     assert_eq!(session.users(), 9);
     assert!(session.subscribe(Subscription::UserEvents { user: someone(11) }).is_ok(), "the slot came free");
-}
 
-#[test]
-fn a_bad_subscription_is_refused_before_it_is_kept() {
+    let read = Post::info(r#"{"type":"allMids"}"#).unwrap();
+    for n in 1..=100 {
+        assert_eq!(session.post(&read).map(|(id, _)| id), Ok(n));
+    }
+    assert_eq!(session.post(&read), Err(Refused::Posts { limit: 100 }));
+    assert!(session.received(5, &answer(40)).is_ok());
+    assert_eq!(session.post(&read).map(|(id, _)| id), Ok(101));
+
     let mut session = open(0);
     assert_eq!(session.subscribe(trades("")), Err(Refused::Bad(BadSubscription::EmptyCoin)));
     let lumped = Subscription::L2Book { coin: "BTC".to_owned(), n_sig_figs: Some(4), mantissa: Some(2), fast: false };
@@ -81,16 +89,4 @@ fn smaller_limits_leave_room_for_other_sockets_on_the_same_ip() {
     let read = Post::info(r#"{"type":"allMids"}"#).unwrap();
     assert!(session.post(&read).is_ok());
     assert_eq!(session.post(&read), Err(Refused::Posts { limit: 1 }));
-}
-
-#[test]
-fn a_hundred_posts_in_flight_is_the_most() {
-    let mut session = open(0);
-    let read = Post::info(r#"{"type":"allMids"}"#).unwrap();
-    for n in 1..=100 {
-        assert_eq!(session.post(&read).map(|(id, _)| id), Ok(n));
-    }
-    assert_eq!(session.post(&read), Err(Refused::Posts { limit: 100 }));
-    assert!(session.received(5, &answer(40)).is_ok());
-    assert_eq!(session.post(&read).map(|(id, _)| id), Ok(101));
 }

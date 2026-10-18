@@ -80,15 +80,6 @@ fn the_type_hashes_are_the_published_constants() {
 }
 
 #[test]
-fn the_digest_is_the_prefixed_concatenation() {
-    let data =
-        TypedStruct::new("Agent").field("source", Field::String("a")).field("connectionId", Field::Bytes32([0xab; 32]));
-    let expected = keccak256(&[&[0x19, 0x01][..], &Domain::EXCHANGE.separator(), &data.hash()].concat());
-    assert_eq!(digest(&Domain::EXCHANGE, &data), expected);
-    assert_eq!(data.digest(&Domain::EXCHANGE), expected);
-}
-
-#[test]
 fn wallet_json_is_the_shape_eth_sign_typed_data_v4_takes() {
     let data = TypedStruct::new("HyperliquidTransaction:UsdClassTransfer")
         .field("hyperliquidChain", chain())
@@ -115,11 +106,11 @@ fn wallet_json_is_the_shape_eth_sign_typed_data_v4_takes() {
     assert!(parsed["message"]["toPerp"].is_boolean(), "a bool is a bool, never the string \"false\"");
 }
 
-/// `@nktkas/hyperliquid` 0.24.3 with the first Hardhat key, digest from viem.
-/// A second SDK run and a second key, and an `address` field through the
-/// wallet JSON.
+/// `@nktkas/hyperliquid` 0.24.3 with the first Hardhat key, digest from viem: `0x1901`, the
+/// domain separator and the struct hash. A second SDK run and a second key, and an `address`
+/// field through the wallet JSON.
 #[test]
-fn an_approve_agent_signs_as_the_sdk_did_with_the_hardhat_key() {
+fn an_approve_agent_digests_and_signs_as_the_sdk_did_with_the_hardhat_key() {
     let key = LocalKey::from_hex("0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80").unwrap();
     assert_eq!(key.address().to_hex(), "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266");
     let data = TypedStruct::new("HyperliquidTransaction:ApproveAgent")
@@ -127,8 +118,11 @@ fn an_approve_agent_signs_as_the_sdk_did_with_the_hardhat_key() {
         .field("agentAddress", Field::Address("0x70997970C51812dc3A010C7d01b50e0d17dc79C8".parse().unwrap()))
         .field("agentName", Field::String("globeli"))
         .field("nonce", Field::Uint64(1_790_000_000_000));
-    let digest = data.digest(&Domain::user_signed(Network::Mainnet));
+    let domain = Domain::user_signed(Network::Mainnet);
+    let digest = data.digest(&domain);
     assert_eq!(hex::encode_prefixed(&digest), "0x47449c3d7573a7bae22b7c7e63ee5dac9eb3d62e26994d1ab5fe336b7176efbb");
+    assert_eq!(digest, keccak256(&[&[0x19, 0x01][..], &domain.separator(), &data.hash()].concat()));
+    assert_eq!(digest, super::digest(&domain, &data));
     assert_eq!(digest_of_wallet_json(&data.wallet_json(&Domain::user_signed(Network::Mainnet))), Ok(digest));
     let signature = key.sign_digest(&digest).unwrap();
     assert_eq!(signature.r_hex(), "0xf8c6a1ca4acd448da6154085b6b273cf3c9539d0ace4431b2edec9ed4bcc2a0e");

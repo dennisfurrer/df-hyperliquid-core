@@ -1,3 +1,6 @@
+//! A store's interests into a session: the session's own frames, what it refuses asked for again,
+//! and never a session on the other network.
+
 use crate::client::Network;
 use crate::live::store::{Changes, Interest, OtherNetwork, Store};
 use crate::live::{Limits, Refused, Session, Subscription, subscribe, unsubscribe};
@@ -19,9 +22,10 @@ fn subscribing(subscriptions: &[Subscription]) -> Changes {
 }
 
 /// The frames the session would send itself, unsubscribes first; a socket that opens later
-/// subscribes to everything wanted.
+/// subscribes to everything wanted. What the session refuses is reported, and asked for again on
+/// the next sync.
 #[test]
-fn sync_gives_the_session_s_own_frames() {
+fn sync_gives_the_session_s_own_frames_and_asks_again_for_what_it_refused() {
     let mut store = store();
     let mut session = Session::new(Network::Mainnet);
     let btc = store.register(book("BTC")).unwrap();
@@ -36,11 +40,8 @@ fn sync_gives_the_session_s_own_frames() {
     assert_eq!(synced.frames, [unsubscribe(&l2("BTC")), subscribe(&l2("ETH"))]);
     assert!(synced.refused.is_empty());
     assert_eq!(session.wanted(), store.wanted());
-}
 
-#[test]
-fn what_the_session_refuses_is_reported_and_asked_again() {
-    let mut store = store();
+    let mut store = self::store();
     let mut session = Session::new(Network::Mainnet).with_limits(Limits { subscriptions: 1, users: 10, posts: 100 });
     let _ = session.opened(0);
     let _btc = store.register(book("BTC")).unwrap();

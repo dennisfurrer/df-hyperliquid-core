@@ -6,26 +6,28 @@ fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap_or_else(|error| panic!("{text}: {error}"))
 }
 
+/// Read with an optional sign and at most one point; written with no trailing zeros and no
+/// exponent. Anything else is refused.
 #[test]
-fn the_wire_spelling_has_no_trailing_zeros_and_no_exponent() {
+fn a_plain_decimal_reads_and_writes_back_without_trailing_zeros_and_nothing_else_reads() {
     for (text, wire) in [
-        ("83982.0", "83982"),
-        ("0.0000125", "0.0000125"),
-        ("-0.0004701178", "-0.0004701178"),
-        ("00123", "123"),
-        ("1.2000", "1.2"),
-        (".5", "0.5"),
-        ("-0.0", "0"),
-        ("2460964638.0624189377", "2460964638.0624189377"),
+        ("83982.0", Some("83982")),
+        ("0.0000125", Some("0.0000125")),
+        ("-0.0004701178", Some("-0.0004701178")),
+        ("00123", Some("123")),
+        ("1.2000", Some("1.2")),
+        (".5", Some("0.5")),
+        ("-0.0", Some("0")),
+        ("2460964638.0624189377", Some("2460964638.0624189377")),
+        ("", None),
+        (".", None),
+        ("1e5", None),
+        ("1.2.3", None),
+        ("abc", None),
+        ("--1", None),
+        ("1,5", None),
     ] {
-        assert_eq!(dec(text).to_wire(), wire, "{text}");
-    }
-}
-
-#[test]
-fn what_is_not_a_plain_decimal_is_refused() {
-    for text in ["", ".", "1e5", "1.2.3", "abc", "--1", "1,5"] {
-        assert!(Dec::parse(text).is_err(), "{text} was read");
+        assert_eq!(Dec::parse(text).ok().map(Dec::to_wire).as_deref(), wire, "{text:?}");
     }
     assert!(matches!(Dec::parse("0.0000000000000000001"), Err(BadDec::TooFine(_))));
 }
