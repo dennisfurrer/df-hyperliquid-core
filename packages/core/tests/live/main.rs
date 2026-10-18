@@ -21,5 +21,4 @@ mod deploy;
 mod earn;
 mod markets;
 mod socket;
-mod trade;
 mod transfer;
