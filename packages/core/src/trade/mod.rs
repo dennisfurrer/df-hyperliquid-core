@@ -32,9 +32,5 @@ pub use orders::{
 pub use ticket::{Amount, Market, Refusal};
 
 #[cfg(test)]
-#[path = "tests/support.rs"]
-pub(crate) mod tests_support;
-
-#[cfg(test)]
 #[path = "tests/ticket_support.rs"]
 pub(crate) mod ticket_support;

@@ -18,13 +18,5 @@ pub use meta::{
 pub use table::{FLAT_TABLES_BELOW, MarginTable, MarginTier};
 
 #[cfg(test)]
-#[path = "tests/support.rs"]
-mod support;
-
-#[cfg(test)]
-#[path = "tests/state.rs"]
-mod state_tests;
-
-#[cfg(test)]
 #[path = "tests/funding.rs"]
 mod funding_tests;

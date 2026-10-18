@@ -60,3 +60,7 @@ const fn at(side: Side) -> usize {
         Side::Sell => 1,
     }
 }
+
+#[cfg(test)]
+#[path = "tests/active.rs"]
+mod tests;

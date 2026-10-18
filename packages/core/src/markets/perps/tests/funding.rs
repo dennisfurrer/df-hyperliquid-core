@@ -9,7 +9,7 @@ use crate::markets::perps::funding::{
     funding_windows, merge_rates, next_funding, next_page,
 };
 use crate::markets::perps::meta::Meta;
-use crate::markets::perps::support::dec;
+use crate::utils::Dec;
 
 const HISTORY: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/perps/funding_history_btc_mainnet.json"));
@@ -18,6 +18,10 @@ const PREDICTED: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/perps/predicted_fundings_mainnet.json"));
 const AT_CAP: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/perps/perps_at_open_interest_cap_mainnet.json"));
+
+fn dec(text: &str) -> Dec {
+    Dec::parse(text).unwrap()
+}
 const META: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/perps/meta_mainnet.json"));
 const HLP_A: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/perps/clearinghouse_hlp_a_mainnet.json"));
