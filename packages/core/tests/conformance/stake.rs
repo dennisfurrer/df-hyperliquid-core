@@ -2,9 +2,6 @@
 //! 0.33.2), through this crate's constructors and plans, on the network each
 //! case was made for: the posted JSON, the digest and the signature.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::earn::staking::{CDeposit, CWithdraw, Ctx, DelegatorSummary, TokenDelegate};

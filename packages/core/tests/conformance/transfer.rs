@@ -7,9 +7,6 @@
 //!   (Hardhat's first account).
 //! - `to_evm.json`: four recorded Core to HyperEVM cases.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use df_hyperliquid_core::account::{Keeping, LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::transfer::{

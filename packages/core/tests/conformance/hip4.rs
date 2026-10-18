@@ -9,9 +9,6 @@
 //!   on mainnet.
 //! - `l1.json`: the HIP-4 market orders among the recorded L1 cases, mainnet.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use std::collections::BTreeMap;
 
 use df_hyperliquid_core::account::{LocalKey, recover};

@@ -4,9 +4,6 @@
 //! signature. The SDK run named HYPE by its mainnet index, 150, on both
 //! networks; the signature does not care.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::earn::lending::{BorrowLend, Ctx, ReserveState};

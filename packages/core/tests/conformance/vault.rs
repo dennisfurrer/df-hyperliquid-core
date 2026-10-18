@@ -4,9 +4,6 @@
 //! and the signature. The SDK run named mainnet's HLP on both networks; the
 //! signature does not care.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use df_hyperliquid_core::account::{LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::earn::vaults::{Ctx, MAINNET_HLP, VaultDetails, VaultTransfer};

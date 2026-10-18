@@ -10,9 +10,6 @@
 //! - `nktkas-0.33.2-trade.json`: order vectors from `@nktkas/hyperliquid` 0.33.2 on both networks, the Python
 //!   SDK's signing tests, and hashes.
 
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
-
 use df_hyperliquid_core::account::LocalKey;
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::trade::builder::fee::BuilderFee;

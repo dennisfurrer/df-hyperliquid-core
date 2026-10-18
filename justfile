@@ -9,8 +9,18 @@ clippy:
 wasm:
     cargo clippy -p df-hyperliquid-core --no-default-features --features sign,web --target wasm32-unknown-unknown -- -D warnings
 
+# Unit, conformance and mocked suites; the live suite is skipped here.
 test:
     cargo test --workspace
+
+# Against mainnet, read only: every read, websocket channel and HyperEVM read, each held
+# against its recording. Run by hand.
+live:
+    cargo test -p df-hyperliquid-core --test live -- --ignored --test-threads 1
+
+# Line coverage of the unit, conformance and mocked suites.
+cover:
+    cargo llvm-cov -p df-hyperliquid-core --summary-only
 
 # The browser transport, run as wasm in Node through wasm-bindgen's test runner.
 web:

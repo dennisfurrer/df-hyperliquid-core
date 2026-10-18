@@ -1,10 +1,7 @@
 //! `@nktkas/hyperliquid` 0.33.2's vectors (`vectors/nktkas-0.33.2.json`) through the signing
 //! code alone: each L1 action exactly as written (key order kept), its hash and its signature on
 //! the network it was made for, and a user-signed action on both networks. The other L1 files are
-//! rebuilt through the typed builders in `trade_vectors.rs`.
-
-// A test crate: clippy's allowance for tests covers `#[test]` functions only, not their helpers.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+//! rebuilt through the typed builders in `trade.rs`.
 
 use df_hyperliquid_core::account::LocalKey;
 use df_hyperliquid_core::client::Network;
