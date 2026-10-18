@@ -82,7 +82,7 @@ async fn an_outcome_is_registered_from_its_template_and_a_question_settled_from_
     let venue = Venue::mainnet()
         .info("outcomeTemplates", "hip4/outcome_templates_mainnet.json")
         .info("outcomeDeployerLimits", "hip4/deployer_limits_out_mainnet.json")
-        .info("outcomeMeta", "hip4/outcome_meta_mainnet.json")
+        .info("outcomeMeta", "hip4/outcome_meta_2026_10_08_mainnet.json")
         .exchange("default")
         .exchange("default")
         .exchange("refused_whole")
@@ -158,7 +158,7 @@ async fn a_deployer_claims_its_venue_and_a_sub_deployer_it_granted_settles_for_i
     deployer.send(&OutcomeDeploy::set_sub_deployers(out(), vec![granted]).unwrap()).await.unwrap();
 
     let venue = Venue::mainnet()
-        .info("outcomeMeta", "hip4/outcome_meta_mainnet.json")
+        .info("outcomeMeta", "hip4/outcome_meta_2026_10_08_mainnet.json")
         .exchange("default")
         .signed_by(sub.address());
     let settler = Client::new(venue, Network::Mainnet, clock, sub);
