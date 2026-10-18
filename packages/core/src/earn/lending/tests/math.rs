@@ -103,6 +103,11 @@ fn a_reserve_values_collateral_and_says_what_it_can_still_lend() {
     assert_eq!(hype.backing(dec("10")), Some(dec("542.8085")), "at its 0.65 loan to value");
     let usdc = reserve(&mainnet, 0).unwrap();
     assert_eq!(usdc.lendable(), dec("137147223.4528518021"));
+    assert_ne!(
+        usdc.total_supplied.checked_sub(usdc.total_borrowed),
+        Some(usdc.lendable()),
+        "live, the balance is near, but not exactly, supplied less borrowed"
+    );
     assert_eq!(usdc.backing(dec("100")), Some(Dec::ZERO), "USDC backs no borrow");
     let testnet = reserves(Network::Testnet);
     assert_eq!(reserve(&testnet, 1105).map(|hype| hype.ltv), Some(dec("0.65")), "HYPE is 1105 on testnet");

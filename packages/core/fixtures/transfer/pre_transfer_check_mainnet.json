@@ -1,0 +1,4 @@
+{
+ "fresh": {"isSanctioned":false,"userExists":false,"fee":"1.0","userHasSentTx":false},
+ "known": {"isSanctioned":false,"userExists":true,"fee":"0.0","userHasSentTx":true}
+}

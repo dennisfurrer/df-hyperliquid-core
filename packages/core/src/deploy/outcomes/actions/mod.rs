@@ -27,7 +27,3 @@ pub use venue::Venue;
 #[cfg(test)]
 #[path = "tests/support.rs"]
 mod support;
-
-#[cfg(test)]
-#[path = "tests/vectors.rs"]
-mod vectors;

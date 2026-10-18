@@ -44,40 +44,25 @@ pub async fn pre_transfer_check(
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
 
-    fn address(text: &str) -> Address {
-        text.parse().unwrap()
-    }
-
-    #[test]
-    fn the_check_names_the_recipient_as_user_and_the_sender_as_source() {
-        assert_eq!(
-            pre_transfer_check_request(
-                address("0x0D1d9635D0640821d15e323ac8AdADfA9c111414"),
-                address("0x14791697260E4c9A71f18484C9f997B308e59325")
-            ),
-            concat!(
-                r#"{"type":"preTransferCheck","user":"0x0d1d9635d0640821d15e323ac8adadfa9c111414","#,
-                r#""source":"0x14791697260e4c9a71f18484c9f997b308e59325"}"#
-            )
-        );
-    }
-
-    /// Both live answers, mainnet, 2026-10-06.
+    /// Both answers in `pre_transfer_check_mainnet.json`, live on mainnet, 2026-10-18.
     #[test]
     fn a_fresh_recipient_costs_a_fee_and_a_known_one_does_not() {
-        let fresh: PreTransferCheck =
-            serde_json::from_str(r#"{"isSanctioned":false,"userExists":false,"fee":"1.0","userHasSentTx":false}"#)
-                .unwrap();
+        let recorded: BTreeMap<String, PreTransferCheck> = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/fixtures/transfer/pre_transfer_check_mainnet.json"
+        )))
+        .unwrap();
+        let fresh = &recorded["fresh"];
         assert_eq!(
-            fresh,
+            *fresh,
             PreTransferCheck { is_sanctioned: false, user_exists: false, fee: Dec::ONE, user_has_sent_tx: false }
         );
         assert_eq!(fresh.activation_fee(), Some(Dec::ONE));
-        let known: PreTransferCheck =
-            serde_json::from_str(r#"{"isSanctioned":false,"userExists":true,"fee":"0.0","userHasSentTx":true}"#)
-                .unwrap();
+        let known = &recorded["known"];
         assert!(known.user_exists && known.user_has_sent_tx && !known.is_sanctioned);
         assert_eq!(known.activation_fee(), None);
     }

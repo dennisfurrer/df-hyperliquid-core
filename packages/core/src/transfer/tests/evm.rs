@@ -55,26 +55,30 @@ fn a_token_goes_home_as_a_transfer_to_its_system_address() {
     assert!(token.to_core(Dec::ZERO).is_err(), "nothing to move");
 }
 
+/// `0x2222...2222` for HYPE, `0x20`, zeros and the index for every other token; a person's
+/// address, however near, is none of them.
 #[test]
-fn system_addresses_are_the_hype_one_and_every_token_s() {
-    assert_eq!(system_address(200).to_hex(), "0x20000000000000000000000000000000000000c8");
-    assert_eq!(system_address(1452).to_hex(), "0x20000000000000000000000000000000000005ac");
-    assert_eq!(system_address(0).to_hex(), "0x2000000000000000000000000000000000000000");
+fn a_system_address_is_hype_s_or_0x20_and_a_token_index_and_nothing_else() {
+    for (index, hex) in [
+        (200, "0x20000000000000000000000000000000000000c8"),
+        (1452, "0x20000000000000000000000000000000000005ac"),
+        (124, "0x200000000000000000000000000000000000007c"),
+        (0, "0x2000000000000000000000000000000000000000"),
+    ] {
+        assert_eq!(system_address(index).to_hex(), hex);
+        assert_eq!(system_token(address(hex)), Some(index), "{hex}");
+    }
     assert_eq!(HYPE_SYSTEM.to_hex(), "0x2222222222222222222222222222222222222222");
     for system in [
         HYPE_SYSTEM,
-        system_address(0),
         system_address(150),
         system_address(u64::MAX),
-        address("0x200000000000000000000000000000000000007c"),
         address("0x2000000000000000000000000000000000000001"),
     ] {
         assert!(is_system_address(system), "{system}");
     }
-}
-
-#[test]
-fn a_person_is_never_taken_for_a_system_address() {
+    assert_eq!(system_token(system_address(u64::MAX)), Some(u64::MAX));
+    assert_eq!(system_token(HYPE_SYSTEM), None, "HYPE crosses natively, not as a token index");
     for person in [
         address("0x0d1d9635d0640821d15e323ac8adadfa9c111414"),
         address("0x2000000000000000000000010000000000000001"),
@@ -82,14 +86,6 @@ fn a_person_is_never_taken_for_a_system_address() {
         address("0x2222222222222222222222222222222222222223"),
         Address::ZERO,
     ] {
-        assert!(!is_system_address(person), "{person}");
+        assert!(!is_system_address(person) && system_token(person).is_none(), "{person}");
     }
-}
-
-#[test]
-fn a_token_s_system_address_gives_back_its_index() {
-    assert_eq!(system_token(system_address(1452)), Some(1452));
-    assert_eq!(system_token(system_address(u64::MAX)), Some(u64::MAX));
-    assert_eq!(system_token(HYPE_SYSTEM), None, "HYPE crosses natively, not as a token index");
-    assert_eq!(system_token(Address::ZERO), None);
 }

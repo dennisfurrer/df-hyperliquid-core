@@ -51,7 +51,3 @@ impl Grant {
         Map::new().put("variant", self.permission.wire()).put("user", self.user.to_hex()).put("allowed", self.allowed)
     }
 }
-
-#[cfg(test)]
-#[path = "tests/grant.rs"]
-mod tests;

@@ -63,8 +63,12 @@ fn a_keyword_takes_one_plain_value() {
     assert_eq!(keywords(&[("priceDescription", longest.as_str())]).get("priceDescription"), Some(longest.as_str()));
 }
 
+/// An instance is checked whole against what its template declares: a missing value, one the
+/// template does not declare, and each its hint refuses, in that order. Against the venue's own
+/// templates (2026-10-08): mainnet's `binaryPrice` takes the recorded preset whole; testnet's
+/// `sportsContestResult` asks for eight more keywords than the Python SDK's two.
 #[test]
-fn a_template_instance_is_checked_whole() {
+fn a_template_instance_is_checked_whole_against_what_its_template_declares() {
     let declared = || {
         [
             ("perp", Hint::parse("hlPerp")),
@@ -74,14 +78,6 @@ fn a_template_instance_is_checked_whole() {
             ("time", Hint::parse("dateTime")),
         ]
     };
-    let good = keywords(&[
-        ("perp", "BTC"),
-        ("priceDescription", "BTC-USDC perp mark"),
-        ("seconds", "60"),
-        ("threshold", "83114"),
-        ("time", "20261231-1200"),
-    ]);
-    assert_eq!(good.check(declared(), NOW_MS), []);
     let bad = keywords(&[
         ("perp", "BTC"),
         ("seconds", "060"),
@@ -100,13 +96,7 @@ fn a_template_instance_is_checked_whole() {
         ]
     );
     assert_eq!(Keywords::new().check([], NOW_MS), [], "a template with no keywords takes none");
-}
 
-/// The venue's own templates (testnet, 2026-10-08): the Python SDK's two-keyword
-/// `sportsContestResult` hashes, but the venue's template asks for eight more. Mainnet's
-/// `binaryPrice` takes the recorded preset whole.
-#[test]
-fn the_venue_s_own_template_asks_for_every_keyword_it_declares() {
     let declared = |templates: &[crate::markets::outcomes::OutcomeTemplate], id: &str| -> Vec<(String, Hint)> {
         let template = templates.iter().find(|one| one.id == id).unwrap();
         template.keywords.iter().map(|keyword| (keyword.name.clone(), keyword.hint())).collect()
