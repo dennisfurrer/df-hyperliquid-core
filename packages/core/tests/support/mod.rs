@@ -19,8 +19,8 @@ pub const fn clock() -> u64 {
     NOW
 }
 
-/// Hardhat's account #0: a published test key that holds nothing anywhere.
-pub const KEY: &str = "0xac0974bec39a17e36ba4f4b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+/// Hardhat's account #0, a published test key. Only the mocked venue ever sees what it signs.
+pub const KEY: &str = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
 
 pub fn key() -> LocalKey {
     LocalKey::from_hex(KEY).unwrap()
