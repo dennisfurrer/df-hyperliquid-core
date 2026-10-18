@@ -3,6 +3,8 @@
 //! from mainnet (`fixtures/ws`), and what comes back is folded into the store and read from its
 //! views. The server checks every frame the feed sends, byte for byte.
 
+mod server;
+
 use std::time::Duration;
 
 use df_hyperliquid_core::account::{Abstraction, ClearinghouseState, L1Action, Leverage, Signature, recover};
@@ -15,13 +17,11 @@ use df_hyperliquid_core::trade::{self, Amount, Asset, Market, OrderAnswer, Order
 use df_hyperliquid_core::utils::sign::l1_digest;
 use df_hyperliquid_core::utils::{Json, hex};
 use df_hyperliquid_core::{Address, Dec, Network};
-use futures_util::{SinkExt, StreamExt};
-use tokio::net::{TcpListener, TcpStream};
+use futures_util::StreamExt;
 use tokio::time::timeout;
-use tokio_tungstenite::tungstenite::Message;
-use tokio_tungstenite::{WebSocketStream, accept_async};
 
 use crate::support::{NOW, fixture, key};
+use server::{accept, listen};
 
 /// The account the 2026-10-08 frames follow, and the one the 2026-09-26 frames follow.
 const TRADER: &str = "0x78dce96236804d6958bf3c4598cf5efbc371629c";
@@ -35,37 +35,6 @@ const QUICK: Timing =
     Timing { ping_after_ms: 30_000, silent_ms: 60_000, steady_ms: 30_000, first_retry_ms: 20, last_retry_ms: 40 };
 
 const WAIT: Duration = Duration::from_secs(5);
-
-/// One connection the feed made, as the venue's end of it.
-struct Server(WebSocketStream<TcpStream>);
-
-impl Server {
-    /// The next text frame the feed sent.
-    async fn takes(&mut self) -> String {
-        loop {
-            match timeout(WAIT, self.0.next()).await.expect("a frame in time").expect("an open socket").unwrap() {
-                Message::Text(text) => return text.to_string(),
-                Message::Ping(_) | Message::Pong(_) => {}
-                other => panic!("expected text, got {other:?}"),
-            }
-        }
-    }
-
-    async fn sends(&mut self, text: &str) {
-        self.0.send(Message::text(text)).await.unwrap();
-    }
-}
-
-async fn listen() -> (TcpListener, String) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let url = format!("ws://{}", listener.local_addr().unwrap());
-    (listener, url)
-}
-
-async fn accept(listener: &TcpListener) -> Server {
-    let (stream, _) = timeout(WAIT, listener.accept()).await.expect("the feed dials").unwrap();
-    Server(accept_async(stream).await.unwrap())
-}
 
 /// A frame from a recording under `fixtures/ws`, as received.
 fn recorded(manifest: &str, name: &str) -> String {

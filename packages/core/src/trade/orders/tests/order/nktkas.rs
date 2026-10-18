@@ -1,51 +1,23 @@
 //! Every vector below was produced by `@nktkas/hyperliquid` 0.33.2: keys ordered by `canonicalize`,
-//! hashed by `createL1ActionHash` at [`NONCE`] and signed by `signL1Action` with [`KEY`] through
-//! viem; mainnet rows only. The last two are the official Python SDK's `signing_test.py` vectors.
+//! hashed by `createL1ActionHash` at [`NONCE`] and signed by `signL1Action` with [`KEY`](super::KEY) through
+//! viem; mainnet rows only.
 
-use crate::account::{LocalKey, recover};
+use crate::account::recover;
 use crate::client::Network;
-use crate::trade::builder::fee::BuilderFee;
+use crate::trade::manage::Cancel;
 use crate::trade::manage::{BatchModify, Modify, OrderRef};
-use crate::trade::manage::{Cancel, CancelByCloid};
 use crate::trade::margin::{MarginMode, UpdateIsolatedMargin, UpdateLeverage};
 use crate::trade::orders::*;
 use crate::trade::orders::{Twap, TwapCancel};
-use crate::utils::rounding::Grid;
+use crate::utils::hex;
 use crate::utils::sign::{L1Action, digest_of_wallet_json};
-use crate::utils::{Address, Asset, Dec, hex};
 
-/// The key `hyperliquid-python-sdk` signs its tests with.
-const KEY: &str = "0x0123456789012345678901234567890123456789012345678901234567890123";
+use super::{BUILDER, asset, dec, key, limit, through};
+
 const NONCE: u64 = 1_712_345_678_000;
-/// The builder, checksummed as the vectors name it.
-const BUILDER: &str = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843";
-
-fn key() -> LocalKey {
-    LocalKey::from_hex(KEY).unwrap()
-}
-
-fn dec(text: &str) -> Dec {
-    Dec::parse(text).unwrap()
-}
-
-fn asset(id: u32) -> Asset {
-    Asset::from_id(id)
-}
-
-fn address(text: &str) -> Address {
-    text.parse().unwrap()
-}
-
-fn limit(id: u32, side: Side, price: &str, size: &str, tif: Tif) -> Order {
-    Order::limit(asset(id), side, dec(price), dec(size), tif)
-}
 
 fn trigger(id: u32, side: Side, price: &str, size: &str, at: &str, tpsl: Tpsl, is_market: bool) -> Order {
     Order::trigger(asset(id), side, dec(price), dec(size), dec(at), tpsl, is_market).reduce_only()
-}
-
-fn through(order: Order, builder: &str, fee: u64) -> PlaceOrder {
-    PlaceOrder::one(order).through(Builder::new(address(builder), BuilderFee::from_tenths(fee)))
 }
 
 /// `(action, posted json, msgpack, connection id, r, s, v)`.
@@ -312,140 +284,4 @@ fn every_trading_action_is_the_sdk_s_byte_for_byte() {
             "{json}: the body"
         );
     }
-}
-
-/// `test_l1_action_signing_order_matches` and
-/// `test_l1_action_signing_tpsl_order_matches`: ETH, asset 1, 100 at 100,
-/// nonce 0. Python drops a leading zero from `r` and `s`; these have none.
-#[test]
-fn the_python_sdk_s_order_vectors_sign_the_same() {
-    let key = key();
-    let plain = PlaceOrder::one(limit(1, Side::Buy, "100", "100", Tif::Gtc));
-    let stop =
-        PlaceOrder::one(Order::trigger(asset(1), Side::Buy, dec("100"), dec("100"), dec("103"), Tpsl::StopLoss, true));
-    for (action, r, s, v) in [
-        (
-            plain,
-            "0xd65369825a9df5d80099e513cce430311d7d26ddf477f5b3a33d2806b100d78e",
-            "0x2b54116ff64054968aa237c20ca9ff68000f977c93289157748a3162b6ea940e",
-            28,
-        ),
-        (
-            stop,
-            "0x98343f2b5ae8e26bb2587daad3863bc70d8792b09af1841b6fdd530a2065a3f9",
-            "0x6b5bb6bb0633b710aa22b721dd9dee6d083646a5f8e581a20b545be6c1feb405",
-            27,
-        ),
-    ] {
-        let signature = key.sign_digest(&action.digest(0, None, Network::Mainnet)).unwrap();
-        assert_eq!((signature.r_hex().as_str(), signature.s_hex().as_str(), signature.v()), (r, s, v), "{action:?}");
-    }
-}
-
-/// The rule the whole family keeps: a market order is `FrontendMarket`, on
-/// either side, at a bound given or one the grid makes, and nothing a market
-/// order posts says `Gtc`.
-#[test]
-fn a_market_order_is_frontend_market_and_never_gtc() {
-    for side in [Side::Buy, Side::Sell] {
-        let order = Order::market(asset(0), side, dec("86501"), dec("0.0012"));
-        assert_eq!(order.tif(), Some(Tif::FrontendMarket), "{side:?}");
-        assert!(order.is_market());
-        let posted = PlaceOrder::one(order).wire();
-        assert!(posted.contains(r#""tif":"FrontendMarket""#), "{posted}");
-        assert!(!posted.contains("Gtc"), "{posted}");
-
-        let grid = Grid::perp(5);
-        let bound = grid.market_bound(dec("86500"), dec("0.01"), side).unwrap();
-        let gridded = Order::market(asset(0), side, bound, grid.size(dec("0.0012")).unwrap());
-        assert_eq!(gridded.tif(), Some(Tif::FrontendMarket), "{side:?}");
-        assert!(gridded.is_market());
-    }
-    let resting = Order::limit(asset(0), Side::Buy, dec("86501"), dec("0.0012"), Tif::Gtc);
-    assert!(!resting.is_market(), "a Gtc is a resting limit, not a market order");
-    let stop = Order::trigger(asset(0), Side::Sell, dec("1"), dec("1"), dec("2"), Tpsl::StopLoss, true);
-    assert_eq!((stop.tif(), stop.is_market(), stop.is_trigger()), (None, false, true));
-}
-
-/// No SDK vector covers a cloid, `cancelByCloid` or a single `modify`, so their spellings and key
-/// order are pinned here: `a b p s r t c` for an order, `grouping`, then `builder` last.
-#[test]
-fn keys_go_in_the_order_the_venue_hashes_and_ids_as_it_spells_them() {
-    let order = limit(516, Side::Buy, "0.35", "50", Tif::Gtc);
-    let cloid: Cloid = "0x00000000000000000000000000000009".parse().unwrap();
-    assert_eq!((cloid, cloid.to_string()), (Cloid::from_u128(9), "0x00000000000000000000000000000009".to_owned()));
-    assert!("0xabcd".parse::<Cloid>().is_err(), "a cloid is thirty-two hex digits");
-    assert_eq!(order.wire().keys().collect::<Vec<_>>(), ["a", "b", "p", "s", "r", "t"]);
-    assert_eq!(order.wire().to_msgpack()[0], 0x86, "an absent cloid leaves no key, not a nil");
-    assert_eq!(order.with_cloid(cloid).wire().keys().collect::<Vec<_>>(), ["a", "b", "p", "s", "r", "t", "c"]);
-    assert_eq!(PlaceOrder::one(order).action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping"]);
-    let routed = through(order, BUILDER, 10);
-    assert_eq!(routed.action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping", "builder"]);
-
-    assert_eq!(
-        CancelByCloid::one(asset(100_005_160), cloid).wire(),
-        r#"{"type":"cancelByCloid","cancels":[{"asset":100005160,"cloid":"0x00000000000000000000000000000009"}]}"#
-    );
-    let modify = Modify::new(OrderRef::Oid(42), limit(516, Side::Sell, "0.66", "1", Tif::Alo));
-    assert_eq!(modify.action().keys().collect::<Vec<_>>(), ["type", "oid", "order"]);
-    assert!(modify.wire().starts_with(r#"{"type":"modify","oid":42,"order":{"a":516,"#));
-    let by_client = Modify::new(OrderRef::Cloid(cloid), limit(516, Side::Sell, "0.66", "1", Tif::Alo));
-    assert!(by_client.wire().contains(r#""oid":"0x00000000000000000000000000000009""#));
-    assert!(!BatchModify::new(vec![modify]).is_always_place(), "a limit order needs no always place");
-    assert!(BatchModify::new(vec![modify]).always_place().wire().ends_with(r#""a":true}"#));
-}
-
-/// The caps: 0.1% on a perp, main dex or HIP-3, 1% on spot and on an outcome; one perp order holds
-/// the action to the perp cap.
-#[test]
-fn a_builder_takes_at_most_a_tenth_of_a_percent_on_perps_and_one_percent_elsewhere() {
-    let paying = |orders: Vec<Order>, fee: u64| {
-        PlaceOrder::new(orders)
-            .through(Builder::new(address("0x1111111111111111111111111111111111111111"), BuilderFee::from_tenths(fee)))
-    };
-    let perp = limit(0, Side::Buy, "100", "1", Tif::Gtc);
-    let hip3 = limit(110_001, Side::Buy, "100", "1", Tif::Gtc);
-    let spot = limit(10_107, Side::Buy, "44", "1", Tif::Gtc);
-    let outcome = limit(100_012_100, Side::Buy, "0.5", "20", Tif::Gtc);
-    let refused = |action: PlaceOrder| action.over_builder_cap().map(|over| over.to_string());
-    assert_eq!(refused(paying(vec![perp], 100)), None);
-    assert_eq!(
-        refused(paying(vec![perp], 101)).as_deref(),
-        Some("the builder fee of 101 is over the 100 a perp order allows (0.1%)")
-    );
-    assert_eq!(
-        refused(paying(vec![hip3], 101)).as_deref(),
-        Some("the builder fee of 101 is over the 100 a HIP-3 perp order allows (0.1%)")
-    );
-    assert_eq!(refused(paying(vec![spot], 1000)), None);
-    assert_eq!(
-        refused(paying(vec![spot], 1001)).as_deref(),
-        Some("the builder fee of 1001 is over the 1000 a spot order allows (1%)")
-    );
-    assert_eq!(refused(paying(vec![outcome], 1000)), None, "an outcome takes the spot cap");
-    assert_eq!(
-        refused(paying(vec![outcome], 1001)).as_deref(),
-        Some("the builder fee of 1001 is over the 1000 an outcome order allows (1%)")
-    );
-    assert!(refused(paying(vec![spot, perp], 500)).is_some(), "one perp order holds the action to the perp cap");
-    assert_eq!(PlaceOrder::one(perp).over_builder_cap(), None, "no builder, no cap");
-}
-
-#[test]
-fn what_would_be_refused_is_refused_before_signing() {
-    use crate::trade::error::TradeError;
-
-    assert_eq!(Twap::new(asset(0), Side::Buy, dec("1"), 4), Err(TradeError::TwapMinutes(4)));
-    assert_eq!(Twap::new(asset(0), Side::Buy, dec("1"), 1441), Err(TradeError::TwapMinutes(1441)));
-    assert!(
-        Twap::new(asset(0), Side::Buy, dec("1"), 5).is_ok() && Twap::new(asset(0), Side::Buy, dec("1"), 1440).is_ok()
-    );
-    assert_eq!(UpdateLeverage::new(asset(0), MarginMode::Cross, 0), Err(TradeError::NoLeverage));
-    assert!(UpdateLeverage::new(asset(0), MarginMode::Cross, 1).unwrap().wire().contains(r#""isCross":true"#));
-    assert!(matches!(
-        UpdateIsolatedMargin::new(asset(1), Side::Buy, dec("1.0000001")),
-        Err(TradeError::Margin(crate::utils::BadUnits::TooFine { places: 6, .. }))
-    ));
-    assert!(matches!(UpdateIsolatedMargin::new(asset(1), Side::Sell, Dec::ZERO), Err(TradeError::Margin(_))));
-    assert_eq!(UpdateIsolatedMargin::new(asset(1), Side::Sell, dec("-0.000001")).unwrap().ntli(), -1);
 }

@@ -232,5 +232,5 @@ impl L1Action for PlaceOrder {
 }
 
 #[cfg(test)]
-#[path = "tests/order.rs"]
+#[path = "tests/order/mod.rs"]
 mod tests;
