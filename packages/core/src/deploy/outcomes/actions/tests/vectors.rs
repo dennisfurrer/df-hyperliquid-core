@@ -1,0 +1,290 @@
+//! Deployer vectors made outside this crate:
+//!
+//! - Hyperliquid's Python SDK (`hyperliquid.utils.signing.action_hash`) at nonce 1755530000000, no vault:
+//!   every outcome and activate L1 hash, and the three inner multi-sig hashes over an outcome action.
+//! - An independent builder's msgpack, L1 hash and mainnet digest at nonce 1234567890000.
+//! - Preset bodies the venue takes.
+//!
+//! A settlement copies `outcomeMeta`, so each settle below reads one listing what it settles.
+
+use crate::client::Network;
+use crate::utils::sign::{L1Action, Map, Value, connection_id};
+use crate::utils::{Address, hex};
+
+use super::support::*;
+use super::*;
+
+const MASTER: &str = "0xa8d106881abe9a0b6ffd367788d6af91439d37f6";
+const NONCE: u64 = 1_755_530_000_000;
+const GOLDEN_NONCE: u64 = 1_234_567_890_000;
+
+#[test]
+fn every_outcome_action_hashes_as_the_python_sdk_hashes_it() {
+    let cases: [(&str, &dyn L1Action, &str, &str); 8] = [
+        (
+            "registerStandaloneOutcome",
+            &python_standalone(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"registerStandaloneOutcomeFromTemplate":{"id":"binaryPrice4","keywordToValue":[["perp","BTC"],["priceDescription","Bitcoin"],["seconds","60"],["threshold","50000"],["time","20260901-1200"]],"deployerFeeScale":"0"}}}"#,
+            "0xe76ca1311e7a15df0ad87a5dab3a02b047d23837ff001d480d5f849fded4a9c6",
+        ),
+        (
+            "registerQuestion",
+            &python_question(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"registerQuestionFromTemplate":{"questionTemplateInstance":{"id":"sportsContestResult","keywordToValue":[["participantA","Brazil"],["participantB","Spain"]],"deployerFeeScale":"1.5"},"namedOutcomeTemplateInstances":[{"id":"sportsContestParticipant","keywordToValue":[["participant","Brazil"]]},{"id":"sportsContestDraw","keywordToValue":[]}]}}}"#,
+            "0x3d1f7e8e0409bf566bdf0201478aa6fe8293ed4dbb9d30b07c1b32230aaa99d5",
+        ),
+        (
+            "registerAndAssociateNamedOutcome",
+            &python_associate(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"registerAndAssociateNamedOutcomeFromTemplate":{"question":182,"namedOutcomeTemplateInstance":{"id":"sportsContestParticipant","keywordToValue":[["participant","Spain"]]}}}}"#,
+            "0xda72d2939a491585c4781553fa6881e045207edbe320ee31c58e9e767768dce6",
+        ),
+        (
+            "setSubDeployers",
+            &python_sub_deployers(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"setSubDeployers":[{"variant":"settleOutcome","user":"0xab04c8d8372d83ec939570fd2d956d0bb31aace3","allowed":true},{"variant":"settleQuestion","user":"0x251fd19df63a83652eea93a6a5e451aa5ce81e4c","allowed":false}]}}"#,
+            "0x13e98e1ec9d18a7374ffd6efd908d9b8597bb702d8fabe4c320569b96a5993fa",
+        ),
+        (
+            "settleOutcome",
+            &python_settle_outcome(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"settleOutcome":{"outcome":13065,"settleFraction":"1","details":"","nameAndDescription":["template:binaryPrice4","perp:BTC|threshold:50000|time:20260901-1200"],"sideNames":["template:Yes","template:No"]}}}"#,
+            "0x46bc607e52ce7d6bbb25329f33fc9416046efc06aecad3cb8c03b11491ab7bb6",
+        ),
+        (
+            "settleQuestion",
+            &python_settle_question(),
+            r#"{"type":"outcomeDeploy","venue":"zzz","operation":{"settleQuestion2":{"question":182,"outcomeSettlements":[{"outcome":7003,"settleFraction":"0","details":"","nameAndDescription":["Chicken","N/A"],"sideNames":["Yes","No"]},{"outcome":7004,"settleFraction":"1","details":"","nameAndDescription":["Chicken","N/A"],"sideNames":["Yes","No"]},{"outcome":7005,"settleFraction":"0","details":"","nameAndDescription":["Chicken","N/A"],"sideNames":["Yes","No"]}],"nameAndDescription":["What will Hypurr eat most of?","A food journal"]}}}"#,
+            "0x8bf875b43394c89e151367f995a9735cc0073c4c39c65724cb11cf9f3123c655",
+        ),
+        (
+            "activate",
+            &python_activate(),
+            r#"{"type":"activateOutcomeDeployer","activate":{"venueName":"zzz"}}"#,
+            "0xb6527b4ba1d06d7884f85a2f0c165fde59becd3bc7f8725bc0f481e3a2c7f1cd",
+        ),
+        (
+            "deactivate",
+            &ActivateOutcomeDeployer::Deactivate,
+            r#"{"type":"activateOutcomeDeployer","deactivate":null}"#,
+            "0xe91d6e3ccf382a7ae37e78d8e6dadf2f168cbedee74c0f2b984b2b8561bc008f",
+        ),
+    ];
+    for (name, action, body, id) in cases {
+        assert_eq!(action.wire(), body, "{name}: the body");
+        assert_eq!(hex::encode_prefixed(&action.connection_id(NONCE, None)), id, "{name}: the L1 hash");
+    }
+}
+
+/// What a multi-sig signer signs over is `[multiSigUser, outerSigner, action]`
+/// packed and hashed as an L1 action; built by hand here only to check the
+/// outcome action nests byte for byte.
+#[test]
+fn an_outcome_action_nests_in_a_multi_sig_as_the_python_sdk_nests_it() {
+    let inner = |action: Map| {
+        let packed = Value::Array(vec![Value::from(MASTER), Value::from(LEADER), Value::Map(action)]).to_msgpack();
+        hex::encode_prefixed(&connection_id(&packed, NONCE, None))
+    };
+    assert_eq!(
+        inner(python_standalone().action()),
+        "0xaae5cb534172068ed0db7195034da985961d06bb5af93c984a98341b80bf3f31",
+        "registerStandaloneOutcome"
+    );
+    assert_eq!(
+        inner(python_settle_question().action()),
+        "0x396ad68ec562d8908fe49611b660449263c64ff7a0b79d01a8e07221220e65e9",
+        "settleQuestion"
+    );
+    assert_eq!(
+        inner(python_activate().action()),
+        "0x32e4f02e2a5749f37081f1990e55fa5b576ae623adaecc89a5bc6edd453f3203",
+        "activate"
+    );
+}
+
+/// `(msgpack, L1 hash, mainnet digest)` as the independent builder pins them.
+fn assert_golden(name: &str, action: &impl L1Action, msgpack: &str, id: &str, digest: &str) {
+    assert_eq!(hex::encode(&action.msgpack()), msgpack, "{name}: the msgpack");
+    assert_eq!(hex::encode(&action.connection_id(GOLDEN_NONCE, None)), id, "{name}: the L1 hash");
+    assert_eq!(hex::encode(&action.digest(GOLDEN_NONCE, None, Network::Mainnet)), digest, "{name}: the digest");
+}
+
+#[test]
+fn outcome_actions_pack_byte_for_byte_as_a_production_builder_packs_them() {
+    let standalone = OutcomeDeploy::register_standalone(
+        venue("out"),
+        instance(
+            "binaryPrice",
+            &[
+                ("perp", "BTC"),
+                ("priceDescription", "BTC-USDC mark"),
+                ("seconds", "1"),
+                ("threshold", "100000"),
+                ("time", "20261001-0000"),
+            ],
+        ),
+        FeeScale::ONE,
+    );
+    assert_golden(
+        "standalone",
+        &standalone,
+        "83a474797065ad6f7574636f6d654465706c6f79a576656e7565a36f7574a96f7065726174696f6e81d92572656769737465725374616e64616c6f6e654f7574636f6d6546726f6d54656d706c61746583a26964ab62696e6172795072696365ae6b6579776f7264546f56616c75659592a470657270a342544392b070726963654465736372697074696f6ead4254432d55534443206d61726b92a77365636f6e6473a13192a97468726573686f6c64a631303030303092a474696d65ad32303236313030312d30303030b06465706c6f7965724665655363616c65a131",
+        "daa18de77c967c757dc4e833258e80e0dce198216c41eba4743f43d9b6a6fe46",
+        "254e054cfcfdf83a54c5e42b2ac8f46c85503660c0ad3b69576eea7443a3a964",
+    );
+
+    let gold = listing(vec![row(
+        1224,
+        "template:binaryPrice",
+        "perp:GOLD|priceDescription:d|seconds:1|threshold:4460.9|time:20260829-2100",
+        ["template:Yes", "template:No"],
+    )]);
+    let settle = OutcomeDeploy::settle_outcome(venue("out"), &gold, 1224, Fraction::ONE).unwrap();
+    assert_golden(
+        "settleOutcome",
+        &settle,
+        "83a474797065ad6f7574636f6d654465706c6f79a576656e7565a36f7574a96f7065726174696f6e81ad736574746c654f7574636f6d6585a76f7574636f6d65cd04c8ae736574746c654672616374696f6ea131a764657461696c73a0b26e616d65416e644465736372697074696f6e92b474656d706c6174653a62696e6172795072696365d94a706572703a474f4c447c70726963654465736372697074696f6e3a647c7365636f6e64733a317c7468726573686f6c643a343436302e397c74696d653a32303236303832392d32313030a9736964654e616d657392ac74656d706c6174653a596573ab74656d706c6174653a4e6f",
+        "aa99e61e2a36a199f7c41e02adaeceb87a33125c13cc21736135334ca354f84b",
+        "ea144f400000095bb6bc2b95822c8f3e888793322e6382b707b82b113243b96a",
+    );
+
+    let fomc = "decisionLabel:September 2026|institution:FOMC";
+    let decision = asked(
+        191,
+        "template:policyRateDecision",
+        fomc,
+        vec![
+            row(1227, "template:policyRateHike", fomc, ["Yes", "No"]),
+            row(1228, "template:policyRateNoChange", fomc, ["Yes", "No"]),
+        ],
+    );
+    let question = OutcomeDeploy::settle_question(venue("out"), &decision, 191, 1228).unwrap();
+    assert_golden(
+        "settleQuestion2",
+        &question,
+        "83a474797065ad6f7574636f6d654465706c6f79a576656e7565a36f7574a96f7065726174696f6e81af736574746c655175657374696f6e3283a87175657374696f6eccbfb26f7574636f6d65536574746c656d656e74739285a76f7574636f6d65cd04cbae736574746c654672616374696f6ea130a764657461696c73a0b26e616d65416e644465736372697074696f6e92b774656d706c6174653a706f6c6963795261746548696b65d92d6465636973696f6e4c6162656c3a53657074656d62657220323032367c696e737469747574696f6e3a464f4d43a9736964654e616d657392a3596573a24e6f85a76f7574636f6d65cd04ccae736574746c654672616374696f6ea131a764657461696c73a0b26e616d65416e644465736372697074696f6e92bb74656d706c6174653a706f6c696379526174654e6f4368616e6765d92d6465636973696f6e4c6162656c3a53657074656d62657220323032367c696e737469747574696f6e3a464f4d43a9736964654e616d657392a3596573a24e6fb26e616d65416e644465736372697074696f6e92bb74656d706c6174653a706f6c696379526174654465636973696f6ed92d6465636973696f6e4c6162656c3a53657074656d62657220323032367c696e737469747574696f6e3a464f4d43",
+        "f0d9b5453e8e4c276a4bdfa02031090e67a667ffb3907d10988e5c529547727e",
+        "92da1b308b73beaa73333d333f4a5a2afb5f4a9f709f5a5230347e2a4ca4805b",
+    );
+}
+
+const CONTEST: &str = "competition:UEFA Nations League|contestType:Match|countedPlay:regulation time, 90 minutes plus stoppage time|officialSource:Union of European Football Associations|participantA:Denmark|participantB:Portugal|resolutionDeadline:20261002-1845|scheduledStart:20261001-1845|season:2026/27|sport:Soccer|stage:League A, Matchday 3";
+
+#[test]
+fn every_builder_writes_the_recorded_presets_byte_for_byte() {
+    let ab = || venue("ab");
+    let standalone = OutcomeDeploy::register_standalone(
+        ab(),
+        instance(
+            "binaryPrice",
+            &[
+                ("threshold", "83114"),
+                ("time", "20261231-1200"),
+                ("seconds", "60"),
+                ("priceDescription", "BTC-USDC perp mark"),
+                ("perp", "BTC"),
+            ],
+        ),
+        "1.0".parse().unwrap(),
+    );
+    assert_eq!(
+        standalone.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"registerStandaloneOutcomeFromTemplate":{"id":"binaryPrice","keywordToValue":[["perp","BTC"],["priceDescription","BTC-USDC perp mark"],["seconds","60"],["threshold","83114"],["time","20261231-1200"]],"deployerFeeScale":"1"}}}"#
+    );
+
+    let question = OutcomeDeploy::register_question(
+        ab(),
+        instance(
+            "sportsContestResult",
+            &[
+                ("stage", "League A, Matchday 3"),
+                ("sport", "Soccer"),
+                ("season", "2026/27"),
+                ("scheduledStart", "20261001-1845"),
+                ("resolutionDeadline", "20261002-1845"),
+                ("participantB", "Portugal"),
+                ("participantA", "Denmark"),
+                ("officialSource", "Union of European Football Associations"),
+                ("countedPlay", "regulation time, 90 minutes plus stoppage time"),
+                ("contestType", "Match"),
+                ("competition", "UEFA Nations League"),
+            ],
+        ),
+        FeeScale::ONE,
+        vec![
+            instance("sportsContestParticipant2", &[("participant", "Denmark")]),
+            instance("sportsContestDraw2", &[]),
+            instance("sportsContestParticipant2", &[("participant", "Portugal")]),
+        ],
+    )
+    .unwrap();
+    assert_eq!(
+        question.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"registerQuestionFromTemplate":{"questionTemplateInstance":{"id":"sportsContestResult","keywordToValue":[["competition","UEFA Nations League"],["contestType","Match"],["countedPlay","regulation time, 90 minutes plus stoppage time"],["officialSource","Union of European Football Associations"],["participantA","Denmark"],["participantB","Portugal"],["resolutionDeadline","20261002-1845"],["scheduledStart","20261001-1845"],["season","2026/27"],["sport","Soccer"],["stage","League A, Matchday 3"]],"deployerFeeScale":"1"},"namedOutcomeTemplateInstances":[{"id":"sportsContestParticipant2","keywordToValue":[["participant","Denmark"]]},{"id":"sportsContestDraw2","keywordToValue":[]},{"id":"sportsContestParticipant2","keywordToValue":[["participant","Portugal"]]}]}}}"#,
+        "named outcomes keep the order given, keywords do not"
+    );
+
+    let associate = OutcomeDeploy::register_and_associate(
+        ab(),
+        350,
+        instance("sportsContestParticipant2", &[("participant", "Spain")]),
+    );
+    assert_eq!(
+        associate.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"registerAndAssociateNamedOutcomeFromTemplate":{"question":350,"namedOutcomeTemplateInstance":{"id":"sportsContestParticipant2","keywordToValue":[["participant","Spain"]]}}}}"#
+    );
+
+    let btc = listing(vec![row(
+        6955,
+        "template:binaryPrice",
+        "perp:BTC|priceDescription:BTC-USDC perp mark|seconds:60|threshold:83114|time:20260930-0845",
+        ["template:Yes", "template:No"],
+    )]);
+    let settle = OutcomeDeploy::settle_outcome(ab(), &btc, 6955, Fraction::ONE).unwrap();
+    assert_eq!(
+        settle.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleOutcome":{"outcome":6955,"settleFraction":"1","details":"","nameAndDescription":["template:binaryPrice","perp:BTC|priceDescription:BTC-USDC perp mark|seconds:60|threshold:83114|time:20260930-0845"],"sideNames":["template:Yes","template:No"]}}}"#
+    );
+
+    let named = "template:sportsContestParticipant2";
+    let contest = asked(
+        350,
+        "template:sportsContestResult",
+        CONTEST,
+        vec![
+            row(5940, named, "participant:Denmark", ["Yes", "No"]),
+            row(5941, "template:sportsContestDraw2", "", ["Yes", "No"]),
+            row(5942, named, "participant:Portugal", ["Yes", "No"]),
+        ],
+    );
+    let settle_question = OutcomeDeploy::settle_question(ab(), &contest, 350, 5940).unwrap();
+    assert_eq!(
+        settle_question.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleQuestion2":{"question":350,"outcomeSettlements":[{"outcome":5940,"settleFraction":"1","details":"","nameAndDescription":["template:sportsContestParticipant2","participant:Denmark"],"sideNames":["Yes","No"]},{"outcome":5941,"settleFraction":"0","details":"","nameAndDescription":["template:sportsContestDraw2",""],"sideNames":["Yes","No"]},{"outcome":5942,"settleFraction":"0","details":"","nameAndDescription":["template:sportsContestParticipant2","participant:Portugal"],"sideNames":["Yes","No"]}],"nameAndDescription":["template:sportsContestResult","competition:UEFA Nations League|contestType:Match|countedPlay:regulation time, 90 minutes plus stoppage time|officialSource:Union of European Football Associations|participantA:Denmark|participantB:Portugal|resolutionDeadline:20261002-1845|scheduledStart:20261001-1845|season:2026/27|sport:Soccer|stage:League A, Matchday 3"]}}}"#
+    );
+
+    let grants = OutcomeDeploy::set_sub_deployers(
+        ab(),
+        vec![Grant { permission: Permission::SettleOutcome, user: Address::ZERO, allowed: true }],
+    )
+    .unwrap();
+    assert_eq!(
+        grants.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"setSubDeployers":[{"variant":"settleOutcome","user":"0x0000000000000000000000000000000000000000","allowed":true}]}}"#
+    );
+
+    assert_eq!(
+        ActivateOutcomeDeployer::Activate(ab()).wire(),
+        r#"{"type":"activateOutcomeDeployer","activate":{"venueName":"ab"}}"#
+    );
+    assert_eq!(
+        ActivateOutcomeDeployer::Deactivate.wire(),
+        r#"{"type":"activateOutcomeDeployer","deactivate":null}"#,
+        "the key is sent, with nil"
+    );
+    assert_eq!(
+        hex::encode(&ActivateOutcomeDeployer::Deactivate.msgpack()),
+        "82a474797065b761637469766174654f7574636f6d654465706c6f796572aa64656163746976617465c0",
+        "and packs as msgpack nil, the last byte"
+    );
+}
