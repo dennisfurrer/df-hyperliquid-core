@@ -1,3 +1,7 @@
+//! The store's views over live accounts recorded on mainnet: what kind of market a coin is, what
+//! an account can put on an order, what it is worth against the venue's own figure, and its
+//! positions and orders.
+
 use std::collections::BTreeMap;
 
 use crate::account::ClearinghouseState;
@@ -97,26 +101,45 @@ fn usable(amount: &str, token: u32, from: Source) -> Usable {
 }
 
 /// The kind of market a coin is: a perp on its dex, a pair (its quote from spot meta), an
-/// outcome side.
+/// outcome side. The prices worth is read at: a token at its USDC pair's mid, USDC at one, an
+/// outcome side at its own mid.
 #[test]
-fn a_coin_s_surface_is_its_kind_of_market() {
+fn a_coin_s_surface_and_price_come_from_spot_meta_and_the_mids() {
     let mut store = store();
     assert_eq!(store.surface("BTC"), Some(Surface::Perps { dex: "" }));
     assert_eq!(store.surface("xyz:XYZ100"), Some(Surface::Perps { dex: "xyz" }));
     assert_eq!(store.surface("#14730"), Some(Surface::Outcomes));
     assert_eq!(store.surface("@107"), None, "a pair's quote is spot meta's to say");
+    assert_eq!(store.price("HYPE"), None, "no mids yet");
+    assert_eq!(store.prices().price("HYPE"), None);
     priced(&mut store);
     assert_eq!(store.surface("@107"), Some(Surface::Spot { quote: 0 }));
     assert_eq!(store.surface("PURR/USDC"), Some(Surface::Spot { quote: 0 }));
     assert_eq!(store.surface("@9999"), None, "a pair spot meta does not list");
+
+    let _ = store.apply(1, &frame("allMids"));
+    let prices = store.prices();
+    for (name, price) in [
+        ("USDC", Some(Dec::ONE)),
+        ("HYPE", Some(dec("82.897"))),
+        ("+14730", Some(dec("0.612995"))),
+        ("MUNCH", Some(dec("0.00001274"))),
+        ("NOPE", None),
+    ] {
+        assert_eq!((prices.price(name), store.price(name)), (price, price), "{name}");
+    }
 }
 
-/// A live unified account (2026-10-08): every market draws on its one balance, spot USDC less
-/// its hold, whatever its per-dex states say.
+/// A live unified account (2026-10-08) draws every market on its one balance, spot USDC less its
+/// hold, whatever its per-dex states say. A live standard account draws each dex on its own
+/// withdrawable, and spot and outcomes on spot USDC less its hold. A subaccount is read at its
+/// own address with its own mode: the unified master's balance is not its subaccount's (the
+/// recorded subaccount, empty, never set to a mode).
 #[test]
-fn a_unified_account_draws_every_market_on_spot() {
+fn each_account_draws_each_market_on_what_its_mode_says() {
     let mut store = store();
-    let _held = unified(&mut store);
+    let _unified = unified(&mut store);
+    let _standard = standard(&mut store);
     priced(&mut store);
     let user = address(UNIFIED);
     let pooled = usable("736222.0525745799", 0, Source::Unified);
@@ -124,21 +147,25 @@ fn a_unified_account_draws_every_market_on_spot() {
         assert_eq!(store.usable(user, coin), Some(pooled.clone()), "{coin}");
     }
     assert_eq!(store.usable(user, "cash:TSLA").map(|usable| usable.token), Some(268), "cash posts USDT0");
-}
 
-/// A live standard account: each dex draws on its own withdrawable, spot and outcomes on spot
-/// USDC less its hold.
-#[test]
-fn a_standard_account_draws_each_market_on_its_own_balance() {
-    let mut store = store();
-    let _held = standard(&mut store);
-    priced(&mut store);
     let user = address(STANDARD);
     assert_eq!(store.usable(user, "BTC"), Some(usable("463.943191", 0, Source::Perps { dex: String::new() })));
     assert_eq!(store.usable(user, "xyz:XYZ100"), Some(usable("0.0", 0, Source::Perps { dex: "xyz".to_owned() })));
     assert_eq!(store.usable(user, "@107"), Some(usable("246.63995144", 0, Source::Spot)));
     assert_eq!(store.usable(user, "#14730"), Some(usable("246.63995144", 0, Source::Spot)));
-    assert_eq!(store.usable(address(UNIFIED), "BTC"), None, "an account not held");
+    assert_eq!(store.usable(address(UNIFIED_SUB), "BTC"), None, "an account not held");
+
+    let sub = address(UNIFIED_SUB);
+    let subs: Vec<serde_json::Value> = read(SUBS_UNIFIED);
+    let _held = store.register(Interest::State { user: sub }).unwrap();
+    let (main, spot): (ClearinghouseState, SpotState) =
+        (read(&subs[0]["clearinghouseState"].to_string()), read(&subs[0]["spotState"].to_string()));
+    let _ = store.read(1, Read::Mode { user: sub, mode: &Abstraction::Default });
+    let _ = store.read(1, Read::Clearinghouse { user: sub, dex: "", state: &main });
+    let _ = store.read(1, Read::SpotState { user: sub, state: &spot });
+    assert_eq!(store.usable(sub, "BTC"), Some(usable("0.0", 0, Source::Perps { dex: String::new() })));
+    assert_eq!(store.usable(address(UNIFIED), "BTC").unwrap().from, Source::Unified);
+    assert_eq!(store.followed(), [address(UNIFIED), address(STANDARD), sub]);
 }
 
 /// Portfolio margin: what it would lend against HYPE comes on top, priced at HYPE's pair's mid:
@@ -162,45 +189,22 @@ fn portfolio_margin_adds_what_it_would_lend_at_the_store_s_price() {
     assert_eq!(store.usable(user, "cash:TSLA").unwrap().amount, dec("80"), "USDT0 borrows nothing against HYPE");
 }
 
-/// A subaccount is read at its own address with its own mode: the unified master's balance is
-/// not its subaccount's (the recorded subaccount, empty, never set to a mode).
+/// Each live account's worth against the venue's own (`portfolio`, read within seconds): the
+/// unified account's perps are inside its spot, counted once; the standard account has its two
+/// vault deposits beside. A deposit one followed account holds in a vault that is itself
+/// followed is counted once, as the vault.
 #[test]
-fn a_subaccount_is_its_own_account() {
+fn an_account_s_worth_is_the_venue_s_and_each_is_counted_once() {
     let mut store = store();
-    let _master = unified(&mut store);
-    let sub = address(UNIFIED_SUB);
-    let subs: Vec<serde_json::Value> = read(SUBS_UNIFIED);
-    let _held = store.register(Interest::State { user: sub }).unwrap();
-    let (main, spot): (ClearinghouseState, SpotState) =
-        (read(&subs[0]["clearinghouseState"].to_string()), read(&subs[0]["spotState"].to_string()));
-    let _ = store.read(1, Read::Mode { user: sub, mode: &Abstraction::Default });
-    let _ = store.read(1, Read::Clearinghouse { user: sub, dex: "", state: &main });
-    let _ = store.read(1, Read::SpotState { user: sub, state: &spot });
-    assert_eq!(store.usable(sub, "BTC"), Some(usable("0.0", 0, Source::Perps { dex: String::new() })));
-    assert_eq!(store.usable(address(UNIFIED), "BTC").unwrap().from, Source::Unified);
-    assert_eq!(store.followed(), [address(UNIFIED), sub]);
-}
-
-/// The live unified account's worth against the venue's own (`portfolio`, read within seconds):
-/// its perps are inside its spot, counted once.
-#[test]
-fn a_unified_account_s_worth_is_the_venue_s() {
-    let mut store = store();
-    let _held = unified(&mut store);
+    let _unified = unified(&mut store);
+    let _standard = standard(&mut store);
     priced(&mut store);
     let worth = store.worth(address(UNIFIED), &Beside::default()).unwrap();
     assert_eq!((worth.perps, worth.spot), (dec("549463.356168"), dec("729799.2062150256144")));
     let total = worth.total().unwrap();
     let venue = venue_says(PORTFOLIO_UNIFIED);
     assert!(venue.checked_sub(total).unwrap().abs() < dec("0.001"), "{total} against the venue's {venue}");
-}
 
-/// The live standard account's worth with its two vault deposits beside, against the venue's.
-#[test]
-fn a_standard_account_s_worth_is_the_venue_s() {
-    let mut store = store();
-    let _held = standard(&mut store);
-    priced(&mut store);
     let deposits: Vec<serde_json::Value> = read(crate::live::store::fixtures::VAULTS_STANDARD);
     let vaults = deposits
         .iter()
@@ -214,14 +218,9 @@ fn a_standard_account_s_worth_is_the_venue_s() {
     assert_eq!(total, dec("367751.0234586470572"));
     let venue = venue_says(PORTFOLIO_STANDARD);
     assert!(venue.checked_sub(total).unwrap().abs() < dec("0.1"), "{total} against the venue's {venue}");
-    assert!(store.worth(address(UNIFIED), &Beside::default()).is_none(), "an account not held");
-}
+    assert!(store.worth(address(UNIFIED_SUB), &Beside::default()).is_none(), "an account not held");
 
-/// A deposit one followed account holds in a vault that is itself followed is counted once, as
-/// the vault.
-#[test]
-fn several_accounts_are_counted_once() {
-    let mut store = store();
+    let mut store = self::store();
     let (depositor, vault) = (address(STANDARD), address(UNIFIED));
     let _held: Vec<Handle> =
         [depositor, vault].into_iter().map(|user| store.register(Interest::State { user }).unwrap()).collect();
@@ -258,19 +257,4 @@ fn positions_and_orders_dex_by_dex() {
     let _ = store.apply(2, &frame("openOrders"));
     let coins: Vec<&str> = store.orders(second).iter().map(|order| order.coin.as_str()).collect();
     assert_eq!(coins, ["BTC", "xyz:XYZ100"]);
-}
-
-/// The prices worth is read at: a token at its USDC pair's mid, USDC at one, an outcome side at
-/// its own mid.
-#[test]
-fn prices_come_from_spot_meta_and_the_mids() {
-    let mut store = store();
-    priced(&mut store);
-    let _ = store.apply(1, &frame("allMids"));
-    let prices = store.prices();
-    assert_eq!(prices.price("USDC"), Some(Dec::ONE));
-    assert_eq!(prices.price("HYPE"), Some(dec("82.897")), "HYPE at @107's mid as the socket last said");
-    assert_eq!(prices.price("+14730"), Some(dec("0.612995")), "a side held as + at its # mid");
-    assert_eq!(prices.price("MUNCH"), Some(dec("0.00001274")), "MUNCH at @116");
-    assert_eq!(prices.price("NOPE"), None, "a token with no pair spot meta lists");
 }

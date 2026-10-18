@@ -1,55 +1,59 @@
+//! Msgpack as the venue hashes an L1 action: the smallest header for each value, a non-negative
+//! integer always unsigned, map keys in insertion order, and an absent key left out.
+
 use super::*;
 use crate::utils::hex;
 
 #[test]
-fn the_scalar_encodings_match_the_spec() {
-    assert_eq!(encode(&Value::Nil), vec![0xc0]);
-    assert_eq!(encode(&Value::Bool(false)), vec![0xc2]);
-    assert_eq!(encode(&Value::Bool(true)), vec![0xc3]);
-    assert_eq!(encode(&Value::Uint(0)), vec![0x00]);
-    assert_eq!(encode(&Value::Uint(127)), vec![0x7f]);
-    assert_eq!(encode(&Value::Uint(128)), vec![0xcc, 0x80]);
-    assert_eq!(encode(&Value::Uint(255)), vec![0xcc, 0xff]);
-    assert_eq!(encode(&Value::Uint(256)), vec![0xcd, 0x01, 0x00]);
-    assert_eq!(encode(&Value::Uint(65_535)), vec![0xcd, 0xff, 0xff]);
-    assert_eq!(encode(&Value::Uint(65_536)), vec![0xce, 0x00, 0x01, 0x00, 0x00]);
-    assert_eq!(encode(&Value::Uint(100_005_160)), vec![0xce, 0x05, 0xf5, 0xf5, 0x28]);
-    assert_eq!(encode(&Value::Uint(4_294_967_296)), vec![0xcf, 0, 0, 0, 1, 0, 0, 0, 0]);
-    assert_eq!(encode(&Value::Uint(1_712_345_678_000)), vec![0xcf, 0x00, 0x00, 0x01, 0x8e, 0xaf, 0xc1, 0x80, 0xb0]);
-}
-
-#[test]
-fn a_non_negative_signed_value_still_goes_out_unsigned() {
-    assert_eq!(encode(&Value::Int(100_005_160)), vec![0xce, 0x05, 0xf5, 0xf5, 0x28]);
-    assert_eq!(encode(&Value::Int(0)), vec![0x00]);
-    assert_eq!(encode(&Value::Int(-1)), vec![0xff]);
-    assert_eq!(encode(&Value::Int(-32)), vec![0xe0]);
-    assert_eq!(encode(&Value::Int(-33)), vec![0xd0, 0xdf]);
-    assert_eq!(encode(&Value::Int(-129)), vec![0xd1, 0xff, 0x7f]);
-    assert_eq!(encode(&Value::Int(-32_769)), vec![0xd2, 0xff, 0xff, 0x7f, 0xff]);
-    assert_eq!(encode(&Value::Int(-2_147_483_649)), vec![0xd3, 0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xff]);
+fn each_scalar_takes_the_smallest_header_and_a_non_negative_integer_goes_unsigned() {
+    for (value, bytes) in [
+        (Value::Nil, &[0xc0][..]),
+        (Value::Bool(false), &[0xc2]),
+        (Value::Bool(true), &[0xc3]),
+        (Value::Uint(0), &[0x00]),
+        (Value::Uint(127), &[0x7f]),
+        (Value::Uint(128), &[0xcc, 0x80]),
+        (Value::Uint(255), &[0xcc, 0xff]),
+        (Value::Uint(256), &[0xcd, 0x01, 0x00]),
+        (Value::Uint(65_535), &[0xcd, 0xff, 0xff]),
+        (Value::Uint(65_536), &[0xce, 0x00, 0x01, 0x00, 0x00]),
+        (Value::Uint(100_005_160), &[0xce, 0x05, 0xf5, 0xf5, 0x28]),
+        (Value::Uint(4_294_967_296), &[0xcf, 0, 0, 0, 1, 0, 0, 0, 0]),
+        (Value::Uint(1_712_345_678_000), &[0xcf, 0x00, 0x00, 0x01, 0x8e, 0xaf, 0xc1, 0x80, 0xb0]),
+        (Value::Int(100_005_160), &[0xce, 0x05, 0xf5, 0xf5, 0x28]),
+        (Value::Int(0), &[0x00]),
+        (Value::Int(-1), &[0xff]),
+        (Value::Int(-32), &[0xe0]),
+        (Value::Int(-33), &[0xd0, 0xdf]),
+        (Value::Int(-129), &[0xd1, 0xff, 0x7f]),
+        (Value::Int(-32_769), &[0xd2, 0xff, 0xff, 0x7f, 0xff]),
+        (Value::Int(-2_147_483_649), &[0xd3, 0xff, 0xff, 0xff, 0xff, 0x7f, 0xff, 0xff, 0xff]),
+    ] {
+        assert_eq!(encode(&value), bytes, "{value:?}");
+    }
 }
 
 #[test]
 fn strings_and_containers_pick_the_right_header() {
-    assert_eq!(encode(&Value::from("abc")), vec![0xa3, b'a', b'b', b'c']);
-    assert_eq!(encode(&Value::from("")), vec![0xa0]);
-    let thirty_one = "a".repeat(31);
-    assert_eq!(encode(&Value::from(thirty_one))[0], 0xbf);
-    let thirty_two = "a".repeat(32);
-    assert_eq!(&encode(&Value::from(thirty_two))[..2], &[0xd9, 32]);
-    let long = "a".repeat(300);
-    assert_eq!(&encode(&Value::from(long))[..3], &[0xda, 0x01, 0x2c]);
-
-    assert_eq!(encode(&Value::array([1u64, 2, 3]))[0], 0x93);
-    let wide = Value::array((0u64..16).map(Value::Uint));
-    assert_eq!(&encode(&wide)[..3], &[0xdc, 0x00, 0x10]);
-
-    let mut map = Map::new();
-    for index in 0..16u64 {
-        map = map.put(index.to_string(), index);
+    let text = |len: usize| Value::from("a".repeat(len));
+    let array = |len: u64| Value::array((0..len).map(|_| Value::Nil));
+    let map = |len: u64| Value::Map((0..len).fold(Map::new(), |map, at| map.put(at.to_string(), at)));
+    for (value, header) in [
+        (Value::from("abc"), &[0xa3, b'a'][..]),
+        (Value::from(""), &[0xa0]),
+        (text(31), &[0xbf]),
+        (text(32), &[0xd9, 32]),
+        (text(300), &[0xda, 0x01, 0x2c]),
+        (text(70_000), &[0xdb, 0x00, 0x01, 0x11, 0x70]),
+        (Value::array([1u64, 2, 3]), &[0x93, 0x01]),
+        (array(16), &[0xdc, 0x00, 0x10]),
+        (array(70_000), &[0xdd, 0x00, 0x01, 0x11, 0x70]),
+        (map(15), &[0x8f]),
+        (map(16), &[0xde, 0x00, 0x10]),
+        (map(70_000), &[0xdf, 0x00, 0x01, 0x11, 0x70]),
+    ] {
+        assert_eq!(&encode(&value)[..header.len()], header);
     }
-    assert_eq!(&encode(&Value::Map(map))[..3], &[0xde, 0x00, 0x10]);
 }
 
 fn canonical_order_action() -> Map {
@@ -65,7 +69,7 @@ fn canonical_order_action() -> Map {
 }
 
 #[test]
-fn the_canonical_order_action_encodes_byte_for_byte() {
+fn the_canonical_order_action_encodes_byte_for_byte_in_the_order_written() {
     let bytes = canonical_order_action().to_msgpack();
     assert_eq!(bytes.len(), 87, "encoded {}", hex::encode(&bytes));
     #[rustfmt::skip]
@@ -87,31 +91,33 @@ fn the_canonical_order_action_encodes_byte_for_byte() {
     ]
     .concat();
     assert_eq!(bytes, expected, "got {}", hex::encode(&bytes));
-}
+    assert_eq!(Value::Map(canonical_order_action()).to_msgpack(), expected);
+    assert_eq!(canonical_order_action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping"]);
+    assert_eq!(
+        canonical_order_action().to_json().compact(),
+        r#"{"type":"order","orders":[{"a":100005160,"b":true,"p":"0.35","s":"50","r":false,"t":{"limit":{"tif":"FrontendMarket"}}}],"grouping":"na"}"#,
+        "what is posted is what was hashed"
+    );
 
-#[test]
-fn a_map_never_sorts_itself() {
-    let wire = canonical_order_action().to_msgpack();
     let alphabetical = Map::new()
         .put("grouping", "na")
         .put("orders", Value::array([Map::new().put("a", 1u64)]))
         .put("type", "order")
         .to_msgpack();
-    assert_ne!(wire, alphabetical);
-    assert_eq!(canonical_order_action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping"]);
-    let swapped = Map::new().put("b", 1u64).put("a", 2u64).to_msgpack();
-    let ordered = Map::new().put("a", 2u64).put("b", 1u64).to_msgpack();
-    assert_ne!(swapped, ordered);
+    assert_ne!(bytes, alphabetical);
+    assert_ne!(
+        Map::new().put("b", 1u64).put("a", 2u64).to_msgpack(),
+        Map::new().put("a", 2u64).put("b", 1u64).to_msgpack()
+    );
 }
 
 #[test]
 fn an_absent_optional_key_is_omitted_rather_than_nulled() {
     let with = Map::new().put("a", 1u64).put_some("c", Some("0x01"));
     let without = Map::new().put("a", 1u64).put_some("c", None::<&str>);
-    assert_eq!(without.len(), 1);
-    assert_eq!(with.len(), 2);
+    assert_eq!((with.len(), without.len()), (2, 1));
+    assert_eq!(with.get("c"), Some(&Value::from("0x01")));
     let nulled = Map::new().put("a", 1u64).put("c", Value::Nil);
     assert_ne!(without.to_msgpack(), nulled.to_msgpack());
-    assert_eq!(without.to_msgpack()[0], 0x81);
-    assert_eq!(nulled.to_msgpack()[0], 0x82);
+    assert_eq!((without.to_msgpack()[0], nulled.to_msgpack()[0]), (0x81, 0x82));
 }

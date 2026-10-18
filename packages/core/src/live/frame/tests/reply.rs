@@ -1,3 +1,6 @@
+//! A post's answer by the id it went out with: what `/info` or `/exchange` would have answered, or
+//! what HTTP would have said.
+
 use crate::client::{Accepted, ExchangeResponse, Status};
 
 use super::*;

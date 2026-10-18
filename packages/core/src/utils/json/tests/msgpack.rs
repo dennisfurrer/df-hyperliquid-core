@@ -1,15 +1,7 @@
-//! The msgpack a JSON value hashes as.
+//! The msgpack a JSON value hashes as, and what has no msgpack the venue would hash the same way.
 
 use super::*;
 use crate::utils::hex;
-
-#[test]
-fn numbers_keep_the_digits_they_were_written_with() {
-    let json = Json::parse("[123456789012345678901234567890, -1.50e3, 0]").unwrap();
-    assert_eq!(json.compact(), "[123456789012345678901234567890,-1.50e3,0]");
-    assert_eq!(Json::parse("1.5").unwrap().to_msgpack(), Err(Unpackable::Fraction("1.5".to_owned())));
-    assert!(matches!(Json::parse("18446744073709551616").unwrap().to_msgpack(), Err(Unpackable::TooWide(_))));
-}
 
 #[test]
 fn msgpack_matches_what_the_reference_encoder_writes() {
@@ -24,7 +16,17 @@ fn msgpack_matches_what_the_reference_encoder_writes() {
     );
 }
 
+/// A fraction or an exponent would be a float, and a float is never what an action means.
 #[test]
-fn only_an_object_is_an_action() {
+fn a_fraction_a_number_past_64_bits_or_anything_but_an_object_is_refused() {
+    for (text, refused) in [
+        ("1.5", Unpackable::Fraction("1.5".to_owned())),
+        ("[2e3]", Unpackable::Fraction("2e3".to_owned())),
+        ("18446744073709551616", Unpackable::TooWide("18446744073709551616".to_owned())),
+        ("-9223372036854775809", Unpackable::TooWide("-9223372036854775809".to_owned())),
+    ] {
+        assert_eq!(Json::parse(text).unwrap().to_msgpack(), Err(refused), "{text}");
+    }
     assert_eq!(Json::parse("[1]").unwrap().to_action(), Err(Unpackable::NotAnObject("an array")));
+    assert_eq!(Json::parse(r#"{"n":1.5}"#).unwrap().to_action(), Err(Unpackable::Fraction("1.5".to_owned())));
 }

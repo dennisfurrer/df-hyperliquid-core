@@ -1,3 +1,6 @@
+//! The session's clock: a ping after thirty seconds of quiet, a dead socket after sixty of
+//! nothing, and reconnect delays that double, jitter, and start over after a socket that held.
+
 use crate::client::Network;
 
 use super::*;
@@ -10,22 +13,25 @@ fn open(at: u64) -> Session {
     session
 }
 
+/// The venue closes a connection it has sent nothing to for 60 s (timeouts and heartbeats); the
+/// ping goes out at 30 s, once, and its pong keeps the socket. A busy socket is never pinged.
+/// `due` says when a tick next has work.
 #[test]
-fn a_quiet_socket_is_pinged_after_thirty_seconds_and_its_pong_keeps_it() {
-    // The venue closes a connection it has sent nothing to for 60 s (timeouts and heartbeats);
-    // the ping goes out at 30 s.
-    let mut session = open(1_000);
+fn a_quiet_socket_is_pinged_after_thirty_seconds_and_a_busy_one_never() {
+    let mut session = Session::new(Network::Mainnet);
+    assert_eq!((session.due(), session.tick(0)), (None, Tick::Wait), "closed");
+    let _ = session.opened(1_000);
+    assert_eq!(session.due(), Some(31_000));
     assert_eq!(session.tick(30_999), Tick::Wait);
     assert_eq!(session.tick(31_000), Tick::Ping);
+    assert_eq!(session.due(), Some(61_000), "the silence limit and the next ping coincide");
     assert_eq!(session.tick(31_500), Tick::Wait, "one ping, not one a tick");
     assert_eq!(session.received(31_200, &mainnet("pong")), Ok(Frame::Pong));
+    assert_eq!(session.due(), Some(61_200));
     assert_eq!(session.tick(61_199), Tick::Wait);
     assert_eq!(session.tick(61_200), Tick::Ping, "thirty seconds after the pong");
     assert_eq!(PING, r#"{"method":"ping"}"#);
-}
 
-#[test]
-fn a_busy_socket_is_never_pinged() {
     let mut session = open(0);
     for at in (10_000..600_000).step_by(10_000) {
         assert!(session.received(at, &mainnet("bbo")).is_ok());
@@ -51,21 +57,12 @@ fn sixty_seconds_of_nothing_pong_included_is_a_dead_socket() {
     assert_eq!(session.tick(110_000), Tick::Reconnect);
 }
 
+/// 250 ms doubling to 20 s, plus up to a quarter more, and never a last attempt. On 2026-10-08
+/// a `bbo` for an unknown coin got the socket dropped within a second, after the other
+/// subscriptions were acknowledged: acks alone must not reset the backoff, or such a subscription
+/// would reconnect four times a second. Thirty seconds open and talking is a socket that worked.
 #[test]
-fn due_says_when_a_tick_next_has_work() {
-    let mut session = Session::new(Network::Mainnet);
-    assert_eq!(session.due(), None, "closed");
-    let _ = session.opened(1_000);
-    assert_eq!(session.due(), Some(31_000));
-    assert_eq!(session.tick(31_000), Tick::Ping);
-    assert_eq!(session.due(), Some(61_000), "the silence limit and the next ping coincide");
-    let _ = session.received(40_000, &mainnet("pong"));
-    assert_eq!(session.due(), Some(70_000));
-}
-
-#[test]
-fn reconnect_delays_double_from_a_quarter_second_to_twenty_and_never_stop() {
-    // 250 ms doubling to 20 s, plus up to a quarter more.
+fn reconnect_delays_double_and_start_over_only_after_a_socket_that_held() {
     let mut session = Session::new(Network::Testnet);
     let plain: Vec<u64> = (0..10).map(|at| session.closed(at, 0).after_ms).collect();
     assert_eq!(plain, [250, 500, 1_000, 2_000, 4_000, 8_000, 16_000, 20_000, 20_000, 20_000]);
@@ -86,13 +83,7 @@ fn reconnect_delays_double_from_a_quarter_second_to_twenty_and_never_stop() {
             assert!(after >= 20_000, "{attempt}: {after}");
         }
     }
-}
 
-#[test]
-fn a_socket_that_held_starts_the_ladder_over_and_one_dropped_at_once_does_not() {
-    // On 2026-10-08 a `bbo` for an unknown coin got the socket dropped within a second, after the
-    // other subscriptions were acknowledged. Acks alone must not reset the backoff, or such a
-    // subscription would reconnect four times a second.
     let mut session = Session::new(Network::Mainnet);
     let mut at = 0;
     for expected in [250, 500, 1_000, 2_000] {
@@ -101,7 +92,6 @@ fn a_socket_that_held_starts_the_ladder_over_and_one_dropped_at_once_does_not() 
         assert_eq!(session.closed(at + 600, 0).after_ms, expected);
         at += 10_000;
     }
-    // Thirty seconds open and talking: the socket worked, and the next failure starts over.
     let _ = session.opened(at);
     let _ = session.received(at + 29_000, &mainnet("bbo"));
     assert_eq!(session.closed(at + 30_000, 0).after_ms, 250);

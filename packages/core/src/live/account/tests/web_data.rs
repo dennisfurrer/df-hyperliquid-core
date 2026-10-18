@@ -1,34 +1,12 @@
+//! `webData3`: the account as Hyperliquid's own frontend reads it, and short notifications.
+
 use crate::live::Frame;
-use crate::live::fixtures::{FIRST, SECOND, address, dec, mainnet, read};
-use crate::utils::Dec;
+use crate::live::fixtures::{SECOND, address, dec, mainnet, read, vault};
 
+/// The user state and each perp dex's, as the frontend reads them, and a notification's text. A
+/// vault that leads vaults of its own names them; an account that leads none is sent no key.
 #[test]
-fn open_orders_spot_balances_and_web_data_read_what_they_say() {
-    let Frame::OpenOrders(open) = read(&mainnet("openOrders")) else { panic!("orders") };
-    assert_eq!((open.dex.as_str(), open.user, open.orders.len()), ("", address(SECOND), 1));
-    let order = &open.orders[0];
-    assert_eq!(
-        (order.limit_px, order.sz, order.orig_sz, order.trigger_px),
-        (dec("80459.0"), dec("0.20706"), dec("0.20706"), Dec::ZERO)
-    );
-    assert_eq!(
-        (order.order_type.word(), order.tif.as_deref(), order.trigger_condition.as_str()),
-        ("Limit", Some("Alo"), "N/A")
-    );
-    assert!(!order.is_trigger && !order.is_position_tpsl && !order.reduce_only && order.children.is_empty());
-    let Frame::OpenOrders(none) = read(&mainnet("openOrders.empty")) else { panic!("orders") };
-    assert!(none.orders.is_empty());
-
-    let Frame::SpotState(spot) = read(&mainnet("spotState")) else { panic!("spot") };
-    assert_eq!((spot.user, spot.state.balances.len()), (address(FIRST), 4));
-    let usdc = &spot.state.balances[0];
-    assert_eq!(
-        (usdc.coin.as_str(), usdc.token, usdc.total, usdc.hold),
-        ("USDC", Some(0), dec("19042.782306"), dec("9001.9958"))
-    );
-    assert_eq!(spot.state.token_to_available_after_maintenance, [(0, dec("16840.184972"))]);
-    assert_eq!(spot.state.portfolio_margin_enabled, None, "the socket does not say");
-
+fn web_data_and_notifications_read_what_they_say() {
     let Frame::WebData3(web) = read(&mainnet("webData3")) else { panic!("web data") };
     let state = &web.user_state;
     assert_eq!((state.user, state.agent_address, state.agent_valid_until), (address(SECOND), None, None));
@@ -40,6 +18,18 @@ fn open_orders_spot_balances_and_web_data_read_what_they_say() {
         ["CANTO", "FTM", "JELLY", "LOOM", "RLB", "VINE", "ZEREBRO"]
     );
     assert!(web.perp_dex_states[1].perps_at_open_interest_cap.is_empty());
+    assert!(web.perp_dex_states.iter().all(|dex| dex.leading_vaults.is_empty()));
+
+    let Frame::WebData3(hlp) = read(&vault("webData3")) else { panic!("web data") };
+    assert_eq!((hlp.user_state.is_vault, hlp.user_state.abstraction.as_deref()), (true, None));
+    assert_eq!(hlp.perp_dex_states[0].total_vault_equity, dec("139705345.523191005"));
+    let led: Vec<(String, &str)> =
+        hlp.perp_dex_states[0].leading_vaults.iter().map(|led| (led.address.to_hex(), led.name.as_str())).collect();
+    assert_eq!(
+        (led.len(), led[0].0.as_str(), led[0].1),
+        (7, "0x010461c14e146ac35fe42271bdc1134ee31c703a", "HLP Strategy A")
+    );
+    assert_eq!(hlp.perp_dex_states[8].perps_at_open_interest_cap, ["para:PAPER"]);
 
     assert_eq!(
         read(&mainnet("notification")),

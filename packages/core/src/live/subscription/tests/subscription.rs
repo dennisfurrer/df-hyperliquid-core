@@ -1,13 +1,18 @@
+//! What a subscription says of itself: its type, the user it follows, the channel its data comes
+//! on, and whether the venue would take it.
+
 use crate::utils::Json;
 
 use super::*;
 use crate::live::fixtures::{FIRST, mainnet};
 use crate::live::subscription::fixtures::{book, coin, sent, user};
 
+/// The docs' subscriptions page on 2026-10-08, in its order, then the three
+/// `@nktkas/hyperliquid` 0.33.2 adds and the venue acknowledged. Only user subscriptions name a
+/// user, and each names the channel its data comes on: its type, but for `userEvents` and a spot
+/// or outcome coin's `activeAssetCtx`.
 #[test]
-fn every_type_the_docs_list_is_covered_once() {
-    // The docs' subscriptions page on 2026-10-08, in its order, then the three
-    // @nktkas/hyperliquid 0.33.2 adds and the venue acknowledged.
+fn each_subscription_names_its_type_its_user_and_its_channel() {
     let listed = [
         "allMids",
         "notification",
@@ -40,35 +45,13 @@ fn every_type_the_docs_list_is_covered_once() {
     let mut kinds: Vec<&str> = sent().iter().map(|(subscription, _)| subscription.kind()).collect();
     kinds.dedup();
     assert_eq!(kinds, listed);
-}
-
-#[test]
-fn book_grouping_is_held_to_what_the_info_docs_allow() {
-    // `nSigFigs` is 2, 3, 4 or 5; `mantissa` is 1, 2 or 5 and only with `nSigFigs` 5.
-    let grouped =
-        |n_sig_figs, mantissa| Subscription::L2Book { coin: coin("BTC"), n_sig_figs, mantissa, fast: false }.check();
-    for figures in 2..=5 {
-        assert_eq!(grouped(Some(figures), None), Ok(()), "{figures}");
+    for (subscription, text) in sent() {
+        let named = Json::parse(&text).unwrap().get("user").and_then(Json::as_str).map(user);
+        assert_eq!(subscription.user(), named, "{text}");
     }
-    for mantissa in [1, 2, 5] {
-        assert_eq!(grouped(Some(5), Some(mantissa)), Ok(()), "{mantissa}");
-    }
-    assert_eq!(grouped(Some(1), None), Err(BadSubscription::SigFigs(1)));
-    assert_eq!(grouped(Some(6), None), Err(BadSubscription::SigFigs(6)));
-    assert_eq!(grouped(Some(4), Some(2)), Err(BadSubscription::Mantissa(2)));
-    assert_eq!(grouped(None, Some(2)), Err(BadSubscription::Mantissa(2)));
-    assert_eq!(grouped(Some(5), Some(3)), Err(BadSubscription::Mantissa(3)));
-    assert_eq!(Subscription::Trades { coin: String::new() }.check(), Err(BadSubscription::EmptyCoin));
-    assert_eq!(
-        Subscription::ActiveAssetData { user: user(FIRST), coin: String::new() }.check(),
-        Err(BadSubscription::EmptyCoin)
-    );
-}
 
-#[test]
-fn each_subscription_names_the_channel_its_data_comes_on() {
-    // Each pair: a subscription and a frame recorded for it, whose `channel` it must name.
     let a = user(FIRST);
+    // Each pair: a subscription and a frame recorded for it, whose `channel` it must name.
     let pairs = [
         (Subscription::ActiveAssetCtx { coin: coin("BTC") }, "activeAssetCtx"),
         (Subscription::ActiveAssetCtx { coin: coin("@107") }, "activeSpotAssetCtx"),
@@ -90,10 +73,25 @@ fn each_subscription_names_the_channel_its_data_comes_on() {
     assert_eq!(Subscription::ActiveAssetCtx { coin: coin("xyz:SP500") }.channel(), "activeAssetCtx");
 }
 
+/// `nSigFigs` is 2, 3, 4 or 5; `mantissa` is 1, 2 or 5 and only with `nSigFigs` 5.
 #[test]
-fn only_user_subscriptions_name_a_user() {
-    for (subscription, text) in sent() {
-        let named = Json::parse(&text).unwrap().get("user").and_then(Json::as_str).map(user);
-        assert_eq!(subscription.user(), named, "{text}");
+fn a_book_s_grouping_is_held_to_what_the_info_docs_allow_and_a_coin_is_never_empty() {
+    let grouped =
+        |n_sig_figs, mantissa| Subscription::L2Book { coin: coin("BTC"), n_sig_figs, mantissa, fast: false }.check();
+    for figures in 2..=5 {
+        assert_eq!(grouped(Some(figures), None), Ok(()), "{figures}");
     }
+    for mantissa in [1, 2, 5] {
+        assert_eq!(grouped(Some(5), Some(mantissa)), Ok(()), "{mantissa}");
+    }
+    assert_eq!(grouped(Some(1), None), Err(BadSubscription::SigFigs(1)));
+    assert_eq!(grouped(Some(6), None), Err(BadSubscription::SigFigs(6)));
+    assert_eq!(grouped(Some(4), Some(2)), Err(BadSubscription::Mantissa(2)));
+    assert_eq!(grouped(None, Some(2)), Err(BadSubscription::Mantissa(2)));
+    assert_eq!(grouped(Some(5), Some(3)), Err(BadSubscription::Mantissa(3)));
+    assert_eq!(Subscription::Trades { coin: String::new() }.check(), Err(BadSubscription::EmptyCoin));
+    assert_eq!(
+        Subscription::ActiveAssetData { user: user(FIRST), coin: String::new() }.check(),
+        Err(BadSubscription::EmptyCoin)
+    );
 }
