@@ -1,3 +1,7 @@
+//! Subaccounts: whose account an action is about, what a subaccount refuses, the vectors it signs
+//! with as the vault, the money moves refused before signing, and the `subAccounts` answer. Opening
+//! and funding one runs in the mocked journeys.
+
 use crate::account::LocalKey;
 use crate::client::Network;
 use crate::utils::sign::L1Action;
@@ -41,17 +45,38 @@ fn sub() -> AccountRef {
     AccountRef::sub(address(UNIFIED), address(UNIFIED_SUB))
 }
 
+/// The live shape (`SUBS`, a desk with a short and a flat leg, and one never funded) and the
+/// unified account's own: a subaccount is read at its own address, traded as the vault, and signed
+/// for by its master's key or the master's agent.
 #[test]
-fn a_subaccount_is_read_at_its_own_address_and_traded_as_the_vault() {
+fn a_subaccount_is_read_at_its_own_address_with_its_own_states_and_traded_as_the_vault() {
     let own = AccountRef::own(address(UNIFIED));
     assert_eq!((own.read_at(), own.vault_address(), own.signs_for()), (address(UNIFIED), None, address(UNIFIED)));
     assert!(!own.is_sub());
-    let sub = sub();
-    assert_eq!(sub.read_at(), address(UNIFIED_SUB), "its own states and its own mode");
-    assert_eq!(sub.vault_address(), Some(address(UNIFIED_SUB)), "named as vaultAddress on what it trades");
-    assert_eq!(sub.signs_for(), address(UNIFIED), "by the master's key or the master's agent");
     let listed: Vec<SubAccount> = read(SUBS_UNIFIED);
-    assert_eq!(listed[0].account(), sub);
+    let sub = listed[0].account();
+    assert_eq!((sub, sub.is_sub()), (AccountRef::sub(address(UNIFIED), address(UNIFIED_SUB)), true));
+    assert_eq!(
+        (sub.read_at(), sub.vault_address(), sub.signs_for()),
+        (address(UNIFIED_SUB), Some(address(UNIFIED_SUB)), address(UNIFIED))
+    );
+    assert_eq!(listed[0].name, "SUPERVISED");
+    assert_eq!(sub.to_string(), format!("{UNIFIED_SUB} (a subaccount of {UNIFIED})"));
+    assert_eq!(own.to_string(), UNIFIED);
+
+    let subs: Vec<SubAccount> = read(SUBS);
+    let desk = &subs[0];
+    assert_eq!(
+        (desk.equity(), desk.notional(), desk.withdrawable()),
+        (dec("41008.519458"), dec("584635.8959999999"), dec("1204.55"))
+    );
+    assert_eq!((desk.positions(), desk.spot_usdc()), (1, dec("290383.20298955")), "the flat BTC leg is not a position");
+    let fresh = &subs[1];
+    assert_eq!((fresh.clearinghouse_state.as_ref(), fresh.spot_state.as_ref()), (None, None), "null is no state");
+    assert_eq!(
+        (fresh.equity(), fresh.withdrawable(), fresh.positions(), fresh.spot_usdc()),
+        (Dec::ZERO, Dec::ZERO, 0, Dec::ZERO)
+    );
 }
 
 /// A subaccount's spot and HIP-4 orders, moves between its ledgers, approvals and a scheduled
@@ -131,19 +156,17 @@ fn a_subaccount_s_perp_actions_sign_with_it_as_the_vault() {
     assert_eq!(signed, 3, "two orders and a cancel");
 }
 
+/// Perp USDC moves in millionths, refused rather than rounded when finer; a spot token moves only
+/// in an amount above nothing.
 #[test]
-fn a_subaccount_reads_its_equity_positions_and_cash() {
-    let subs: Vec<SubAccount> = read(SUBS);
-    let desk = &subs[0];
-    assert_eq!(desk.equity(), dec("41008.519458"));
-    assert_eq!(desk.notional(), dec("584635.8959999999"));
-    assert_eq!(desk.withdrawable(), dec("1204.55"));
-    assert_eq!(desk.positions(), 1, "the flat BTC leg is not a position");
-    assert_eq!(desk.spot_usdc(), dec("290383.20298955"));
-    let fresh = &subs[1];
-    assert_eq!((fresh.clearinghouse_state.as_ref(), fresh.spot_state.as_ref()), (None, None), "null is no state");
-    assert_eq!(
-        (fresh.equity(), fresh.withdrawable(), fresh.positions(), fresh.spot_usdc()),
-        (Dec::ZERO, Dec::ZERO, 0, Dec::ZERO)
-    );
+fn a_transfer_finer_than_a_millionth_or_of_nothing_is_refused() {
+    let sub = address(UNIFIED_SUB);
+    for (usdc, taken) in [("5", true), ("0.000001", true), ("0.0000001", false), ("1.2345678", false)] {
+        assert_eq!(SubAccountTransfer::deposit(sub, dec(usdc)).is_ok(), taken, "{usdc} in");
+        assert_eq!(SubAccountTransfer::withdraw(sub, dec(usdc)).is_ok(), taken, "{usdc} out");
+    }
+    let hype = "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec";
+    for (amount, taken) in [("2", true), ("0", false), ("-1", false)] {
+        assert_eq!(SubAccountSpotTransfer::new(sub, true, hype, dec(amount)).is_ok(), taken, "{amount}");
+    }
 }

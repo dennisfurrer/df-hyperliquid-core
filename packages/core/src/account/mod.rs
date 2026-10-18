@@ -42,9 +42,5 @@ pub use settings::{
 mod vectors;
 
 #[cfg(test)]
-#[path = "tests/reads.rs"]
-mod reads;
-
-#[cfg(test)]
 #[path = "tests/fixtures.rs"]
 mod fixtures;

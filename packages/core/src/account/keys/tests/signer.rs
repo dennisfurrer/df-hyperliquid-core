@@ -1,3 +1,6 @@
+//! Signatures as the venue reads them: made low-s with an Ethereum `v`, read from a wallet in
+//! either form, recovered to their signer, and refused when malformed.
+
 use std::{
     future::Future,
     pin::pin,
@@ -59,29 +62,30 @@ fn wallet_hex(r: &[u8; 32], s: &[u8; 32], v: u8) -> String {
     hex::encode_prefixed(&bytes)
 }
 
+/// Published keys: secp256k1's generator, its double, and the vectors' key.
 #[test]
-fn the_published_key_derives_the_published_address() {
-    assert_eq!(key(&ONE).address().to_hex(), ONE_ADDRESS);
+fn the_published_keys_derive_the_published_addresses() {
     let mut two = [0u8; 32];
     two[31] = 2;
-    assert_eq!(key(&two).address().to_hex(), "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf");
+    let vectors = LocalKey::from_hex("0x0123456789012345678901234567890123456789012345678901234567890123").unwrap();
+    for (key, address) in [
+        (key(&ONE), ONE_ADDRESS),
+        (key(&two), "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf"),
+        (vectors, "0x14791697260e4c9a71f18484c9f997b308e59325"),
+    ] {
+        assert_eq!(key.address().to_hex(), address);
+    }
 }
 
 #[test]
-fn a_signature_recovers_to_its_own_signer() {
+fn a_signature_recovers_to_its_signer_and_verify_names_any_other() {
     let key = key(&ONE);
     let digest = keccak256(b"an action hash stands in for itself here");
     let signature = key.sign_digest(&digest).unwrap();
-    assert_eq!(recover(&digest, &signature).unwrap(), key.address());
+    assert_eq!(recover(&digest, &signature), Ok(key.address()));
     assert_eq!(verify(&digest, &signature, key.address()), Ok(()));
     let other = keccak256(b"a different action entirely");
     assert_ne!(recover(&other, &signature).ok(), Some(key.address()));
-}
-
-#[test]
-fn a_signature_from_another_account_is_named_and_refused() {
-    let digest = keccak256(b"body");
-    let signature = key(&ONE).sign_digest(&digest).unwrap();
     let expected: Address = "0x2b5ad5c4795c026514f8317c7a215e218dccd6cf".parse().unwrap();
     assert_eq!(
         verify(&digest, &signature, expected),
@@ -89,8 +93,9 @@ fn a_signature_from_another_account_is_named_and_refused() {
     );
 }
 
+/// `{"r":"0x..","s":"0x..","v":27}`, as `/exchange` reads it: `r` and `s` as full words.
 #[test]
-fn signatures_are_low_s_and_carry_an_ethereum_v() {
+fn a_signature_is_low_s_carries_an_ethereum_v_and_posts_as_r_s_v() {
     let key = key(&ONE);
     for index in 0u8..16 {
         let digest = keccak256(&[index; 7]);
@@ -100,28 +105,28 @@ fn signatures_are_low_s_and_carry_an_ethereum_v() {
         let curve = CurveSignature::from_slice(&signature.to_compact()).unwrap();
         assert!(curve.normalize_s().is_none(), "signature {index} was not low-s normalised");
         assert_eq!(recover(&digest, &signature).unwrap(), key.address());
+        let json = signature.to_json();
+        assert_eq!(
+            json,
+            format!(r#"{{"r":"{}","s":"{}","v":{}}}"#, signature.r_hex(), signature.s_hex(), signature.v())
+        );
+        assert_eq!(serde_json::to_string(&signature).unwrap(), json, "serde writes the same");
+        assert_eq!((signature.r_hex().len(), signature.s_hex().len()), (66, 66));
     }
 }
 
+/// `eth_signTypedData_v4` answers `r || s || v`, `v` as 0/1 or 27/28; a wallet that does not
+/// normalise may send the high-s twin, folded here to the low one the venue takes.
 #[test]
-fn the_json_shape_is_the_one_the_venue_reads() {
-    let signature = key(&ONE).sign_digest(&keccak256(b"body")).unwrap();
-    let json = signature.to_json();
-    assert_eq!(json, format!(r#"{{"r":"{}","s":"{}","v":{}}}"#, signature.r_hex(), signature.s_hex(), signature.v()));
-    assert_eq!(serde_json::to_string(&signature).unwrap(), json, "serde writes the same");
-    assert_eq!(signature.r_hex().len(), 66);
-    assert_eq!(signature.s_hex().len(), 66);
-}
-
-#[test]
-fn a_wallet_s_hex_reads_with_either_v_and_comes_out_27_or_28() {
+fn a_wallet_s_hex_reads_with_either_v_and_a_high_s_folded_to_its_low_twin() {
     let key = key(&ONE);
     for index in 0u8..8 {
         let digest = keccak256(&[index; 3]);
         let signed = key.sign_digest(&digest).unwrap();
         let parity = signed.v() - 27;
-        for v in [parity, parity + 27] {
-            let read = Signature::from_hex(&wallet_hex(signed.r(), signed.s(), v)).unwrap();
+        let flipped = 27 + (parity ^ 1);
+        for (s, v) in [(*signed.s(), parity), (*signed.s(), parity + 27), (negate(signed.s()), flipped)] {
+            let read = Signature::from_hex(&wallet_hex(signed.r(), &s, v)).unwrap();
             assert_eq!(read, signed, "v given as {v}");
             assert_eq!(recover(&digest, &read), Ok(key.address()));
         }
@@ -129,34 +134,29 @@ fn a_wallet_s_hex_reads_with_either_v_and_comes_out_27_or_28() {
 }
 
 #[test]
-fn a_high_s_from_a_wallet_is_folded_to_its_low_twin() {
-    let key = key(&ONE);
-    let digest = keccak256(b"a wallet that does not normalise");
-    let signed = key.sign_digest(&digest).unwrap();
-    let high = negate(signed.s());
-    let flipped = if signed.v() == 27 { 28 } else { 27 };
-    let read = Signature::from_hex(&wallet_hex(signed.r(), &high, flipped)).unwrap();
-    assert_eq!(read, signed);
-    assert_eq!(recover(&digest, &read), Ok(key.address()));
-}
-
-#[test]
 fn a_malformed_signature_is_refused_rather_than_guessed_at() {
     let digest = keccak256(b"body");
     let signature = key(&ONE).sign_digest(&digest).unwrap();
-    let wrong_v = Signature::from_parts(*signature.r(), *signature.s(), 1);
-    assert_eq!(recover(&digest, &wrong_v), Err(SignError::BadV(1)));
-    let zeroed = Signature::from_parts([0u8; 32], [0u8; 32], 27);
-    assert_eq!(recover(&digest, &zeroed), Err(SignError::Malformed));
-    assert_eq!(Signature::from_hex("0x1234"), Err(SignError::NotASignature));
-    assert_eq!(Signature::from_hex(&wallet_hex(signature.r(), signature.s(), 29)), Err(SignError::BadV(29)));
-    assert_eq!(Signature::from_hex(&wallet_hex(&[0; 32], &[0; 32], 27)), Err(SignError::Malformed));
+    for (recovered, refused) in [
+        (Signature::from_parts(*signature.r(), *signature.s(), 1), SignError::BadV(1)),
+        (Signature::from_parts([0u8; 32], [0u8; 32], 27), SignError::Malformed),
+    ] {
+        assert_eq!(recover(&digest, &recovered), Err(refused));
+    }
+    for (hex, refused) in [
+        ("0x1234".to_owned(), SignError::NotASignature),
+        (wallet_hex(signature.r(), signature.s(), 29), SignError::BadV(29)),
+        (wallet_hex(&[0; 32], &[0; 32], 27), SignError::Malformed),
+    ] {
+        assert_eq!(Signature::from_hex(&hex), Err(refused), "{hex}");
+    }
+    assert_eq!(LocalKey::from_hex("0xnot-a-key").unwrap_err(), SignError::NotAKey);
+    assert_eq!(LocalKey::from_bytes(&[0u8; 32]).unwrap_err(), SignError::NotAKey);
 }
 
 #[test]
 fn a_local_key_signs_typed_data_as_the_trait_and_never_shows_itself() {
     let key = LocalKey::from_hex("0x0123456789012345678901234567890123456789012345678901234567890123").unwrap();
-    assert_eq!(key.address().to_hex(), "0x14791697260e4c9a71f18484c9f997b308e59325");
     let data =
         TypedStruct::new("Agent").field("source", Field::String("a")).field("connectionId", Field::Bytes32([7; 32]));
     let signed = block_on(key.sign_typed(&Domain::EXCHANGE, &data)).unwrap();
@@ -164,6 +164,4 @@ fn a_local_key_signs_typed_data_as_the_trait_and_never_shows_itself() {
     let shown = format!("{key:?}");
     assert!(shown.contains("0x14791697260e4c9a71f18484c9f997b308e59325"), "{shown}");
     assert!(!shown.contains("0123456789012345678901234567890123456789012345678901234567890123"), "{shown}");
-    assert_eq!(LocalKey::from_hex("0xnot-a-key").unwrap_err(), SignError::NotAKey);
-    assert_eq!(LocalKey::from_bytes(&[0u8; 32]).unwrap_err(), SignError::NotAKey);
 }
