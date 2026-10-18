@@ -64,6 +64,25 @@ flowchart TB
 |---|---|
 | `cargo run -p df-hyperliquid-core --example market_order` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
 
+## Tests
+
+```text
+packages/core
+├── src/**/tests       unit: decimals, rounding, encoding, signing, refusals, state machines
+├── tests
+│   ├── conformance    signatures match @nktkas/hyperliquid, the Python SDK and viem
+│   ├── mocked         whole journeys through Client against a fake venue that checks every signature
+│   └── live           mainnet, read only: every read, websocket channel and HyperEVM read
+├── fixtures           recorded venue answers
+└── vectors            what other implementations produce
+```
+
+| Command | What it runs |
+|---|---|
+| `just check` | format, lint, unit, conformance, mocked, the browser transport in Node, docs |
+| `just live` | the live suite against mainnet, each answer held against its recording |
+| `just cover` | line coverage of everything but the live suite |
+
 ## Reference implementations
 
 - [metalliq.xyz](https://metalliq.xyz)
