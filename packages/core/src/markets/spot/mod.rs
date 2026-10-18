@@ -10,9 +10,5 @@ pub use meta::{
 };
 
 #[cfg(test)]
-#[path = "tests/support.rs"]
-mod support;
-
-#[cfg(test)]
 #[path = "tests/reads.rs"]
 mod reads;

@@ -12,9 +12,5 @@ pub use limits::{
 pub use listing::{Dexes, Misaligned, all_perp_metas, all_perp_metas_request, dexes};
 
 #[cfg(test)]
-#[path = "tests/support.rs"]
-mod support;
-
-#[cfg(test)]
 #[path = "tests/dexes.rs"]
 mod dexes_tests;

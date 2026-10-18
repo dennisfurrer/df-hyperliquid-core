@@ -1,40 +1,27 @@
+//! The side as the venue writes it, and which way each rounds a price.
+
 use super::*;
 
 #[test]
-fn a_side_reads_and_writes_b_and_a() {
-    assert_eq!(serde_json::from_str::<Side>(r#""B""#).unwrap(), Side::Buy);
-    assert_eq!(serde_json::from_str::<Side>(r#""A""#).unwrap(), Side::Sell);
-    assert_eq!(serde_json::to_string(&Side::Buy).unwrap(), r#""B""#);
-    assert_eq!(serde_json::to_string(&Side::Sell).unwrap(), r#""A""#);
-    for side in Side::ALL {
-        assert_eq!(Side::parse(side.wire()), Some(side));
+fn a_side_is_b_or_a_on_the_wire_and_never_rounds_against_the_trader() {
+    let table = [(Side::Buy, "B", true, Side::Sell, Round::Down), (Side::Sell, "A", false, Side::Buy, Round::Up)];
+    for (side, wire, buys, other, rounding) in table {
+        assert_eq!((side.wire(), side.to_string(), Side::parse(wire)), (wire, wire.to_owned(), Some(side)));
+        assert_eq!(serde_json::to_string(&side).unwrap(), format!("\"{wire}\""));
+        assert_eq!(serde_json::from_str::<Side>(&format!("\"{wire}\"")).unwrap(), side);
+        assert_eq!((side.is_buy(), side.other(), side.price_rounding()), (buys, other, rounding), "{wire}");
     }
+    assert_eq!(Side::ALL, [Side::Buy, Side::Sell], "a bid sorts before an ask");
+    assert!(Side::Buy < Side::Sell);
 }
 
 #[test]
 fn anything_but_b_or_a_is_refused() {
-    for said in [r#""b""#, r#""Buy""#, r#""""#, "0", "true"] {
+    for said in ["b", "Buy", "", "S", " B"] {
+        assert_eq!(Side::parse(said), None, "{said:?}");
+        assert!(serde_json::from_str::<Side>(&format!("\"{said}\"")).is_err(), "{said:?}");
+    }
+    for said in ["0", "true", "null"] {
         assert!(serde_json::from_str::<Side>(said).is_err(), "{said}");
     }
-    assert_eq!(Side::parse("S"), None);
-    assert_eq!(Side::parse(" B"), None);
-}
-
-#[test]
-fn each_side_knows_its_other_and_whether_it_buys() {
-    assert!(Side::Buy.is_buy());
-    assert!(!Side::Sell.is_buy());
-    assert_eq!(Side::Buy.other(), Side::Sell);
-    assert_eq!(Side::Sell.other(), Side::Buy);
-}
-
-#[test]
-fn a_price_never_rounds_against_the_trader() {
-    assert_eq!(Side::Buy.price_rounding(), Round::Down);
-    assert_eq!(Side::Sell.price_rounding(), Round::Up);
-}
-
-#[test]
-fn bids_sort_before_asks() {
-    assert!(Side::Buy < Side::Sell);
 }

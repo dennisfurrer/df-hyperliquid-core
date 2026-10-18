@@ -11,45 +11,72 @@ fn px(text: &str) -> Px {
 }
 
 #[test]
-fn sizes_are_whole_contracts_and_say_so_when_they_are_not() {
-    assert_eq!(Qty::parse("544.0"), Ok(Qty::new(544)), "as a book prints it");
-    assert_eq!(Qty::parse("544").unwrap().to_wire(), "544");
-    assert_eq!(Qty::parse("0.5"), Err(BadQty::Fractional("0.5".to_owned())));
-    assert!(matches!(Qty::parse("x"), Err(BadQty::NotAnInteger(_))));
-    assert!(matches!(Qty::parse("-1"), Err(BadQty::NotAnInteger(_))));
-    assert_eq!(Qty::new(50).to_dec(), Dec::from_int(50));
-    assert_eq!(Qty::from_dec(dec("50")), Ok(Qty::new(50)));
+fn a_size_is_whole_contracts_and_says_so_when_it_is_not() {
+    for (text, contracts) in [("544.0", 544), ("544", 544), ("+3", 3), (" 0 ", 0)] {
+        let size = Qty::parse(text).unwrap_or_else(|error| panic!("{text}: {error}"));
+        assert_eq!(
+            (size, size.to_wire(), size.to_string().parse()),
+            (Qty::new(contracts), contracts.to_string(), Ok(size))
+        );
+    }
+    let refused = [
+        ("0.5", BadQty::Fractional("0.5".to_owned())),
+        ("x", BadQty::NotAnInteger("x".to_owned())),
+        ("-1", BadQty::NotAnInteger("-1".to_owned())),
+        (".0", BadQty::NotAnInteger(".0".to_owned())),
+        ("99999999999999999999", BadQty::NotAnInteger("99999999999999999999".to_owned())),
+    ];
+    for (text, why) in refused {
+        assert_eq!(Qty::parse(text), Err(why), "{text}");
+    }
+    assert!(serde_json::from_str::<Qty>(r#""0.5""#).is_err());
+    assert_eq!(serde_json::from_str::<Qty>(r#""544.0""#).unwrap(), Qty::new(544));
+    assert_eq!((Qty::from_dec(dec("50")), Qty::new(50).to_dec()), (Ok(Qty::new(50)), Dec::from_int(50)));
     assert_eq!(Qty::from_dec(dec("50.5")), Err(BadQty::Fractional("50.5".to_owned())));
+    assert_eq!(Qty::from_dec(dec("-2")), Err(BadQty::NotAnInteger("-2".to_owned())));
+    assert_eq!((Qty::new(5).min(Qty::new(3)), Qty::new(3).saturating_sub(Qty::new(5))), (Qty::new(3), Qty::ZERO));
 }
 
 #[test]
-fn a_notional_is_the_size_times_the_price_in_quote_token() {
-    assert_eq!(Qty::new(544).notional(px("0.27")), dec("146.88"));
-    assert_eq!(Qty::new(34).notional(px("0.21349")), dec("7.25866"), "a live fill, 2026-09-24");
-    assert_eq!(Qty::new(1).notional(Px::ONE), Dec::ONE);
-    assert_eq!(Qty::new(0).notional(px("0.27")), Dec::ZERO);
-    assert_eq!(Qty::new(u64::MAX).notional(Px::ONE), Dec::new(i128::from(u64::MAX), 0).unwrap(), "never wraps");
+fn contracts_cost_their_size_times_the_price_and_an_amount_buys_whole_ones_toward_zero() {
+    let notional = [
+        (544, "0.27", "146.88"),
+        (34, "0.21349", "7.25866"),
+        (1, "1", "1"),
+        (0, "0.27", "0"),
+        (u64::MAX, "1", "18446744073709551615"),
+    ];
+    for (contracts, price, cost) in notional {
+        assert_eq!(Qty::new(contracts).notional(px(price)), dec(cost), "{contracts} at {price}");
+    }
+    let spend = [
+        ("10", "0.612", Some(16)),
+        ("10", "0.5", Some(20)),
+        ("0.4", "0.5", Some(0)),
+        ("10", "0", None),
+        ("-1", "0.5", None),
+    ];
+    for (amount, price, contracts) in spend {
+        assert_eq!(Qty::spend(dec(amount), px(price)), contracts.map(Qty::new), "{amount} at {price}");
+    }
 }
 
-/// An order worth under 10 USDC at its own price, the spot minimum, is refused before a nonce is
-/// drawn.
+/// An order worth under 10 USDC at its own price, the spot minimum, is refused by the venue.
 #[test]
 fn the_ten_dollar_minimum_tracks_the_price_and_not_the_collateral() {
-    let near_one = px("0.99697");
-    assert_eq!(Qty::least_at(near_one), Some(Qty::new(11)));
-    assert!(Qty::new(11).worth_minimum(near_one));
-    assert!(!Qty::new(10).worth_minimum(near_one));
-    assert_eq!(Qty::least_at(px("0.5")), Some(Qty::new(20)));
-    assert_eq!(Qty::least_at(px("0.01")), Some(Qty::new(1_000)));
-    assert_eq!(Qty::least_at(Px::ONE), Some(Qty::new(10)));
-    assert_eq!(Qty::least_at(Px::ZERO), None, "nothing at zero is worth anything");
-}
-
-#[test]
-fn an_amount_of_quote_buys_whole_contracts_toward_zero() {
-    assert_eq!(Qty::spend(dec("10"), px("0.612")), Some(Qty::new(16)), "ten dollars of YES");
-    assert_eq!(Qty::spend(dec("10"), px("0.5")), Some(Qty::new(20)));
-    assert_eq!(Qty::spend(dec("0.4"), px("0.5")), Some(Qty::ZERO));
-    assert_eq!(Qty::spend(dec("10"), Px::ZERO), None);
-    assert_eq!(Qty::spend(dec("-1"), px("0.5")), None);
+    let least = [
+        ("0.99697", Some(11)),
+        ("0.59666", Some(17)),
+        ("0.5", Some(20)),
+        ("0.01", Some(1_000)),
+        ("1", Some(10)),
+        ("0", None),
+    ];
+    for (price, contracts) in least {
+        let at = px(price);
+        assert_eq!(Qty::least_at(at), contracts.map(Qty::new), "{price}");
+        if let Some(contracts) = contracts {
+            assert!(Qty::new(contracts).worth_minimum(at) && !Qty::new(contracts - 1).worth_minimum(at), "{price}");
+        }
+    }
 }

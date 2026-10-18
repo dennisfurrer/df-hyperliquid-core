@@ -41,34 +41,26 @@ fn the_tables_read_as_the_docs_state_them() {
 }
 
 /// A table id under 50 is a single tier at that leverage, so no such table is listed: every perp
-/// on one has that id as its `maxLeverage`. A listed table's first tier is the perp's
-/// `maxLeverage` in turn.
+/// on one, on the main dex and on all 294 HIP-3 perps, has that id as its `maxLeverage`. A listed
+/// table's first tier is the perp's `maxLeverage` in turn.
 #[test]
 fn every_perp_s_table_starts_at_its_max_leverage() {
     let meta = meta();
     assert!(meta.margin_tables.iter().all(|(id, _)| *id >= FLAT_TABLES_BELOW));
-    for (_, perp) in meta.perps(0) {
-        let table = meta.table_of(perp).unwrap();
-        assert_eq!(table.max_leverage_at(Dec::ZERO), Some(perp.max_leverage), "{}", perp.name);
-    }
-    let (_, atom) = meta.find(0, "ATOM").unwrap();
-    assert_eq!(meta.table_of(atom), Some(MarginTable::flat(5)));
-    assert_eq!(meta.margin_table(20), Some(MarginTable::flat(20)));
-    assert_eq!(meta.margin_table(57), None, "an id past 50 the meta does not list");
-}
-
-/// Every HIP-3 perp's table starts at its `maxLeverage` too: a flat id under 50 is that leverage,
-/// a listed one has it as its first tier.
-#[test]
-fn every_hip3_perp_s_table_starts_at_its_max_leverage() {
     let metas: Vec<Meta> = serde_json::from_str(METAS).unwrap();
-    let mut count = 0;
-    for meta in &metas[1..] {
+    let mut hip3 = 0;
+    for (place, meta) in std::iter::once(&meta).chain(&metas[1..]).enumerate() {
         for perp in &meta.universe {
             let table = meta.table_of(perp).unwrap();
             assert_eq!(table.max_leverage_at(Dec::ZERO), Some(perp.max_leverage), "{}", perp.name);
-            count += 1;
+            hip3 += usize::from(place > 0);
         }
     }
-    assert_eq!(count, 294);
+    assert_eq!(hip3, 294);
+    let (_, atom) = meta.find(0, "ATOM").unwrap();
+    assert_eq!(meta.table_of(atom), Some(MarginTable::flat(5)));
+    let unnamed = PerpAsset { margin_table_id: None, ..atom.clone() };
+    assert_eq!(meta.table_of(&unnamed), Some(MarginTable::flat(5)), "no table named, held to its maxLeverage");
+    assert_eq!((meta.margin_table(20), meta.margin_table(57)), (Some(MarginTable::flat(20)), None), "57 is not listed");
+    assert_eq!(meta.margin_table(0), None, "no perp is on table 0");
 }

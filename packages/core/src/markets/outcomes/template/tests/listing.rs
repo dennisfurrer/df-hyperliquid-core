@@ -1,5 +1,5 @@
 //! `outcomeTemplates` as the venue answered it: mainnet on 2026-09-28 and testnet on 2026-10-08,
-//! trimmed to eight templates.
+//! trimmed to six and eight templates. Reads through a client are in `tests/mocked/markets`.
 
 use super::*;
 
@@ -12,84 +12,81 @@ fn read(text: &str) -> Vec<OutcomeTemplate> {
     serde_json::from_str::<Templates>(text).unwrap().0
 }
 
-const ROLES: &str = r#"[
-    {"id":"binaryPrice","role":{"standaloneOutcome":{"sideNames":["Yes","No"]}},
-     "name":"{perp} above {threshold} at {time}?","description":"...",
-     "keywords":[["perp","hlPerp"],["threshold","uDecimal"],["time","dateTime"]]},
-    {"id":"policyRateDecision","role":"question","name":"...","description":"...",
-     "keywords":[["institution","string"]]},
-    {"id":"policyRateIncrease","role":{"questionOutcome":{"parent":"policyRateDecision"}},
-     "name":"...","description":"...","keywords":[]},
-    {"id":"somethingNew","role":{"futureRole":{}},"name":"...","description":"...",
-     "keywords":[]}]"#;
-
-#[test]
-fn a_role_this_build_has_never_seen_is_kept_by_name_rather_than_dropped() {
-    let read = read(ROLES);
-    assert_eq!(read[0].role, TemplateRole::Standalone { side_names: vec!["Yes".to_owned(), "No".to_owned()] });
-    assert_eq!(read[1].role, TemplateRole::Question);
-    assert_eq!(read[2].role, TemplateRole::QuestionOutcome { parent: "policyRateDecision".to_owned() });
-    assert_eq!(read[3].role, TemplateRole::Other("futureRole".to_owned()));
-    assert_eq!(read[0].keywords[0], Keyword { name: "perp".to_owned(), kind: "hlPerp".to_owned() });
-    assert_eq!(read[0].keywords[0].hint(), Hint::HlPerp);
-    assert_eq!(read[0].keywords.len(), 3);
+fn names(names: &[&str]) -> Vec<String> {
+    names.iter().map(|name| (*name).to_owned()).collect()
 }
 
 #[test]
-fn a_template_that_does_not_read_is_skipped_and_the_rest_kept() {
-    let text = r#"[{"id":"binaryPrice","role":"question","name":"x","description":"",
-        "keywords":[["perp"]]},{"id":"draw","role":"question","name":"Draw","description":"","keywords":[]}]"#;
-    let read = read(text);
-    assert_eq!(read.len(), 1, "a keyword with no kind is no template");
-    assert_eq!(read[0].id, "draw");
-}
-
-#[test]
-fn mainnet_s_templates_read_as_the_venue_wrote_them() {
-    let templates = read(MAINNET);
-    assert_eq!(templates.len(), 6);
-    let binary = &templates[0];
-    assert_eq!(binary.id, "binaryPrice");
-    assert_eq!(binary.name, "{perp} above {threshold} at {time}?");
-    assert_eq!(binary.role, TemplateRole::Standalone { side_names: vec!["Yes".to_owned(), "No".to_owned()] });
-    let winner = templates.iter().find(|one| one.id == "sportsContestWinner").unwrap();
+fn templates_read_their_roles_and_keywords_as_the_venue_wrote_them() {
+    let mainnet = read(MAINNET);
+    assert_eq!(mainnet.len(), 6);
+    let roles: Vec<(&str, &TemplateRole)> = mainnet.iter().map(|one| (one.id.as_str(), &one.role)).collect();
+    let participant = TemplateRole::QuestionOutcome { parent: "sportsTournamentWinner".to_owned() };
     assert_eq!(
-        winner.role,
-        TemplateRole::Standalone { side_names: vec!["{shortNameA}".to_owned(), "{shortNameB}".to_owned()] }
-    );
-    let named = templates.iter().filter(|one| one.parent() == Some("sportsTournamentWinner")).count();
-    assert_eq!(named, 2, "the participant and the no-winner outcome");
-    assert!(templates.iter().any(|one| one.id == "sportsTournamentWinner" && one.role == TemplateRole::Question));
-}
-
-#[test]
-fn testnet_s_templates_carry_each_keyword_s_hint() {
-    let templates = read(TESTNET);
-    assert_eq!(templates.len(), 8);
-    let binary = &templates[0];
-    assert_eq!(binary.id, "binaryPrice4");
-    let hints: Vec<(&str, Hint)> =
-        binary.keywords.iter().map(|keyword| (keyword.name.as_str(), keyword.hint())).collect();
-    assert_eq!(
-        hints,
+        roles,
         [
-            ("perp", Hint::HlPerp),
-            ("priceDescription", Hint::String),
-            ("seconds", Hint::UInt),
-            ("threshold", Hint::UDecimal),
-            ("time", Hint::DateTime),
+            ("binaryPrice", &TemplateRole::Standalone { side_names: names(&["Yes", "No"]) }),
+            ("priceTouch", &TemplateRole::Standalone { side_names: names(&["Yes", "No"]) }),
+            ("sportsContestWinner", &TemplateRole::Standalone { side_names: names(&["{shortNameA}", "{shortNameB}"]) }),
+            ("sportsTournamentNoWinner2", &participant),
+            ("sportsTournamentParticipant", &participant),
+            ("sportsTournamentWinner", &TemplateRole::Question),
         ]
     );
-    let draw = templates.iter().find(|one| one.id == "sportsContestDraw").unwrap();
-    assert_eq!(draw.parent(), Some("sportsContestResult"));
-    assert!(draw.keywords.is_empty());
+    assert_eq!(mainnet[0].name, "{perp} above {threshold} at {time}?");
+    assert_eq!((mainnet[4].parent(), mainnet[5].parent()), (Some("sportsTournamentWinner"), None));
+    let testnet = read(TESTNET);
+    assert_eq!(testnet.len(), 8);
+    let hints: Vec<(&str, Hint)> =
+        testnet[0].keywords.iter().map(|keyword| (keyword.name.as_str(), keyword.hint())).collect();
+    assert_eq!(
+        (testnet[0].id.as_str(), hints),
+        (
+            "binaryPrice4",
+            vec![
+                ("perp", Hint::HlPerp),
+                ("priceDescription", Hint::String),
+                ("seconds", Hint::UInt),
+                ("threshold", Hint::UDecimal),
+                ("time", Hint::DateTime),
+            ]
+        )
+    );
+    let draw = testnet.iter().find(|one| one.id == "sportsContestDraw").unwrap();
+    assert_eq!((draw.parent(), draw.keywords.len()), (Some("sportsContestResult"), 0));
 }
 
-/// As outcome 1210 reads on mainnet.
+#[test]
+fn a_role_this_build_has_not_seen_is_kept_and_a_template_that_does_not_read_is_skipped() {
+    let text = r#"[
+        {"id":"somethingNew","role":{"futureRole":{}},"name":"x","description":"","keywords":[]},
+        {"id":"oddBody","role":{"standaloneOutcome":7},"name":"x","description":"","keywords":[]},
+        {"id":"renamed","role":"answer","name":"x","description":"","keywords":[]},
+        {"id":"empty","role":{},"name":"x","description":"","keywords":[]},
+        {"id":"bare","name":"x","description":"","keywords":[]},
+        {"id":"listed","role":["question"],"name":"x","description":"","keywords":[]},
+        {"id":"binaryPrice","role":"question","name":"x","description":"","keywords":[["perp"]]}]"#;
+    let roles: Vec<(String, TemplateRole)> = read(text).into_iter().map(|one| (one.id, one.role)).collect();
+    assert_eq!(
+        roles,
+        [
+            ("somethingNew".to_owned(), TemplateRole::Other("futureRole".to_owned())),
+            ("oddBody".to_owned(), TemplateRole::Standalone { side_names: Vec::new() }),
+            ("renamed".to_owned(), TemplateRole::Other("answer".to_owned())),
+            ("empty".to_owned(), TemplateRole::Other(String::new())),
+            ("bare".to_owned(), TemplateRole::Other(String::new())),
+            ("listed".to_owned(), TemplateRole::Other(String::new())),
+        ],
+        "a keyword with no kind is no template"
+    );
+    assert!(serde_json::from_str::<Templates>("{}").is_err(), "the answer is a list");
+}
+
+/// As outcome 1210 reads on mainnet: the keywords sorted, a standalone outcome's sides under
+/// `template:`.
 #[test]
 fn on_chain_a_row_is_its_template_and_its_keywords_sorted() {
     let templates = read(MAINNET);
-    let binary = &templates[0];
     let values = Keywords::from_pairs([
         ("time", "20261001-0000"),
         ("perp", "BTC"),
@@ -98,18 +95,21 @@ fn on_chain_a_row_is_its_template_and_its_keywords_sorted() {
         ("priceDescription", "BTC-USDC mark"),
     ])
     .unwrap();
-    let chain = binary.on_chain(&values);
+    let chain = templates[0].on_chain(&values);
     assert_eq!(chain.name, "template:binaryPrice");
     assert_eq!(
         chain.description,
         "perp:BTC|priceDescription:BTC-USDC mark|seconds:1|threshold:100000|time:20261001-0000"
     );
     assert_eq!(chain.sides, Some(["template:Yes".to_owned(), "template:No".to_owned()]));
-    let named = templates.iter().find(|one| one.parent().is_some()).unwrap();
-    assert_eq!(named.on_chain(&Keywords::new()).sides, None, "a question's outcome has no sides of its own");
-}
-
-#[test]
-fn the_read_names_its_type() {
-    assert_eq!(outcome_templates_request(), r#"{"type":"outcomeTemplates"}"#);
+    let participant = templates[4].on_chain(&Keywords::from_pairs([("participant", "Arsenal")]).unwrap());
+    assert_eq!(
+        (participant.name.as_str(), participant.description.as_str()),
+        ("template:sportsTournamentParticipant", "participant:Arsenal")
+    );
+    assert_eq!(participant.sides, None, "a question's outcome has no sides of its own");
+    assert_eq!(
+        templates[0].on_chain(&Keywords::new()).description,
+        "perp:|priceDescription:|seconds:|threshold:|time:"
+    );
 }
