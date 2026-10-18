@@ -246,7 +246,9 @@ impl PredictedFundings {
 pub struct PredictedFunding {
     /// Over the venue's own interval, never rescaled to an hour.
     pub funding_rate: Dec,
-    /// Unix milliseconds.
+    /// Unix milliseconds, as the venue sends it. Binance's and Bybit's is their next settlement;
+    /// Hyperliquid's own ([`HL_PERP`]) is the start of the current hour, the settlement already
+    /// made, so take [`next_funding`] for when its next one is due.
     pub next_funding_time: u64,
     /// Left out by some venues on some perps.
     #[serde(default)]

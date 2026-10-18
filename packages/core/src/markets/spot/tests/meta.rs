@@ -1,5 +1,6 @@
 //! `spotMeta` and `spotMetaAndAssetCtxs` as the venue answered them on mainnet, and what an order
-//! on a pair names from them. Reads through a client are in `tests/mocked/markets`.
+//! on a pair names from them; `spot/spot_meta_mainnet.json` (2026-10-18) for a deployer's label.
+//! Reads through a client are in `tests/mocked/markets`.
 
 use crate::client::MAINNET_USDC as USDC;
 use crate::trade::{Order, PlaceOrder, Side, Tif};
@@ -42,6 +43,15 @@ fn a_token_is_found_by_its_index_name_id_or_wire_name() {
     assert_eq!((usdc.index, usdc.wire()), (0, USDC.wire.to_owned()), "agrees with the USDC constant");
     assert_eq!(usdc.evm_contract.as_ref().map(|evm| evm.extra_wei_decimals), Some(-2));
     assert_eq!(meta.token(197).and_then(|ubtc| ubtc.full_name.as_deref()), Some("Unit Bitcoin"));
+}
+
+#[test]
+fn a_token_reads_the_label_its_deployer_gave_it() {
+    let text = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/spot_meta_mainnet.json"));
+    let meta: SpotMeta = serde_json::from_str(text).unwrap();
+    let labelled: Vec<(&str, &str)> =
+        meta.tokens.iter().filter_map(|token| Some((token.name.as_str(), token.deployer_label.as_deref()?))).collect();
+    assert_eq!(labelled, [("RAT", "rrc")]);
 }
 
 #[test]

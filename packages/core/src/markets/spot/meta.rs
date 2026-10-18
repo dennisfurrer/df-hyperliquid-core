@@ -57,6 +57,9 @@ pub struct SpotToken {
     /// The deployer's share of the fees its pairs make, 0 to 1.
     #[serde(default)]
     pub deployer_trading_fee_share: Option<Dec>,
+    /// A short label its deployer set, on the few tokens that carry one (RAT's is `rrc`).
+    #[serde(default)]
+    pub deployer_label: Option<String>,
 }
 
 impl SpotToken {
