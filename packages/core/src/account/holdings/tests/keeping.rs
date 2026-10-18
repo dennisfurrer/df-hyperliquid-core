@@ -1,3 +1,5 @@
+//! How each mode keeps an account's balances, and which modes pool them in spot.
+
 use super::*;
 
 /// The modes `userAbstraction` answers, and none read: only unified and portfolio margin pool, and

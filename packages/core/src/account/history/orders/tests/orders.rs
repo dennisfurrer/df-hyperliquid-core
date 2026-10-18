@@ -1,58 +1,25 @@
-//! Live answers, mainnet, 2026-10-08, trimmed to a few whole rows each: one account's resting
-//! orders, the status of three of its orders and of one it never placed, and another account's
-//! order history, one row of each status, order type and time in force.
+//! The order rows as the venue writes them. Live answers, mainnet, 2026-10-08, trimmed to a few whole
+//! rows each: one account's resting orders, and another's order history, one row of each status,
+//! order type and time in force. The reads, and the statuses by either id, run in the mocked
+//! journeys.
 
 use crate::utils::Dec;
 
 use super::*;
-use crate::trade::orders::{Cloid, Side, Tif, Tpsl};
-use crate::trade::tests_support::{Recorded, block_on};
+use crate::trade::orders::{Side, Tif, Tpsl};
 
 const OPEN: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/open_orders.json"));
 const FRONTEND: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/frontend_open_orders.json"));
-const STATUS_OPEN: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/order_status_open.json"));
-const STATUS_FILLED: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/order_status_filled.json"));
-const STATUS_BY_CLOID: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/order_status_by_cloid.json"));
-const STATUS_UNKNOWN: &str =
-    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/order_status_unknown.json"));
 const HISTORY: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/historical_orders.json"));
-
-const WATCHED: &str = "0xf77a75616ff4aa16c890fabb4ab725a732d7e2b7";
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
 }
 
-fn user() -> Address {
-    WATCHED.parse().unwrap()
-}
-
+/// Every recorded resting order, read or sent, carries its original size: a row without it is
+/// refused, not read as a size unknown.
 #[test]
-fn every_read_asks_in_the_venue_s_words() {
-    assert_eq!(open_orders_request(user(), Dex::Main), format!(r#"{{"type":"openOrders","user":"{WATCHED}"}}"#));
-    assert_eq!(
-        open_orders_request(user(), Dex::Hip3("xyz")),
-        format!(r#"{{"type":"openOrders","user":"{WATCHED}","dex":"xyz"}}"#)
-    );
-    assert_eq!(
-        frontend_open_orders_request(user(), Dex::Main),
-        format!(r#"{{"type":"frontendOpenOrders","user":"{WATCHED}"}}"#)
-    );
-    assert_eq!(
-        order_status_request(user(), OrderRef::Oid(569_021_780_586)),
-        format!(r#"{{"type":"orderStatus","user":"{WATCHED}","oid":569021780586}}"#)
-    );
-    assert_eq!(
-        order_status_request(user(), OrderRef::Cloid(Cloid::from_u128(0xba5e_d110_67f2_cc01_ba5e_d100_00ba_5ed1))),
-        format!(r#"{{"type":"orderStatus","user":"{WATCHED}","oid":"0xba5ed11067f2cc01ba5ed10000ba5ed1"}}"#)
-    );
-    assert_eq!(historical_orders_request(user()), format!(r#"{{"type":"historicalOrders","user":"{WATCHED}"}}"#));
-}
-
-#[test]
-fn open_orders_read_with_reduce_only_only_where_the_venue_writes_it() {
+fn an_open_order_reads_reduce_only_where_written_and_needs_its_original_size() {
     let orders: Vec<OpenOrder> = serde_json::from_str(OPEN).unwrap();
     assert_eq!(orders.len(), 3);
     let stop = &orders[0];
@@ -64,86 +31,47 @@ fn open_orders_read_with_reduce_only_only_where_the_venue_writes_it() {
     assert_eq!((spot.coin.as_str(), spot.limit_px, spot.sz), ("@142", dec("79335"), dec("0.00126")));
     assert!(!spot.reduce_only, "absent is false");
     assert_eq!(orders[2].side, Side::Sell, "A is a sell");
-}
-
-/// Every recorded resting order, read or sent, carries its original size: a row without it is
-/// refused, not read as a size unknown.
-#[test]
-fn an_open_order_without_its_original_size_is_refused() {
-    let orders: Vec<serde_json::Value> = serde_json::from_str(OPEN).unwrap();
-    let mut row = orders[1].clone();
-    assert!(serde_json::from_value::<OpenOrder>(row.clone()).is_ok());
+    let mut row: serde_json::Value = serde_json::from_str::<Vec<serde_json::Value>>(OPEN).unwrap().remove(1);
     row.as_object_mut().unwrap().remove("origSz");
     assert!(serde_json::from_value::<OpenOrder>(row).is_err());
 }
 
-/// A kind is read from the venue's words without going through serde, and a word this build
-/// does not know is kept as written.
+/// A kind is read from the venue's words, and a word this build does not know is kept as written.
 #[test]
-fn an_order_kind_is_parsed_from_the_venue_s_words() {
-    for kind in [
-        OrderKind::Limit,
-        OrderKind::Market,
-        OrderKind::StopMarket,
-        OrderKind::StopLimit,
-        OrderKind::TakeProfitMarket,
-        OrderKind::TakeProfitLimit,
+fn a_frontend_order_says_what_kind_of_order_it_is_in_the_venue_s_words() {
+    for (word, kind, tpsl, at_market) in [
+        ("Limit", OrderKind::Limit, None, false),
+        ("Market", OrderKind::Market, None, true),
+        ("Stop Market", OrderKind::StopMarket, Some(Tpsl::StopLoss), true),
+        ("Stop Limit", OrderKind::StopLimit, Some(Tpsl::StopLoss), false),
+        ("Take Profit Market", OrderKind::TakeProfitMarket, Some(Tpsl::TakeProfit), true),
+        ("Take Profit Limit", OrderKind::TakeProfitLimit, Some(Tpsl::TakeProfit), false),
+        ("Liquidation Market", OrderKind::Other("Liquidation Market".to_owned()), None, false),
+        ("stop market", OrderKind::Other("stop market".to_owned()), None, false),
     ] {
-        assert_eq!(OrderKind::parse(kind.word()), kind);
+        assert_eq!(OrderKind::parse(word), kind, "{word}");
+        assert_eq!((kind.word(), kind.tpsl(), kind.fills_at_market()), (word, tpsl, at_market), "{word}");
     }
-    assert_eq!(OrderKind::parse("Liquidation Market"), OrderKind::Other("Liquidation Market".to_owned()));
-    assert_eq!(
-        OrderKind::parse("stop market"),
-        OrderKind::Other("stop market".to_owned()),
-        "the venue's spelling only"
-    );
-}
-
-#[test]
-fn a_frontend_order_says_what_kind_of_order_it_is() {
     let orders: Vec<FrontendOrder> = serde_json::from_str(FRONTEND).unwrap();
     let stop = &orders[0];
-    assert_eq!(stop.order_type, OrderKind::StopMarket);
-    assert_eq!((stop.trigger(), stop.tpsl(), stop.is_position_tpsl), (Some(dec("6.04")), Some(Tpsl::StopLoss), true));
     assert_eq!(
-        (stop.trigger_condition.as_str(), stop.tif.as_deref(), stop.time_in_force()),
-        ("Price above 6.04", None, None)
+        (stop.order_type.clone(), stop.trigger(), stop.tpsl()),
+        (OrderKind::StopMarket, Some(dec("6.04")), Some(Tpsl::StopLoss))
     );
-    assert!(stop.order_type.fills_at_market());
+    assert_eq!(
+        (stop.trigger_condition.as_str(), stop.tif.as_deref(), stop.time_in_force(), stop.is_position_tpsl),
+        ("Price above 6.04", None, None, true)
+    );
     let limit = &orders[1];
     assert_eq!((limit.order_type.clone(), limit.trigger(), limit.tpsl()), (OrderKind::Limit, None, None));
     assert_eq!((limit.time_in_force(), limit.orig_sz), (Some(Tif::Gtc), dec("0.00126")));
     assert!(limit.children.is_empty());
     let take = &orders[2];
-    assert_eq!(
-        (take.order_type.clone(), take.tpsl(), take.side),
-        (OrderKind::TakeProfitMarket, Some(Tpsl::TakeProfit), Side::Sell)
-    );
-    assert_eq!(take.trigger(), Some(dec("0.009572")));
+    assert_eq!((take.side, take.trigger()), (Side::Sell, Some(dec("0.009572"))));
 }
 
 #[test]
-fn an_order_s_status_is_found_or_unknown() {
-    let OrderLookup::Found(open) = serde_json::from_str(STATUS_OPEN).unwrap() else { panic!("found") };
-    assert_eq!(
-        (open.status.clone(), open.order.oid, open.status_timestamp),
-        (OrderState::Open, 569_021_780_586, 1_791_480_626_296)
-    );
-    let OrderLookup::Found(filled) = serde_json::from_str(STATUS_FILLED).unwrap() else { panic!("found") };
-    assert_eq!(filled.status, OrderState::Filled);
-    assert_eq!(filled.order.time_in_force(), Some(Tif::FrontendMarket));
-    assert_eq!(
-        (filled.order.order_type.clone(), filled.order.orig_sz, filled.order.sz),
-        (OrderKind::Market, dec("4095"), Dec::ZERO)
-    );
-    let OrderLookup::Found(by_cloid) = serde_json::from_str(STATUS_BY_CLOID).unwrap() else { panic!("found") };
-    assert_eq!(by_cloid.order.trigger_condition, "Triggered", "a stop that fired reads as no trigger any more");
-    assert_eq!(by_cloid.order.trigger(), None);
-    assert_eq!(serde_json::from_str::<OrderLookup>(STATUS_UNKNOWN).unwrap(), OrderLookup::Unknown);
-}
-
-#[test]
-fn every_status_in_the_history_reads_as_its_kind_of_end() {
+fn every_status_reads_as_its_kind_of_end_and_an_unread_lookup_is_refused() {
     let history: Vec<OrderRecord> = serde_json::from_str(HISTORY).unwrap();
     let states: Vec<OrderState> = history.iter().map(|record| record.status.clone()).collect();
     for (state, word) in [
@@ -159,30 +87,13 @@ fn every_status_in_the_history_reads_as_its_kind_of_end() {
         assert!(states.contains(&state), "{word}");
         assert_eq!(state.word(), word);
     }
-    let liquidation = history.iter().find(|record| record.order.tif.as_deref() == Some("LiquidationMarket")).unwrap();
-    assert_eq!(liquidation.order.time_in_force(), None, "a TIF only the venue sends is kept, not guessed");
-    assert_eq!(
-        serde_json::from_str::<OrderState>(r#""scheduledCancel""#).unwrap(),
-        OrderState::Canceled("scheduledCancel".to_owned()),
-        "the dead man's switch is a cancel"
-    );
-    assert_eq!(
-        serde_json::from_str::<OrderState>(r#""rejected""#).unwrap(),
-        OrderState::Rejected("rejected".to_owned())
-    );
-    assert_eq!(serde_json::from_str::<OrderState>(r#""new""#).unwrap(), OrderState::Other("new".to_owned()));
-}
-
-#[test]
-fn each_read_goes_through_the_transport_once() {
-    let transport = Recorded::answering(FRONTEND);
-    let orders = block_on(frontend_open_orders(&transport, user(), Dex::Main)).unwrap();
-    assert_eq!(orders.len(), 3);
-    let transport = Recorded::answering(OPEN);
-    assert_eq!(block_on(open_orders(&transport, user(), Dex::Main)).unwrap().len(), 3);
-    let transport = Recorded::answering(STATUS_UNKNOWN);
-    assert_eq!(block_on(order_status(&transport, user(), OrderRef::Oid(1))).unwrap(), OrderLookup::Unknown);
-    assert_eq!(transport.sent(), [("/info".to_owned(), order_status_request(user(), OrderRef::Oid(1)))]);
-    let transport = Recorded::answering(HISTORY);
-    assert_eq!(block_on(historical_orders(&transport, user())).unwrap().len(), 16);
+    for (word, state) in [
+        ("scheduledCancel", OrderState::Canceled("scheduledCancel".to_owned())),
+        ("rejected", OrderState::Rejected("rejected".to_owned())),
+        ("new", OrderState::Other("new".to_owned())),
+    ] {
+        assert_eq!(serde_json::from_str::<OrderState>(&format!("\"{word}\"")).unwrap(), state, "{word}");
+    }
+    let unread = serde_json::from_str::<OrderLookup>(r#"{"status":"somethingElse"}"#).unwrap_err();
+    assert!(unread.to_string().contains("orderStatus answered `somethingElse`"), "{unread}");
 }

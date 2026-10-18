@@ -10,32 +10,34 @@ const NONCE: u64 = 1_790_412_105_001;
 const NOW: u64 = 1_791_480_940_000;
 const DAY: u64 = 86_400_000;
 
+/// An expiry lies ahead of now and at most 180 days ahead, and is written into the name, where the
+/// venue reads it back out.
 #[test]
-fn an_expiry_is_written_into_the_name_and_read_back_out_of_it() {
-    let name = AgentName::new("desk").unwrap();
-    let until = NOW + 30 * DAY;
-    let approve = ApproveAgent::expiring(address(AGENT), &name, until, NOW, NONCE).unwrap();
-    let wire = approve.wire(Network::Mainnet);
-    assert!(wire.contains(&format!(r#""agentName":"desk valid_until {until}","#)), "{wire}");
-    assert_eq!(approve.name(), Some(format!("desk valid_until {until}").as_str()));
-    assert_eq!(split_valid_until(&format!("desk valid_until {until}")), ("desk", Some(until)));
-    assert_eq!(split_valid_until("desk"), ("desk", None));
-    assert_eq!(split_valid_until("desk valid_until soon"), ("desk valid_until soon", None));
-}
-
-#[test]
-fn an_expiry_lies_ahead_and_within_a_hundred_and_eighty_days() {
+fn an_expiry_lies_ahead_within_a_hundred_and_eighty_days_and_is_written_into_the_name() {
     let name = AgentName::new("desk").unwrap();
     let agent = address(AGENT);
-    assert!(ApproveAgent::expiring(agent, &name, NOW + MAX_AGENT_VALIDITY_MS, NOW, NONCE).is_ok());
-    for until in [NOW, NOW - 1, NOW + MAX_AGENT_VALIDITY_MS + 1] {
-        assert_eq!(
-            ApproveAgent::expiring(agent, &name, until, NOW, NONCE),
-            Err(BadExpiry { until, now: NOW }),
-            "{until}"
-        );
+    for (until, taken) in [
+        (NOW + 30 * DAY, true),
+        (NOW + MAX_AGENT_VALIDITY_MS, true),
+        (NOW, false),
+        (NOW - 1, false),
+        (NOW + 180 * DAY + 1, false),
+    ] {
+        match ApproveAgent::expiring(agent, &name, until, NOW, NONCE) {
+            Ok(approve) => {
+                assert!(taken, "{until}");
+                let written = format!("desk valid_until {until}");
+                assert!(approve.wire(Network::Mainnet).contains(&format!(r#""agentName":"{written}","#)), "{until}");
+                assert_eq!(
+                    (approve.name(), split_valid_until(&written)),
+                    (Some(written.as_str()), ("desk", Some(until)))
+                );
+            }
+            Err(refused) => assert_eq!((refused, taken), (BadExpiry { until, now: NOW }, false), "{until}"),
+        }
     }
-    assert_eq!(MAX_AGENT_VALIDITY_MS, 180 * DAY);
+    assert_eq!(split_valid_until("desk"), ("desk", None));
+    assert_eq!(split_valid_until("desk valid_until soon"), ("desk valid_until soon", None));
 }
 
 #[test]
@@ -48,7 +50,7 @@ fn the_unnamed_agent_posts_a_null_name_and_signs_the_empty_one() {
         assert!(empty.wire(network).contains(r#""agentName":"","#), "{network}");
         assert_eq!(null.digest(network), empty.digest(network), "{network}: one approval, two spellings");
     }
-    assert_eq!((null.name(), empty.name()), (None, None));
+    assert_eq!((null.name(), empty.name(), null.agent()), (None, None, agent));
     assert_eq!(
         ApproveAgent::named(agent, &AgentName::new("desk").unwrap(), NONCE),
         ApproveAgent::new(agent, "desk", NONCE)

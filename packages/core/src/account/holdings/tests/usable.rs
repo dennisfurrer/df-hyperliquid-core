@@ -1,9 +1,11 @@
+//! What each mode lets an order draw on, from one account made by hand: USDC and USDT0 in spot, 10
+//! HYPE, and something on the main dex and on `xyz`. The live unified and standard accounts run in
+//! the mocked journeys.
+
 use crate::client::USDC_INDEX as USDC;
 
 use super::*;
-use crate::account::fixtures::{
-    PERP_STANDARD, PERP_STANDARD_XYZ, PERP_UNIFIED, PERP_UNIFIED_XYZ, SPOT_STANDARD, SPOT_UNIFIED, dec, read,
-};
+use crate::account::fixtures::{dec, read};
 use crate::account::holdings::perps::{ClearinghouseState, MarginSummary};
 use crate::account::holdings::spot::{SpotBalance, SpotState};
 use crate::account::holdings::standing::DexState;
@@ -32,28 +34,23 @@ fn dex(name: &str, withdrawable: &str) -> DexState {
     }
 }
 
-fn row(coin: &str, token: u32, total: &str, hold: &str, borrowed: &str) -> SpotBalance {
+fn row(coin: &str, token: u32, total: &str, hold: &str) -> SpotBalance {
     SpotBalance {
         coin: coin.to_owned(),
         token: Some(token),
         total: dec(total),
         hold: dec(hold),
-        borrowed: Some(dec(borrowed)).filter(|owed| !owed.is_zero()),
         ..SpotBalance::default()
     }
 }
 
-/// USDC and USDT in spot, 10 HYPE, and something on the main dex and on `xyz`.
-fn standing(mode: Abstraction) -> Standing {
+/// 500 USDC with 120 held, 80 USDT0, 10 HYPE; 100 on the main dex and 25 on `xyz`.
+fn standing(mode: Option<Abstraction>) -> Standing {
     Standing {
-        mode: Some(mode),
+        mode,
         dexes: vec![dex("", "100"), dex("xyz", "25")],
         spot: Some(SpotState {
-            balances: vec![
-                row("USDC", USDC, "500", "120", "0"),
-                row("USDT0", USDT, "80", "0", "0"),
-                row("HYPE", 150, "10", "0", "0"),
-            ],
+            balances: vec![row("USDC", USDC, "500", "120"), row("USDT0", USDT, "80", "0"), row("HYPE", 150, "10", "0")],
             ..SpotState::default()
         }),
         heard: None,
@@ -68,77 +65,82 @@ fn hype_at_40(coin: &str) -> Option<Dec> {
     }
 }
 
-fn usable(standing: &Standing, surface: Surface<'_>) -> Usable {
-    standing.usable(surface, &collateral(), hype_at_40)
-}
-
 #[test]
-fn standard_draws_each_dex_on_its_own_and_spot_on_spot() {
-    let standing = standing(Abstraction::Disabled);
-    let xyz = usable(&standing, Surface::Perps { dex: "xyz" });
-    assert_eq!((xyz.amount, xyz.token), (dec("25"), USDC));
-    assert_eq!(xyz.from, Source::Perps { dex: "xyz".to_owned() });
-    assert_eq!(usable(&standing, Surface::Perps { dex: "" }).amount, dec("100"));
-    let spot = usable(&standing, Surface::Spot { quote: USDC });
-    assert_eq!(spot.amount, dec("380"), "the hold is not free");
-    assert_eq!(spot.from, Source::Spot);
-    assert_eq!(usable(&standing, Surface::Outcomes), spot, "outcomes draw on spot USDC as spot does");
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDT }).amount, dec("80"), "a USDT pair on USDT");
-    assert_eq!(usable(&standing, Surface::Perps { dex: "cash" }).amount, Dec::ZERO, "a dex never read has nothing");
+fn each_mode_draws_each_market_on_the_balance_it_keeps_for_it() {
+    use Abstraction::{DexAbstraction, Disabled, UnifiedAccount};
+    let perps = |dex: &'static str| Surface::Perps { dex };
+    let own = |dex: &str| Source::Perps { dex: dex.to_owned() };
+    let spot = Surface::Spot { quote: USDC };
+    for (mode, surface, amount, token, from) in [
+        (Some(Disabled), perps(""), "100", USDC, own("")),
+        (Some(Disabled), perps("xyz"), "25", USDC, own("xyz")),
+        (Some(Disabled), spot, "380", USDC, Source::Spot),
+        (Some(Disabled), Surface::Outcomes, "380", USDC, Source::Spot),
+        (Some(Disabled), Surface::Spot { quote: USDT }, "80", USDT, Source::Spot),
+        (Some(Disabled), perps("cash"), "0", USDT, own("cash")),
+        (None, perps("xyz"), "25", USDC, own("xyz")),
+        (Some(UnifiedAccount), perps("xyz"), "380", USDC, Source::Unified),
+        (Some(UnifiedAccount), perps("cash"), "80", USDT, Source::Unified),
+        (Some(UnifiedAccount), spot, "380", USDC, Source::Unified),
+        (Some(UnifiedAccount), Surface::Outcomes, "380", USDC, Source::Unified),
+        (Some(DexAbstraction), perps("xyz"), "100", USDC, Source::NativePerps),
+        (Some(DexAbstraction), perps(""), "100", USDC, own("")),
+        (Some(DexAbstraction), perps("cash"), "0", USDT, own("cash")),
+        (Some(DexAbstraction), spot, "380", USDC, Source::Spot),
+    ] {
+        let standing = standing(mode.clone());
+        let usable = standing.usable(surface, &collateral(), hype_at_40);
+        let expected = Usable { amount: dec(amount), token, from, borrowable: Dec::ZERO };
+        assert_eq!(usable, expected, "{mode:?} on {surface:?}");
+    }
+    let mut unread = standing(None);
+    assert!(!unread.pools(), "a mode not read is standard");
+    if let Some(spot) = unread.spot.as_mut() {
+        spot.portfolio_margin_enabled = Some(true);
+    }
+    assert_eq!((unread.keeping(), unread.pools()), (Keeping::Portfolio, true), "unless spot says portfolio margin");
 }
 
+/// A change to the spot answer, made before a case is read.
+type Change = fn(&mut SpotState);
+
+/// 10 HYPE at 40 is 400, lent against at 0.65 unless the row says its own; 0.01 BTC at 80000 at
+/// 0.5. Less what is owed, held to what USDC has free after maintenance, and nothing once
+/// liquidatable. USDT0 borrows nothing.
 #[test]
-fn unified_draws_every_dex_on_the_spot_balance_of_its_collateral() {
-    let standing = standing(Abstraction::UnifiedAccount);
-    let xyz = usable(&standing, Surface::Perps { dex: "xyz" });
-    assert_eq!(xyz.amount, dec("380"), "USDC in spot, not xyz's own state");
-    assert_eq!((xyz.token, xyz.from), (USDC, Source::Unified));
-    let cash = usable(&standing, Surface::Perps { dex: "cash" });
-    assert_eq!((cash.amount, cash.token), (dec("80"), USDT), "cash is backed by USDT");
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDC }).amount, dec("380"), "and spot draws on the same");
-    assert_eq!(usable(&standing, Surface::Outcomes).amount, dec("380"));
+fn portfolio_margin_adds_what_it_would_lend_against_its_collateral() {
+    let usdc = Surface::Spot { quote: USDC };
+    let cases: [(Change, Surface<'_>, &str, &str); 6] = [
+        (|_| {}, Surface::Perps { dex: "" }, "640", "260"),
+        (|spot| spot.balances[0].borrowed = Some(dec("60")), usdc, "580", "200"),
+        (|_| {}, Surface::Perps { dex: "cash" }, "80", "0"),
+        (|spot| spot.balances.push(row("UBTC", 197, "0.01", "0")), usdc, "1040", "660"),
+        (
+            |spot| {
+                spot.balances[2].ltv = Some(dec("0.5"));
+                spot.token_to_available_after_maintenance = vec![(USDC, dec("150")), (150, dec("10"))];
+            },
+            usdc,
+            "530",
+            "150",
+        ),
+        (|spot| spot.portfolio_margin_ratio = Some(dec("0.96")), usdc, "380", "0"),
+    ];
+    for (change, surface, amount, borrowable) in cases {
+        let mut standing = standing(Some(Abstraction::PortfolioMargin));
+        change(standing.spot.as_mut().unwrap());
+        let usable = standing.usable(surface, &collateral(), hype_at_40);
+        assert_eq!(
+            (usable.amount, usable.borrowable, usable.from),
+            (dec(amount), dec(borrowable), Source::PortfolioMargin),
+            "{surface:?}: {amount}"
+        );
+    }
 }
 
-#[test]
-fn portfolio_margin_adds_what_it_would_lend_against_hype() {
-    let mut standing = standing(Abstraction::PortfolioMargin);
-    // 10 HYPE at 40 is 400, and 0.65 of that is 260.
-    let main = usable(&standing, Surface::Perps { dex: "" });
-    assert_eq!((main.amount, main.borrowable), (dec("640"), dec("260")));
-    assert_eq!(main.from, Source::PortfolioMargin);
-    if let Some(spot) = standing.spot.as_mut() {
-        spot.balances[0].borrowed = Some(dec("60"));
-    }
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDC }).amount, dec("580"), "less what is borrowed already");
-    assert_eq!(usable(&standing, Surface::Perps { dex: "cash" }).amount, dec("80"), "USDT borrows nothing here");
-    if let Some(spot) = standing.spot.as_mut() {
-        spot.balances.push(row("UBTC", 197, "0.01", "0", "0"));
-        spot.balances[0].borrowed = None;
-    }
-    // 0.01 BTC at 80000 is 800, and half of that is 400, on top of 380 free
-    // USDC and 260 against HYPE.
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDC }).amount, dec("1040"));
-}
-
-#[test]
-fn portfolio_margin_lends_at_each_row_s_own_ltv_up_to_what_maintenance_leaves() {
-    let mut standing = standing(Abstraction::PortfolioMargin);
-    if let Some(spot) = standing.spot.as_mut() {
-        spot.balances[2].ltv = Some(dec("0.5"));
-        spot.token_to_available_after_maintenance = vec![(USDC, dec("150")), (150, dec("10"))];
-    }
-    let main = usable(&standing, Surface::Perps { dex: "" });
-    assert_eq!(main.borrowable, dec("150"), "200 at the row's own 0.5, held to the 150 after maintenance");
-    if let Some(spot) = standing.spot.as_mut() {
-        spot.portfolio_margin_ratio = Some(dec("0.96"));
-    }
-    assert_eq!(usable(&standing, Surface::Perps { dex: "" }).amount, dec("380"), "liquidatable: nothing lent");
-}
-
-/// Portfolio margin, live 2026-10-06 (`tests.rs`): the venue's own room to
-/// trade, `total - hold` of USDC (0.55817531 + 268.81821068), is what HYPE
-/// lends at 0.65, less the 89.3303277 owed. HYPE/USDC traded between 91.375
-/// and 92.791 in the two hours around the read (`candleSnapshot` of `@107`).
+/// Portfolio margin, live 2026-10-06: the venue's own room to trade, `total - hold` of USDC
+/// (0.55817531 + 268.81821068), is what HYPE lends at 0.65, less the 89.3303277 owed. HYPE/USDC
+/// traded between 91.375 and 92.791 in the two hours around the read (`candleSnapshot` of `@107`).
 #[test]
 fn portfolio_margin_s_room_is_the_venue_s_own_negative_hold() {
     let spot: SpotState = read(
@@ -153,92 +155,4 @@ fn portfolio_margin_s_room_is_the_venue_s_own_negative_hold() {
     assert_eq!(high.amount, dec("274.3043503276405"));
     let venue = dec("0.55817531").checked_add(dec("268.81821068")).unwrap();
     assert!(low.amount <= venue && venue <= high.amount, "{venue} within {} and {}", low.amount, high.amount);
-}
-
-#[test]
-fn dex_abstraction_draws_a_usdc_dex_on_the_main_dex() {
-    let standing = standing(Abstraction::DexAbstraction);
-    let xyz = usable(&standing, Surface::Perps { dex: "xyz" });
-    assert_eq!(xyz.amount, dec("100"), "the main dex's USDC");
-    assert_eq!(xyz.from, Source::NativePerps);
-    assert_eq!(usable(&standing, Surface::Perps { dex: "" }).from, Source::Perps { dex: String::new() });
-    assert_eq!(usable(&standing, Surface::Perps { dex: "cash" }).amount, Dec::ZERO, "a USDT dex keeps its own");
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDC }).amount, dec("380"));
-}
-
-#[test]
-fn a_mode_not_read_is_standard_unless_spot_says_portfolio_margin() {
-    let mut standing = standing(Abstraction::Disabled);
-    standing.mode = None;
-    assert!(!standing.pools());
-    assert_eq!(usable(&standing, Surface::Perps { dex: "xyz" }).amount, dec("25"));
-    if let Some(spot) = standing.spot.as_mut() {
-        spot.portfolio_margin_enabled = Some(true);
-    }
-    assert!(standing.pools());
-    assert_eq!(standing.keeping(), Keeping::Portfolio);
-}
-
-fn recorded(spot: &str, main: &str, xyz: &str, mode: Abstraction) -> Standing {
-    Standing {
-        mode: Some(mode),
-        dexes: vec![
-            DexState { dex: String::new(), state: read(main) },
-            DexState { dex: "xyz".to_owned(), state: read(xyz) },
-        ],
-        spot: Some(read(spot)),
-        heard: None,
-    }
-}
-
-/// A live unified account: every dex draws on spot USDC less its hold, and
-/// the main dex's own `withdrawable` (7046.148664) is no balance of its own.
-#[test]
-fn a_live_unified_account_draws_everything_on_spot() {
-    let standing = recorded(SPOT_UNIFIED, PERP_UNIFIED, PERP_UNIFIED_XYZ, Abstraction::UnifiedAccount);
-    let free = dec("736222.0525745799");
-    for surface in
-        [Surface::Perps { dex: "" }, Surface::Perps { dex: "xyz" }, Surface::Spot { quote: USDC }, Surface::Outcomes]
-    {
-        assert_eq!(usable(&standing, surface).amount, free, "{surface:?}");
-    }
-    assert_eq!(usable(&standing, Surface::Perps { dex: "cash" }).amount, Dec::ZERO, "no USDT0 held");
-    let balances = standing.balances(&collateral());
-    assert_eq!(
-        balances,
-        [Balance { token: USDC, total: dec("1279260.79987858"), available: free, pays: Pays::Any }],
-        "one balance; the empty stablecoins and the HYPE beside it are none"
-    );
-}
-
-/// A live standard account: each ledger its own.
-#[test]
-fn a_live_standard_account_draws_each_ledger_on_its_own() {
-    let standing = recorded(SPOT_STANDARD, PERP_STANDARD, PERP_STANDARD_XYZ, Abstraction::Default);
-    assert_eq!(usable(&standing, Surface::Perps { dex: "" }).amount, dec("463.943191"));
-    assert_eq!(usable(&standing, Surface::Perps { dex: "xyz" }).amount, Dec::ZERO);
-    assert_eq!(usable(&standing, Surface::Spot { quote: USDC }).amount, dec("246.63995144"));
-    assert_eq!(usable(&standing, Surface::Outcomes).amount, dec("246.63995144"));
-    let balances = standing.balances(&collateral());
-    assert_eq!(
-        balances,
-        [
-            Balance {
-                token: USDC,
-                total: dec("463.943191"),
-                available: dec("463.943191"),
-                pays: Pays::Perps { dex: String::new() }
-            },
-            Balance {
-                token: USDC,
-                total: Dec::ZERO,
-                available: Dec::ZERO,
-                pays: Pays::Perps { dex: "xyz".to_owned() }
-            },
-            Balance { token: USDC, total: dec("246.63995144"), available: dec("246.63995144"), pays: Pays::Spot },
-        ]
-    );
-    let xyz = payer(&balances, Surface::Perps { dex: "xyz" }, &collateral());
-    assert_eq!(xyz.map(|balance| &balance.pays), Some(&Pays::Perps { dex: "xyz".to_owned() }));
-    assert_eq!(payer(&balances, Surface::Perps { dex: "flx" }, &collateral()), None, "USDH on flx: none read");
 }
