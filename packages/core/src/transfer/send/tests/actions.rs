@@ -6,13 +6,12 @@
 use std::{
     cell::RefCell,
     future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
 };
 
 use crate::account::{LocalKey, Signature, recover, verify};
 use crate::client::http::transport::exchange;
 use crate::client::{Transport, TransportError};
+use crate::test_support::block_on;
 use crate::utils::sign::digest_of_wallet_json;
 use crate::utils::{Dec, hex};
 use serde_json::Value;
@@ -223,16 +222,6 @@ impl Transport for Recorded {
         let answer = if path == "/exchange" { self.exchange } else { self.info };
         self.sent.borrow_mut().push((path.to_owned(), body));
         ready(Ok(answer.to_owned()))
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
     }
 }
 
