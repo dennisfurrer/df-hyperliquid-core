@@ -1,5 +1,5 @@
 {
-  "source": "What /exchange answers. `docs`: Hyperliquid's exchange endpoint page, each example response as written there (read 2026-10-08; its Python-style `{'status': 'ok', 'response': {'type': 'default'}}` written as JSON). `hip4-tui`: answers and statuses the venue sent hip4-tui, as its net/src/tests/exchange.rs recorded them (the refusal's address shortened there). `sdk`: the words @nktkas/hyperliquid 0.33.2's OrderResponse type lists, which no example shows.",
+  "source": "What /exchange answers. `docs`: Hyperliquid's exchange endpoint page, each example response as written there (read 2026-10-08; its Python-style `{'status': 'ok', 'response': {'type': 'default'}}` written as JSON). `hip4-tui`: answers and statuses the venue sent hip4-tui, as its net/src/tests/exchange.rs recorded them (the refusal's address shortened there). `sdk`: the words @nktkas/hyperliquid 0.33.2's OrderResponse type lists, which no example shows. `composed`: an answer built from those for an action no example shows, its source saying from what.",
   "answers": [
     {
       "name": "order_resting",
@@ -55,6 +55,31 @@
       "name": "refused_whole",
       "source": "hip4-tui: an order signed by a key the venue does not know",
       "answer": "{\"status\":\"err\",\"response\":\"User or API Wallet 0xf6b2 does not exist.\"}"
+    },
+    {
+      "name": "bracket_resting",
+      "source": "composed: order_resting's entry, and sdk's waitingForFill for its take profit and stop loss",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"resting\":{\"oid\":77738308}},\"waitingForFill\",\"waitingForFill\"]}}}"
+    },
+    {
+      "name": "trigger_waiting",
+      "source": "composed: sdk's waitingForTrigger, for one take profit or stop loss",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[\"waitingForTrigger\"]}}}"
+    },
+    {
+      "name": "scale_one_refused",
+      "source": "composed: order_resting twice, and a refusal the venue writes per order",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"resting\":{\"oid\":77738308}},{\"resting\":{\"oid\":77738309}},{\"error\":\"Insufficient margin to place order.\"}]}}}"
+    },
+    {
+      "name": "order_unknown",
+      "source": "composed: an order status no source lists",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"somethingNew\":{\"oid\":77738308}}]}}}"
+    },
+    {
+      "name": "outcome_filled",
+      "source": "composed: the filled_outcome status below, as an order answer",
+      "answer": "{\"status\":\"ok\",\"response\":{\"type\":\"order\",\"data\":{\"statuses\":[{\"filled\":{\"totalSz\":\"92.0\",\"avgPx\":\"0.27225\",\"oid\":543186691772}}]}}}"
     }
   ],
   "statuses": [

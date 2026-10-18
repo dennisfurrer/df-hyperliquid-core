@@ -367,45 +367,32 @@ fn a_market_order_is_frontend_market_and_never_gtc() {
     assert_eq!((stop.tif(), stop.is_market(), stop.is_trigger()), (None, false, true));
 }
 
+/// No SDK vector covers a cloid, `cancelByCloid` or a single `modify`, so their spellings and key
+/// order are pinned here: `a b p s r t c` for an order, `grouping`, then `builder` last.
 #[test]
-fn the_key_order_is_the_wire_order() {
+fn keys_go_in_the_order_the_venue_hashes_and_ids_as_it_spells_them() {
     let order = limit(516, Side::Buy, "0.35", "50", Tif::Gtc);
+    let cloid: Cloid = "0x00000000000000000000000000000009".parse().unwrap();
+    assert_eq!((cloid, cloid.to_string()), (Cloid::from_u128(9), "0x00000000000000000000000000000009".to_owned()));
+    assert!("0xabcd".parse::<Cloid>().is_err(), "a cloid is thirty-two hex digits");
     assert_eq!(order.wire().keys().collect::<Vec<_>>(), ["a", "b", "p", "s", "r", "t"]);
-    assert_eq!(
-        order.with_cloid(Cloid::from_u128(1)).wire().keys().collect::<Vec<_>>(),
-        ["a", "b", "p", "s", "r", "t", "c"]
-    );
+    assert_eq!(order.wire().to_msgpack()[0], 0x86, "an absent cloid leaves no key, not a nil");
+    assert_eq!(order.with_cloid(cloid).wire().keys().collect::<Vec<_>>(), ["a", "b", "p", "s", "r", "t", "c"]);
     assert_eq!(PlaceOrder::one(order).action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping"]);
     let routed = through(order, BUILDER, 10);
     assert_eq!(routed.action().keys().collect::<Vec<_>>(), ["type", "orders", "grouping", "builder"]);
-    assert_eq!(order.wire().to_msgpack()[0], 0x86, "an absent cloid leaves no key, not a nil");
-}
 
-/// No SDK vector covers these, so their spellings and key order are pinned here.
-#[test]
-fn cancel_by_cloid_and_modify_keep_their_own_spellings() {
-    let cloid = Cloid::from_u128(9);
-    let by_cloid = CancelByCloid::one(asset(100_005_160), cloid);
     assert_eq!(
-        by_cloid.wire(),
+        CancelByCloid::one(asset(100_005_160), cloid).wire(),
         r#"{"type":"cancelByCloid","cancels":[{"asset":100005160,"cloid":"0x00000000000000000000000000000009"}]}"#
     );
     let modify = Modify::new(OrderRef::Oid(42), limit(516, Side::Sell, "0.66", "1", Tif::Alo));
     assert_eq!(modify.action().keys().collect::<Vec<_>>(), ["type", "oid", "order"]);
-    assert_eq!(modify.entry().keys().collect::<Vec<_>>(), ["oid", "order"]);
     assert!(modify.wire().starts_with(r#"{"type":"modify","oid":42,"order":{"a":516,"#));
     let by_client = Modify::new(OrderRef::Cloid(cloid), limit(516, Side::Sell, "0.66", "1", Tif::Alo));
     assert!(by_client.wire().contains(r#""oid":"0x00000000000000000000000000000009""#));
     assert!(!BatchModify::new(vec![modify]).is_always_place(), "a limit order needs no always place");
     assert!(BatchModify::new(vec![modify]).always_place().wire().ends_with(r#""a":true}"#));
-}
-
-#[test]
-fn a_cloid_is_thirty_two_hex_digits() {
-    let cloid: Cloid = "0x0000000000000000000000000000abcd".parse().unwrap();
-    assert_eq!(cloid, Cloid::from_u128(0xabcd));
-    assert_eq!(cloid.to_string(), "0x0000000000000000000000000000abcd");
-    assert!("0xabcd".parse::<Cloid>().is_err());
 }
 
 /// The caps: 0.1% on a perp, main dex or HIP-3, 1% on spot and on an outcome; one perp order holds

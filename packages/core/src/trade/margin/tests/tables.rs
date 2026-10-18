@@ -18,7 +18,7 @@ fn btc() -> MarginTable {
 }
 
 #[test]
-fn a_table_reads_as_meta_lists_it() {
+fn a_notional_falls_in_the_highest_tier_it_reaches() {
     let table = btc();
     assert_eq!(table.description, "tiered 40x");
     assert_eq!(
@@ -28,16 +28,21 @@ fn a_table_reads_as_meta_lists_it() {
             MarginTier { lower_bound: million(150), max_leverage: 20 }
         ]
     );
-}
-
-#[test]
-fn a_notional_falls_in_the_highest_tier_it_reaches() {
-    let table = btc();
-    assert_eq!(table.max_leverage_at(Dec::ZERO), Some(40));
-    assert_eq!(table.max_leverage_at(million(150).checked_sub(Dec::ONE).unwrap()), Some(40));
-    assert_eq!(table.max_leverage_at(million(150)), Some(20), "a bound is its tier's lower");
-    assert_eq!(table.max_leverage_at(million(-200)), Some(20), "a short's notional counts as its size");
+    for (notional, most) in
+        [(Dec::ZERO, 40), (million(150).checked_sub(Dec::ONE).unwrap(), 40), (million(150), 20), (million(-200), 20)]
+    {
+        assert_eq!(
+            table.max_leverage_at(notional),
+            Some(most),
+            "{notional}: a bound is its tier's lower, a short counts its size"
+        );
+    }
     assert_eq!(MarginTable::flat(5).max_leverage_at(million(10_000)), Some(5));
+    assert_eq!(table.check("BTC", 40, million(1)), Ok(()));
+    assert_eq!(table.check("BTC", 20, million(200)), Ok(()));
+    let over = table.check("BTC", 25, million(-200)).unwrap_err();
+    assert_eq!(over, LeverageError::OverTier { name: "BTC".to_owned(), notional: million(200), max: 20, asked: 25 });
+    assert_eq!(over.to_string(), "BTC allows at most 20x at a notional of 200000000, not 25x");
 }
 
 #[test]
@@ -53,34 +58,21 @@ fn an_id_under_fifty_is_flat_and_one_past_it_is_listed() {
 #[test]
 fn leverage_is_held_to_what_the_perp_allows() {
     let asset = Asset::perp(0).unwrap();
-    let set = checked_leverage(asset, "BTC", 40, true, MarginMode::Cross, 40).unwrap();
-    assert_eq!((set.leverage(), set.mode()), (40, MarginMode::Cross));
-    assert_eq!(
-        checked_leverage(asset, "BTC", 40, true, MarginMode::Cross, 41),
-        Err(LeverageError::TooHigh { name: "BTC".to_owned(), max: 40, asked: 41 })
-    );
-    assert_eq!(
-        checked_leverage(asset, "HPOS", 3, false, MarginMode::Cross, 2),
-        Err(LeverageError::NoCross("HPOS".to_owned()))
-    );
-    assert!(checked_leverage(asset, "HPOS", 3, false, MarginMode::Isolated, 2).is_ok());
-    assert_eq!(
-        checked_leverage(asset, "BTC", 40, true, MarginMode::Isolated, 0),
-        Err(LeverageError::Trade(TradeError::NoLeverage))
-    );
-}
-
-#[test]
-fn leverage_is_held_to_the_tier_a_position_reaches() {
-    let table = btc();
-    assert_eq!(table.check("BTC", 40, million(1)), Ok(()));
-    assert_eq!(table.check("BTC", 20, million(200)), Ok(()));
-    assert_eq!(
-        table.check("BTC", 25, million(-200)),
-        Err(LeverageError::OverTier { name: "BTC".to_owned(), notional: million(200), max: 20, asked: 25 })
-    );
-    assert_eq!(
-        LeverageError::OverTier { name: "BTC".to_owned(), notional: million(200), max: 20, asked: 25 }.to_string(),
-        "BTC allows at most 20x at a notional of 200000000, not 25x"
-    );
+    for (name, max, cross, mode, asked, expected) in [
+        ("BTC", 40, true, MarginMode::Cross, 40, Ok((40, MarginMode::Cross))),
+        (
+            "BTC",
+            40,
+            true,
+            MarginMode::Cross,
+            41,
+            Err(LeverageError::TooHigh { name: "BTC".to_owned(), max: 40, asked: 41 }),
+        ),
+        ("HPOS", 3, false, MarginMode::Cross, 2, Err(LeverageError::NoCross("HPOS".to_owned()))),
+        ("HPOS", 3, false, MarginMode::Isolated, 2, Ok((2, MarginMode::Isolated))),
+        ("BTC", 40, true, MarginMode::Isolated, 0, Err(LeverageError::Trade(TradeError::NoLeverage))),
+    ] {
+        let set = checked_leverage(asset, name, max, cross, mode, asked);
+        assert_eq!(set.map(|set| (set.leverage(), set.mode())), expected, "{name} {asked}x");
+    }
 }
