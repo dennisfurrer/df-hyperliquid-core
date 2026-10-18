@@ -8,12 +8,10 @@ use std::{
 };
 
 use crate::account::Collateral;
-use crate::live::store::stamp::Stamped;
-use crate::markets::book::Book;
-use crate::markets::candle::{Candle, Interval};
+use crate::live::store::Stamped;
 use crate::markets::perps::PerpCtx;
 use crate::markets::spot::{SpotCtx, SpotMeta};
-use crate::markets::trades::Trade;
+use crate::markets::{Book, Candle, Interval, Trade};
 use crate::utils::Dec;
 
 /// Prints kept a market, newest first.
@@ -104,3 +102,7 @@ pub(crate) fn fold_prints(tape: &mut Vec<Trade>, prints: impl IntoIterator<Item 
     *tape = fresh;
     true
 }
+
+#[cfg(test)]
+#[path = "tests/market.rs"]
+mod tests;

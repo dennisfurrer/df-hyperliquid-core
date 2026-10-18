@@ -3,7 +3,7 @@
 //! types. Every price and size is an exact [`Dec`] read from the venue's string; a number written
 //! as a float is refused, never rounded.
 
-use crate::markets::book::Level;
+use crate::markets::Level;
 use crate::utils::Dec;
 use serde::Deserialize;
 
@@ -50,3 +50,7 @@ impl Mids {
         self.mids.get(coin)
     }
 }
+
+#[cfg(test)]
+#[path = "tests/market.rs"]
+mod tests;

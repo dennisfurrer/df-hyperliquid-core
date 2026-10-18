@@ -8,11 +8,8 @@ use std::{
     hash::Hash,
 };
 
-use crate::account::ClearinghouseState;
-use crate::account::FrontendOrder;
-use crate::account::Position;
 use crate::account::history::{Fill, LedgerUpdate};
-use crate::account::{Abstraction, DexState, SpotState, Standing};
+use crate::account::{Abstraction, ClearinghouseState, DexState, FrontendOrder, Position, SpotState, Standing};
 use crate::live::Funding;
 use crate::live::store::stamp::{Stamped, put};
 
@@ -282,3 +279,7 @@ pub(crate) struct Keep<'a> {
     pub(crate) fundings: bool,
     pub(crate) ledger: bool,
 }
+
+#[cfg(test)]
+#[path = "tests/account.rs"]
+mod tests;

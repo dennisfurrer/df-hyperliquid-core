@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::live::{Limits, Refused, Subscription};
-use crate::markets::candle::Interval;
+use crate::markets::Interval;
 use crate::utils::Address;
 
 /// What a reader needs kept live. A coin is spelled as the venue spells it: `BTC`, `xyz:XYZ100`
@@ -265,3 +265,7 @@ impl Interests {
         &self.users
     }
 }
+
+#[cfg(test)]
+#[path = "tests/interest.rs"]
+mod tests;

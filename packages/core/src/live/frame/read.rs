@@ -1,185 +1,14 @@
-//! Received frames (`{"channel":..,"data":..}`) read into a type per channel ([`decode`]): live's
-//! own frame types, or the [`crate::account`] and [`crate::markets`] types where the socket sends
-//! the shape `/info` answers. Numbers are exact decimals, never floats. An unknown channel is
-//! [`Frame::Other`], kept as written; a frame that does not read is a [`BadFrame`], never a panic.
+//! Reading one text frame ([`decode`]): its channel names the type its data reads into. A frame
+//! that does not read is a [`BadFrame`], naming the channel when it got that far.
 
 use std::{borrow::Cow, fmt};
 
-use crate::account::ActiveAssetData;
 use crate::client::ExchangeResponse;
-use crate::live::account::{
-    AllDexsState, DexState, HistoricalOrders, Ledger, OpenOrders, OrderUpdate, SpotState, TwapHistory, TwapSliceFills,
-    TwapStates, UserEvent, UserFills, UserFundings, WebData3,
-};
-use crate::live::market::{Bbo, Mids};
-use crate::live::subscription::{BadSubscription, Subscription};
-use crate::markets::book::Book;
-use crate::markets::candle::Candle;
+use crate::live::{Ack, Answer, Frame, Method, Refusal, Reply};
 use crate::markets::context::{PerpCtx, SpotCtx};
-use crate::markets::trades::Trade;
 use crate::utils::Json;
 use serde::Deserialize;
 use serde_json::value::RawValue;
-
-/// One frame, by channel.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Frame {
-    /// `pong`: the answer to a ping.
-    Pong,
-    /// `subscriptionResponse`: the venue took a subscribe or an unsubscribe.
-    Ack(Ack),
-    /// `error`: the venue refused something sent, in its own words.
-    Error(Refusal),
-    /// `post`: the answer to a post, by its id.
-    Post(Reply),
-    AllMids(Mids),
-    /// `l2Book`.
-    Book(Book),
-    Trades(Vec<Trade>),
-    Bbo(Bbo),
-    Candle(Candle),
-    /// `activeAssetCtx`: a perp's context.
-    AssetCtx {
-        coin: String,
-        ctx: PerpCtx,
-    },
-    /// `activeSpotAssetCtx`: what `activeAssetCtx` sends for a spot pair or an outcome side.
-    SpotAssetCtx {
-        coin: String,
-        ctx: SpotCtx,
-    },
-    /// `activeAssetData`.
-    AssetData(ActiveAssetData),
-    UserFills(UserFills),
-    OrderUpdates(Vec<OrderUpdate>),
-    /// `user`: what `userEvents` sends.
-    UserEvent(UserEvent),
-    UserFundings(UserFundings),
-    /// `userNonFundingLedgerUpdates`.
-    Ledger(Ledger),
-    ClearinghouseState(DexState),
-    AllDexsClearinghouseState(AllDexsState),
-    OpenOrders(OpenOrders),
-    SpotState(SpotState),
-    TwapStates(TwapStates),
-    /// `userTwapSliceFills`.
-    TwapSliceFills(TwapSliceFills),
-    /// `userTwapHistory`.
-    TwapHistory(TwapHistory),
-    Notification(String),
-    WebData3(WebData3),
-    /// Every perp dex's contexts, by dex name, the first `""`.
-    AllDexsAssetCtxs(Vec<(String, Vec<PerpCtx>)>),
-    AssetCtxs {
-        dex: String,
-        ctxs: Vec<PerpCtx>,
-    },
-    SpotAssetCtxs(Vec<SpotCtx>),
-    /// What changed in `outcomeMeta`, kept as sent: `[{"outcomeSettled":23205}]`. Its arrival
-    /// is the news; read `outcomeMeta` again for the whole.
-    OutcomeMetaUpdates(Json),
-    /// `fastAssetCtxs`: base64 of raw DEFLATE (RFC 1951) over JSON, kept as sent. Inflating it
-    /// needs a decompressor this crate does not carry.
-    FastAssetCtxs(String),
-    /// `userHistoricalOrders`.
-    HistoricalOrders(HistoricalOrders),
-    /// A channel this build does not read: its name, and its data as written (empty when the
-    /// frame has none).
-    Other {
-        channel: String,
-        data: String,
-    },
-}
-
-/// Which way a subscription went.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Method {
-    Subscribe,
-    Unsubscribe,
-}
-
-/// The venue's acknowledgement, echoing the subscription as it read it: keys reordered, left
-/// out options filled in, the user in lowercase.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Ack {
-    pub method: Method,
-    pub echo: Json,
-}
-
-impl Ack {
-    /// The subscription it names.
-    pub fn subscription(&self) -> Result<Subscription, BadSubscription> {
-        Subscription::parse(&self.echo)
-    }
-}
-
-/// The venue refusing something: `Already subscribed: {...}`, `Already unsubscribed: {...}`,
-/// `Error parsing JSON into valid websocket request: {...}` with what was sent.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Refusal {
-    pub message: String,
-}
-
-impl Refusal {
-    /// The post it refuses: from an `id=<n>` at the end of the message, or the `id` of a post
-    /// it quotes back.
-    #[must_use]
-    pub fn post_id(&self) -> Option<u64> {
-        if let Some((_, digits)) = self.message.rsplit_once("id=")
-            && !digits.is_empty()
-            && digits.bytes().all(|byte| byte.is_ascii_digit())
-        {
-            return digits.parse().ok();
-        }
-        let quoted = self.quoted()?;
-        match quoted.get("method").and_then(Json::as_str) {
-            Some("post") => quoted.get("id").and_then(Json::as_u64),
-            _ => None,
-        }
-    }
-
-    /// The subscription it refuses, when it quotes one this crate reads.
-    #[must_use]
-    pub fn subscription(&self) -> Option<Subscription> {
-        let quoted = self.quoted()?;
-        let subscription = match quoted.get("subscription") {
-            Some(inside) => inside,
-            None if ["Already subscribed", "Already unsubscribed", "Invalid subscription"]
-                .iter()
-                .any(|start| self.message.starts_with(start)) =>
-            {
-                &quoted
-            }
-            None => return None,
-        };
-        Subscription::parse(subscription).ok()
-    }
-
-    /// The JSON the message ends with, when it ends with some.
-    fn quoted(&self) -> Option<Json> {
-        let at = self.message.find('{')?;
-        Json::parse(self.message.get(at..)?).ok()
-    }
-}
-
-/// The answer to a post, by the id it was sent with.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Reply {
-    pub id: u64,
-    pub answer: Answer,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Answer {
-    /// What `/info` would have answered, as written (`null` for an unknown coin's book), for a
-    /// read's own type to deserialize.
-    Info { kind: String, data: String },
-    /// What `/exchange` would have answered.
-    Action(ExchangeResponse),
-    /// The post was not taken: what HTTP would have said.
-    Error(String),
-}
 
 /// A frame that did not read: the channel it named, when it got that far, and why.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -366,5 +195,5 @@ fn shown(text: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "tests/frame.rs"]
+#[path = "tests/read.rs"]
 mod tests;

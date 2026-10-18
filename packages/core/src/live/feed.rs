@@ -1,8 +1,7 @@
 //! What a socket feed hands back and why it refuses, the same for the native and the browser
 //! feed (`client::native::Feed`, `client::web::Feed`).
 
-use crate::live::frame::{BadFrame, Frame};
-use crate::live::session::{Refused, Retry};
+use crate::live::{BadFrame, Frame, Refused, Retry};
 
 /// What a feed hands back, in the order it happened.
 #[derive(Debug, Clone, PartialEq, Eq)]
