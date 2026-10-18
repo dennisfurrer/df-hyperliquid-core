@@ -2,7 +2,7 @@
 //! signed action over the socket instead of over HTTP. Each is one text frame, as
 //! `JSON.stringify` would write it, keys in the docs' order.
 
-use crate::live::subscription::Subscription;
+use crate::live::Subscription;
 use crate::utils::Json;
 use crate::utils::json::BadJson;
 

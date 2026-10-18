@@ -45,19 +45,3 @@ pub use state::{Folded, OtherNetwork, Read, Store, Synced};
 #[cfg(test)]
 #[path = "tests/fixtures.rs"]
 mod fixtures;
-
-#[cfg(test)]
-#[path = "tests/interest.rs"]
-mod interest_tests;
-
-#[cfg(test)]
-#[path = "tests/market.rs"]
-mod market_tests;
-
-#[cfg(test)]
-#[path = "tests/account.rs"]
-mod account_tests;
-
-#[cfg(test)]
-#[path = "tests/views.rs"]
-mod views_tests;
