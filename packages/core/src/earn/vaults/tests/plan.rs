@@ -1,5 +1,5 @@
-//! Plans against the recorded vaults in `details.json` and `equities.json`
-//! (2026-10-08).
+//! Plans against the recorded vaults in `details.json` and `equities.json` (2026-10-08): what each
+//! move changes, and what is refused before signing.
 
 use std::collections::BTreeMap;
 
@@ -31,16 +31,12 @@ fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
 }
 
+/// A vault's equity moves with its profit and loss too, so a read back shows the direction. A
+/// deposit is locked for the vault's lockup; a whole withdrawal is the equity cut to millionths, so
+/// it never asks for more. An agent may sign either for its master.
 #[test]
-fn an_agent_may_move_into_and_out_of_a_vault() {
-    assert_eq!(VaultTransfer::KEY, Signers::Either);
+fn each_move_names_its_vault_its_direction_and_when_a_deposit_is_free() {
     assert!(VaultTransfer::KEY.takes_agent());
-}
-
-/// A vault's equity moves with its profit and loss too, so a read back shows
-/// the direction; the deposit is locked for the vault's lockup.
-#[test]
-fn a_deposit_rises_the_equity_and_locks_for_the_vault_s_lockup() {
     let ctx = Ctx { network: Network::Testnet, nonce: NONCE, now_ms: NONCE };
     let punks = details("testnetHyperpunks");
     let plan = ctx.deposit(&punks, dec("10")).unwrap();
@@ -49,46 +45,58 @@ fn a_deposit_rises_the_equity_and_locks_for_the_vault_s_lockup() {
     assert!(plan.action.wire().contains(r#""isDeposit":true,"usd":10000000"#));
     let hlp = ctx.deposit(&details("testnetHlp"), dec("10")).unwrap();
     assert_eq!(hlp.free_at, Some(NONCE + 4 * DAY));
-    assert!(hlp.effect.landed(dec("1068.9"), dec("1078.95")));
-    assert!(!hlp.effect.landed(dec("1068.9"), dec("1068.9")));
+    assert!(hlp.effect.landed(dec("1068.9"), dec("1078.95")) && !hlp.effect.landed(dec("1068.9"), dec("1068.9")));
     let mainnet = Ctx { network: Network::Mainnet, nonce: NONCE, now_ms: NONCE };
     assert_eq!(mainnet.deposit(&details("mainnetGrowi"), dec("10")).unwrap().free_at, Some(NONCE + DAY));
-}
 
-#[test]
-fn a_vault_that_takes_no_deposits_is_refused_one() {
-    let ctx = Ctx { network: Network::Mainnet, nonce: NONCE, now_ms: NONCE };
-    let mut closed = details("mainnetGrowi");
-    closed.is_closed = true;
-    assert_eq!(ctx.deposit(&closed, dec("10")), Err(Refused::NoDeposits(closed.vault_address)));
-    let mut shut = details("mainnetGrowi");
-    shut.allow_deposits = false;
-    assert_eq!(ctx.deposit(&shut, dec("10")), Err(Refused::NoDeposits(shut.vault_address)));
-    assert_eq!(
-        ctx.deposit(&details("mainnetGrowi"), dec("1.0000001")),
-        Err(Refused::Units(BadUnits::TooFine { value: dec("1.0000001"), places: 6 }))
-    );
-}
-
-#[test]
-fn a_withdrawal_waits_for_the_lockup_and_takes_at_most_the_equity() {
     let equity = equity();
-    let until = 1_765_926_140_668;
-    let early = Ctx { network: Network::Testnet, nonce: NONCE, now_ms: until - 1 };
-    assert_eq!(early.withdraw(&equity, dec("1")), Err(Refused::Locked { until }));
-    assert_eq!(early.withdraw_all(&equity), Err(Refused::Locked { until }));
-    let ctx = Ctx { network: Network::Testnet, nonce: NONCE, now_ms: until };
+    let ctx = Ctx { now_ms: equity.locked_until_timestamp, ..ctx };
     let some = ctx.withdraw(&equity, dec("100")).unwrap();
     assert_eq!(some.effect, Effect { balance: Balance::Vault(TESTNET_HLP), change: Change::Falls(dec("100")) });
     assert_eq!((some.key, some.free_at), (Signers::Either, None));
-    assert_eq!(
-        ctx.withdraw(&equity, dec("1068.955111")),
-        Err(Refused::MoreThan { amount: dec("1068.955111"), held: dec("1068.95511") })
-    );
+    assert!(some.effect.landed(dec("1068.95511"), dec("968.95")));
     let all = ctx.withdraw_all(&equity).unwrap();
     assert_eq!(all.action.usd(), 1_068_955_110);
     assert!(
         all.action.wire().contains(r#""vaultAddress":"0xa15099a30bbf2e68942d6f4c43d70d04faeab0a0","isDeposit":false"#)
     );
     assert_eq!(all.effect.change, Change::Falls(dec("1068.95511")));
+    assert_eq!(VaultTransfer::withdraw(TESTNET_HLP, dec("604934.164661")).unwrap().usd(), 604_934_164_661);
+}
+
+/// A vault closed or shut to deposits, a withdrawal before the lockup or of more than the equity,
+/// and USDC finer than millionths (an equity uncut) or not above zero.
+#[test]
+fn what_a_vault_would_refuse_is_refused_before_signing() {
+    let ctx = Ctx { network: Network::Mainnet, nonce: NONCE, now_ms: NONCE };
+    let mut closed = details("mainnetGrowi");
+    closed.is_closed = true;
+    let mut shut = details("mainnetGrowi");
+    shut.allow_deposits = false;
+    let equity = equity();
+    let until = equity.locked_until_timestamp;
+    let early = Ctx { now_ms: until - 1, ..ctx };
+    let late = Ctx { now_ms: until, ..ctx };
+    let cases: Vec<(Result<(), Refused>, Refused)> = vec![
+        (ctx.deposit(&closed, dec("10")).map(drop), Refused::NoDeposits(closed.vault_address)),
+        (ctx.deposit(&shut, dec("10")).map(drop), Refused::NoDeposits(shut.vault_address)),
+        (early.withdraw(&equity, dec("1")).map(drop), Refused::Locked { until }),
+        (early.withdraw_all(&equity).map(drop), Refused::Locked { until }),
+        (
+            late.withdraw(&equity, dec("1068.955111")).map(drop),
+            Refused::MoreThan { amount: dec("1068.955111"), held: dec("1068.95511") },
+        ),
+        (
+            ctx.deposit(&details("mainnetGrowi"), dec("1.0000001")).map(drop),
+            Refused::Units(BadUnits::TooFine { value: dec("1.0000001"), places: 6 }),
+        ),
+        (
+            late.withdraw(&equity, dec("1068.9551109999")).map(drop),
+            Refused::Units(BadUnits::TooFine { value: dec("1068.9551109999"), places: 6 }),
+        ),
+        (ctx.deposit(&details("mainnetGrowi"), Dec::ZERO).map(drop), Refused::Units(BadUnits::NotPositive(Dec::ZERO))),
+    ];
+    for (planned, refused) in cases {
+        assert_eq!(planned, Err(refused));
+    }
 }

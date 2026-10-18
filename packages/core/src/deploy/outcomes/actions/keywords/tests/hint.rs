@@ -3,25 +3,16 @@
 use super::*;
 use crate::deploy::outcomes::actions::support::NOW_MS;
 
+/// Each hint by the name `outcomeTemplates` gives it; one this build does not know is kept by its
+/// name and checked as free text, which still keeps the rules every value keeps.
 #[test]
-fn a_hint_is_read_by_its_name_and_an_unknown_one_is_kept() {
+fn each_hint_is_read_by_its_name_and_refuses_what_the_venue_refuses_in_words() {
     for name in ["dateTime", "date", "shortString", "hlPerp", "uInt", "uDecimal", "string"] {
         let hint = Hint::parse(name);
         assert!(!matches!(hint, Hint::Other(_)), "{name} is known");
         assert_eq!(hint.to_string(), name);
     }
-    let unknown = Hint::parse("uPercent");
-    assert_eq!(unknown, Hint::Other("uPercent".to_owned()));
-    assert_eq!(unknown.check("share", "anything, 0.5% or -3"), Ok(()), "checked as free text");
-    assert_eq!(
-        unknown.check("share", "a|b").map_err(|bad| bad.to_string()),
-        Err("share cannot hold {, } or |".to_owned()),
-        "and free text still keeps the rules every value keeps"
-    );
-}
-
-#[test]
-fn each_hint_refuses_what_the_venue_refuses_in_words() {
+    assert_eq!(Hint::parse("uPercent"), Hint::Other("uPercent".to_owned()));
     let date_time = "takes YYYYMMDD-HHMM in UTC";
     let date = "takes YYYYMMDD in UTC";
     let uint = "takes a whole number with no sign or leading zeros";
@@ -87,6 +78,8 @@ fn each_hint_refuses_what_the_venue_refuses_in_words() {
         (Hint::String, "priceDescription", "a {b}", Some("cannot hold {, } or |")),
         (Hint::String, "priceDescription", "", Some("needs a value")),
         (Hint::String, "priceDescription", too_long.as_str(), Some("takes at most 100 characters")),
+        (Hint::parse("uPercent"), "share", "anything, 0.5% or -3", None),
+        (Hint::parse("uPercent"), "share", "a|b", Some("cannot hold {, } or |")),
     ];
     for (hint, keyword, value, expected) in cases {
         let got = hint.check(keyword, value).map_err(|bad| bad.to_string());

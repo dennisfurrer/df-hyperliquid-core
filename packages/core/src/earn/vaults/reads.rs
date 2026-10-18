@@ -194,9 +194,5 @@ pub struct LeadingVault {
 }
 
 #[cfg(test)]
-#[path = "tests/vault.rs"]
-mod tests;
-
-#[cfg(test)]
 #[path = "tests/details.rs"]
-mod recorded;
+mod tests;

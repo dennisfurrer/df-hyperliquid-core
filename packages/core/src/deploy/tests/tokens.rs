@@ -1,8 +1,7 @@
 //! Live mainnet answers, 2026-10-08: `spotDeployState` for HLP Strategy A (nothing being deployed)
-//! and `spotPairDeployAuctionStatus`.
+//! and `spotPairDeployAuctionStatus`. The reads through a client are in `tests/mocked/deploy.rs`.
 
 use super::*;
-use crate::trade::tests_support::{Recorded, block_on};
 
 const DEPLOY_STATE: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/spot/spot_deploy_state_mainnet.json"));
@@ -28,20 +27,4 @@ fn the_deploy_auctions_read_their_gas_and_their_hours() {
     let pair: GasAuction = serde_json::from_str(PAIR_AUCTION).unwrap();
     assert_eq!(pair.duration_seconds, 31 * 3600);
     assert_eq!(pair.current_gas, Some(dec("500")));
-}
-
-#[test]
-fn the_deploy_reads_name_their_type() {
-    let user: Address = "0x010461c14e146ac35fe42271bdc1134ee31c703a".parse().unwrap();
-    assert_eq!(
-        spot_deploy_state_request(user),
-        r#"{"type":"spotDeployState","user":"0x010461c14e146ac35fe42271bdc1134ee31c703a"}"#
-    );
-    assert_eq!(spot_pair_deploy_auction_request(), r#"{"type":"spotPairDeployAuctionStatus"}"#);
-    let state = Recorded::answering(DEPLOY_STATE);
-    assert!(block_on(spot_deploy_state(&state, user)).unwrap().states.is_empty());
-    assert_eq!(state.sent(), [("/info".to_owned(), spot_deploy_state_request(user))]);
-    let auction = Recorded::answering(PAIR_AUCTION);
-    assert_eq!(block_on(spot_pair_deploy_auction(&auction)).unwrap().start_gas, dec("500"));
-    assert_eq!(auction.sent(), [("/info".to_owned(), spot_pair_deploy_auction_request())]);
 }

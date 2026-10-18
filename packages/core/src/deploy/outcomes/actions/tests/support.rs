@@ -1,8 +1,9 @@
 //! What the outcome action tests share: values typed the way a caller types them, `outcomeMeta`
-//! listings for a settlement to copy, and the actions of the Python SDK's script.
+//! listings for a settlement to copy, and the actions of the Python SDK's script, whose hashes
+//! `tests/conformance/hip4.rs` holds.
 
 use crate::deploy::outcomes::actions::{
-    ActivateOutcomeDeployer, FeeScale, Fraction, Grant, Instance, Keywords, OutcomeDeploy, Permission, Venue,
+    FeeScale, Fraction, Grant, Instance, Keywords, OutcomeDeploy, Permission, Venue,
 };
 use crate::markets::outcomes::meta::{Outcome, OutcomeMeta, Question, SideSpec};
 use crate::utils::Address;
@@ -132,8 +133,4 @@ fn chickens() -> OutcomeMeta {
 
 pub fn python_settle_question() -> OutcomeDeploy {
     OutcomeDeploy::settle_question(venue("zzz"), &chickens(), 182, 7004).unwrap()
-}
-
-pub fn python_activate() -> ActivateOutcomeDeployer {
-    ActivateOutcomeDeployer::Activate(venue("zzz"))
 }

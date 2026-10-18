@@ -30,16 +30,11 @@ fn portfolio() -> UserState {
     serde_json::from_value(all["borrowLendUserState"].clone()).unwrap()
 }
 
-#[test]
-fn an_agent_may_lend_and_borrow() {
-    assert_eq!(BorrowLend::KEY, Signers::Either);
-    assert!(BorrowLend::KEY.takes_agent());
-}
-
-/// A position's value moves with interest too, so a read back shows which
-/// way it went, or that it emptied.
+/// A position's value moves with interest too, so a read back shows which way it went, or that it
+/// emptied. An agent may sign any of them for its master.
 #[test]
 fn each_operation_is_read_back_on_its_own_position() {
+    assert!(BorrowLend::KEY.takes_agent());
     let ctx = Ctx { network: Network::Testnet, nonce: NONCE };
     let testnet = reserves(Network::Testnet);
     let supply = ctx.supply(1105, dec("2"), &testnet).unwrap();

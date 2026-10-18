@@ -8,23 +8,16 @@
 //!   withdrawals through the queue.
 //!
 //! The figures each test expects were worked out from the recorded rows by
-//! hand, not by this code.
+//! hand, not by this code. The four reads through a client are in `tests/mocked/earn.rs`.
 
-use std::{
-    future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
-};
-
-use crate::client::{Network, TransportError};
-use crate::utils::{Address, Dec};
+use crate::client::Network;
+use crate::utils::Dec;
 use serde::Deserialize;
-use serde_json::Value;
 
 use super::*;
 use crate::earn::staking::reads::{
     Delegation, DelegatorSummary, MAINNET_DELEGATION_LOCK_MS, MAINNET_UNSTAKING_MS, Reward, StakeDelta, StakeEvent,
-    TESTNET_DELEGATION_LOCK_MS, TESTNET_UNSTAKING_MS, ValidatorSummary, delegation_lock_ms, locked_until, unstaking_ms,
+    TESTNET_DELEGATION_LOCK_MS, TESTNET_UNSTAKING_MS, delegation_lock_ms, locked_until, unstaking_ms,
 };
 
 const MAINNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/stake/mainnet.json"));
@@ -34,8 +27,6 @@ const DAY: u64 = 86_400_000;
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Recorded {
-    #[serde(default)]
-    validator_summaries: Vec<ValidatorSummary>,
     delegator_summary: DelegatorSummary,
     delegations: Vec<Delegation>,
     delegator_rewards: Vec<Reward>,
@@ -52,10 +43,6 @@ fn recorded(network: Network) -> Recorded {
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
-}
-
-fn address(text: &str) -> Address {
-    text.parse().unwrap()
 }
 
 /// When each initiated withdrawal in the history was finalized: the next
@@ -75,29 +62,21 @@ fn queued(history: &[StakeEvent]) -> Vec<(u64, u64)> {
         .collect()
 }
 
-/// Seven days on mainnet; five minutes on testnet. Each recorded withdrawal
-/// was finalized within a second of its queue's end.
+/// Seven days in the unstaking queue and a day's delegation lock on mainnet; five minutes and two
+/// minutes on testnet. Each recorded withdrawal was finalized within a second of its queue's end,
+/// and each live delegation's lock ends exactly that long after the last delegation to it.
 #[test]
-fn each_network_s_unstaking_queue_is_what_its_history_shows() {
+fn each_network_s_queue_and_lock_are_what_its_history_shows() {
     assert_eq!((MAINNET_UNSTAKING_MS, TESTNET_UNSTAKING_MS), (7 * DAY, 300_000));
+    assert_eq!((MAINNET_DELEGATION_LOCK_MS, TESTNET_DELEGATION_LOCK_MS), (DAY, 120_000));
     for network in Network::ALL {
-        let history = recorded(network).delegator_history;
-        let spans = queued(&history);
+        let recorded = recorded(network);
+        let spans = queued(&recorded.delegator_history);
         assert!(!spans.is_empty(), "{network}");
         for (initiated, finalized) in spans {
             let ready = initiated + unstaking_ms(network);
             assert!(ready <= finalized && finalized - ready < 1_000, "{network}: {initiated} to {finalized}");
         }
-    }
-}
-
-/// A day on mainnet; two minutes on testnet. Each live delegation's lock ends
-/// exactly that long after the last delegation to it in the history.
-#[test]
-fn each_network_s_delegation_lock_is_what_its_delegations_show() {
-    assert_eq!((MAINNET_DELEGATION_LOCK_MS, TESTNET_DELEGATION_LOCK_MS), (DAY, 120_000));
-    for network in Network::ALL {
-        let recorded = recorded(network);
         let mut checked = 0;
         for delegation in &recorded.delegations {
             let last = recorded.delegator_history.iter().find(|event| {
@@ -107,6 +86,7 @@ fn each_network_s_delegation_lock_is_what_its_delegations_show() {
             let Some(last) = last else { continue };
             assert_eq!(delegation.locked_until_timestamp, last.time + delegation_lock_ms(network), "{network}");
             assert_eq!(locked_until(network, last.time), delegation.locked_until_timestamp, "{network}");
+            assert!(delegation.is_locked(last.time) && !delegation.is_locked(delegation.locked_until_timestamp));
             checked += 1;
         }
         assert!(checked > 0, "{network}: a delegation and its row are on file");
@@ -182,50 +162,4 @@ fn a_whole_staking_reads_from_four_answers() {
     assert!(none.pending.is_empty(), "the summary counts none, so none is pending");
     let delegated = recorded.delegations.iter().try_fold(Dec::ZERO, |sum, one| sum.checked_add(one.amount));
     assert_eq!(delegated, Some(recorded.delegator_summary.delegated), "the delegations add up to the summary");
-}
-
-#[test]
-fn testnet_validators_read() {
-    let validators = recorded(Network::Testnet).validator_summaries;
-    assert_eq!(validators.len(), 2);
-    let hypurr = validators.iter().find(|one| one.name == "Hypurr2").unwrap();
-    assert_eq!(hypurr.validator, address("0x172054cfc01b32effe0bf6af7a15b36e1ad730b3"));
-    assert_eq!(hypurr.stake_hype(), Some(dec("3210070.54148517")));
-    assert_eq!(hypurr.stats("week").map(|week| week.predicted_apr), Some(dec("0.0329726982")));
-    assert!(hypurr.is_active && !hypurr.is_jailed);
-    let jailed = validators.iter().find(|one| one.name == "somebody").unwrap();
-    assert!(jailed.is_jailed && !jailed.is_active && jailed.commission == Dec::ONE);
-}
-
-/// Answers each read from the recorded file by its `type`.
-struct Recording(Value);
-
-impl Transport for Recording {
-    fn post(&self, _: &str, body: String) -> impl Future<Output = Result<String, TransportError>> {
-        let request: Value = serde_json::from_str(&body).unwrap();
-        let kind = request["type"].as_str().unwrap();
-        assert_eq!(request["user"], "0x0594f60525fc6a5d05bb711fb6450f84fef307bd");
-        ready(Ok(self.0[kind].to_string()))
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
-}
-
-#[test]
-fn the_four_reads_make_one_staking() {
-    let transport = Recording(serde_json::from_str(TESTNET).unwrap());
-    let user = address("0x0594f60525fc6a5d05bb711fb6450f84fef307bd");
-    let staking = block_on(staking(&transport, Network::Testnet, user, 1_788_411_600_015)).unwrap();
-    assert_eq!(staking.summary.delegated, dec("968879.07903711"));
-    assert_eq!(staking.delegations[0].amount, dec("968879.07903711"));
-    assert_eq!(staking.rewards, dec("2151.13385194"), "all six rows fall in the month");
-    assert!(staking.pending.is_empty());
 }

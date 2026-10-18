@@ -13,7 +13,3 @@ pub fn perp_deploy_auction_request() -> String {
 pub async fn perp_deploy_auction(transport: &impl Transport) -> Result<GasAuction, ApiError> {
     info(transport, perp_deploy_auction_request()).await
 }
-
-#[cfg(test)]
-#[path = "tests/dexes.rs"]
-mod tests;

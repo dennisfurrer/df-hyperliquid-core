@@ -1,19 +1,9 @@
-//! What each constructor refuses, and settlements checked against an `outcomeMeta` read.
+//! What each constructor refuses, and settlements checked against an `outcomeMeta` read. A whole
+//! venue run through a client is in `tests/mocked/deploy.rs`.
 
 use super::*;
 use crate::deploy::outcomes::actions::support::{instance, listing, row, venue};
 use crate::markets::outcomes::meta::{Question, SideSpec};
-
-#[test]
-fn a_settlement_copies_its_names_exactly_as_listed() {
-    let meta = listing(vec![row(7, "Chicken  ", " N/A \t", ["Yes ", " No"])]);
-    let action = OutcomeDeploy::settle_outcome(venue("ab"), &meta, 7, "0.25".parse().unwrap()).unwrap();
-    assert_eq!(
-        action.wire(),
-        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleOutcome":{"outcome":7,"settleFraction":"0.25","details":"","nameAndDescription":["Chicken  "," N/A \t"],"sideNames":["Yes "," No"]}}}"#,
-        "trailing spaces and all"
-    );
-}
 
 /// The venue `out` as live ones are: a standalone outcome, and question 350 of three named
 /// outcomes and a fallback, the first named one settled (still listed here, as a read taken
@@ -43,10 +33,18 @@ fn out() -> OutcomeMeta {
     }
 }
 
-/// Testnet, 2026-10-08: question 823's named outcomes were settled one at a time at 0 as each
-/// team went out, the question staying live.
+/// An outcome settles with its name, description and side names copied exactly as listed, trailing
+/// spaces and all; one no question holds settles to any fraction. Testnet, 2026-10-08: question
+/// 823's named outcomes were settled one at a time at 0 as each team went out, the question staying
+/// live; a question's fallback never settles alone.
 #[test]
-fn a_question_s_leg_settles_alone_only_at_0_or_1_and_never_its_fallback() {
+fn an_outcome_settles_alone_as_listed_and_a_question_s_leg_only_at_0_or_1() {
+    let listed = listing(vec![row(7, "Chicken  ", " N/A \t", ["Yes ", " No"])]);
+    let copied = OutcomeDeploy::settle_outcome(venue("ab"), &listed, 7, "0.25".parse().unwrap()).unwrap();
+    assert_eq!(
+        copied.wire(),
+        r#"{"type":"outcomeDeploy","venue":"ab","operation":{"settleOutcome":{"outcome":7,"settleFraction":"0.25","details":"","nameAndDescription":["Chicken  "," N/A \t"],"sideNames":["Yes "," No"]}}}"#
+    );
     let meta = out();
     let settle = |outcome, fraction: &str| {
         OutcomeDeploy::settle_outcome(venue("out"), &meta, outcome, fraction.parse().unwrap())

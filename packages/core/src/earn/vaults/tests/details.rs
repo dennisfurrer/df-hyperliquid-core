@@ -7,6 +7,9 @@
 //!   lockup is the vault's.
 //! - `userVaultEquities` of that testnet follower, and of another in two
 //!   vaults.
+//!
+//! The reads through a client are in `tests/mocked/earn.rs`; the `vaultTransfer` vectors in
+//! `tests/conformance/vault.rs`.
 
 use std::collections::BTreeMap;
 
@@ -14,7 +17,7 @@ use crate::client::Network;
 use crate::utils::{Address, Dec, Figure};
 
 use super::*;
-use crate::earn::vaults::transfer::{MAINNET_HLP, TESTNET_HLP, hlp, lockup_ms};
+use crate::earn::vaults::transfer::{HLP_LOCKUP_MS, MAINNET_HLP, MAINNET_VAULT_LOCKUP_MS, TESTNET_HLP, hlp, lockup_ms};
 
 const DETAILS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/vault/details.json"));
 const EQUITIES: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/vault/equities.json"));
@@ -59,10 +62,14 @@ fn each_network_s_lockups_are_what_its_followers_show() {
     assert_eq!(all["mainnetHlp"].vault_address, MAINNET_HLP);
     assert_eq!(all["testnetHlp"].vault_address, TESTNET_HLP);
     assert_eq!(lockup_ms(Network::Testnet, MAINNET_HLP), 20_000, "mainnet's HLP is no HLP on testnet");
+    assert_eq!((HLP_LOCKUP_MS, MAINNET_VAULT_LOCKUP_MS), (4 * DAY, DAY));
 }
 
+/// Whether it leads strategies (HLP), is one, or neither; the leader's own follower row, which
+/// names no address; and its floats as the venue wrote them, an exponent included, never through an
+/// f64.
 #[test]
-fn a_vault_says_whether_it_leads_strategies_or_is_one() {
+fn vault_details_read_their_relationship_their_leader_s_row_and_their_floats_as_written() {
     let all = details();
     let child = address("0x010461c14e146ac35fe42271bdc1134ee31c703a");
     match &all["mainnetHlp"].relationship {
@@ -72,23 +79,20 @@ fn a_vault_says_whether_it_leads_strategies_or_is_one() {
         }
         other => panic!("HLP is a parent, not {other:?}"),
     }
-    assert_eq!(all["mainnetHlpChild"].vault_address, child);
-    assert_eq!(all["mainnetHlpChild"].relationship, Relationship::Child);
-    assert_eq!(all["mainnetHlpChild"].leader, MAINNET_HLP, "a strategy is led by HLP");
+    let strategy = &all["mainnetHlpChild"];
+    assert_eq!((strategy.vault_address, strategy.leader), (child, MAINNET_HLP), "a strategy is led by HLP");
+    assert_eq!(strategy.relationship, Relationship::Child);
+    assert_eq!(strategy.followers.iter().map(|follower| follower.user).collect::<Vec<_>>(), [None]);
     assert_eq!(all["mainnetGrowi"].relationship, Relationship::Normal);
-    assert_eq!(all["testnetHyperpunks"].relationship, Relationship::Normal);
-}
+    assert!(all.values().all(VaultDetails::takes_deposits));
 
-/// Floats as the venue wrote them, an exponent included.
-#[test]
-fn every_float_keeps_its_digits() {
-    let all = details();
     let testnet = &all["testnetHlp"];
     assert_eq!(testnet.leader_fraction.as_ref().map(Figure::as_str), Some("6.644969985732533e-7"));
     assert_eq!(testnet.leader_fraction.as_ref().and_then(Figure::to_dec), Dec::new(664_496_998_573, 18));
-    let child = &all["mainnetHlpChild"];
-    assert_eq!(child.leader_fraction.as_ref().map(Figure::as_str), Some("1.0000000000003149"));
+    assert_eq!(strategy.leader_fraction.as_ref().map(Figure::as_str), Some("1.0000000000003149"));
+    assert_eq!(all["mainnetHlp"].apr.as_ref().and_then(Figure::to_dec), Some(dec("0.04165495390705244")));
     assert_eq!(all["mainnetGrowi"].leader_commission.as_ref().and_then(Figure::to_dec), Some(dec("0.1")));
+    assert_eq!(serde_json::from_str::<Option<VaultDetails>>("null").unwrap(), None, "no vault at that address");
 }
 
 /// What may leave now: the asking follower's `maxWithdrawable` once its
