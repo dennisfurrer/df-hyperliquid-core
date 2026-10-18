@@ -1,4 +1,5 @@
-//! Builder rules: a share of each market's cap in integer math, and the approval check.
+//! Builder rules: a share of each market's cap in integer math, a flat fee never lowered, and the
+//! approval an order needs before it goes.
 
 use crate::trade::builder::fee::BuilderFee;
 use crate::utils::{Address, Asset, AssetKind, Dec};
@@ -30,128 +31,103 @@ fn paying(asset: u32, fee: u64) -> PlaceOrder {
 }
 
 #[test]
-fn the_share_of_each_market_s_cap_is_integer_math() {
-    let fees: Vec<(AssetKind, u64)> =
-        AssetKind::ALL.into_iter().map(|kind| (kind, at_88().fee_on(kind).tenths())).collect();
-    assert_eq!(
-        fees,
-        [(AssetKind::Perp, 88), (AssetKind::Spot, 880), (AssetKind::Hip3Perp, 88), (AssetKind::Outcome, 880)]
-    );
-    for kind in AssetKind::ALL {
-        assert_eq!(at_88().on(kind).map(|builder| builder.fee()), Ok(at_88().fee_on(kind)), "{kind:?}");
+fn a_share_of_each_market_s_cap_is_cut_down_to_whole_tenths() {
+    let share = |percent: u64| BuilderSetting::share_of_cap(builder(), percent).unwrap();
+    for (percent, perp, spot) in [(88, 88, 880), (33, 33, 330), (1, 1, 10), (100, 100, 1000)] {
+        let fees = AssetKind::ALL.map(|kind| share(percent).fee_on(kind).tenths());
+        assert_eq!(fees, [perp, spot, perp, spot], "{percent}%: perp, spot, HIP-3, outcome");
+        for kind in AssetKind::ALL {
+            assert_eq!(share(percent).on(kind).map(|builder| builder.fee()), Ok(share(percent).fee_on(kind)));
+        }
+        assert_eq!(share(percent).most(), tenths(spot), "one approval covers the dearest market");
     }
-    let odd = BuilderSetting::share_of_cap(builder(), 33).unwrap();
-    assert_eq!((odd.fee_on(AssetKind::Perp), odd.fee_on(AssetKind::Spot)), (tenths(33), tenths(330)));
-    let third = BuilderSetting::share_of_cap(builder(), 1).unwrap();
-    assert_eq!(third.fee_on(AssetKind::Perp), tenths(1), "a share is cut down, never up");
     assert!(BuilderSetting::share_of_cap(builder(), 101).is_none(), "more than the whole cap is refused");
-    assert_eq!(BuilderSetting::share_of_cap(builder(), 100).unwrap().fee_on(AssetKind::Spot), tenths(1000));
 }
 
 #[test]
 fn a_flat_fee_over_a_market_s_cap_is_refused_and_never_lowered() {
-    let flat = BuilderSetting::flat(builder(), tenths(500));
-    assert_eq!(flat.on(AssetKind::Spot).map(|builder| builder.fee()), Ok(tenths(500)));
+    let flat = |fee: u64| BuilderSetting::flat(builder(), tenths(fee));
+    assert_eq!(flat(500).on(AssetKind::Spot).map(|builder| builder.fee()), Ok(tenths(500)));
     assert_eq!(
-        flat.on(AssetKind::Perp).unwrap_err().to_string(),
+        flat(500).on(AssetKind::Perp).unwrap_err().to_string(),
         "the builder fee of 500 is over the 100 a perp order allows (0.1%)"
     );
     let assets = [Asset::from_id(10_107), Asset::from_id(0)];
-    assert!(flat.on_assets(assets).is_err(), "one perp order holds the action to the perp cap");
-    assert_eq!(flat.on_assets([]), Ok(None), "no orders, no builder");
+    assert!(flat(500).on_assets(assets).is_err(), "one perp order holds the action to the perp cap");
+    assert_eq!(flat(500).on_assets([]), Ok(None), "no orders, no builder");
     assert_eq!(at_88().on_assets(assets).map(|builder| builder.map(|one| one.fee())), Ok(Some(tenths(88))));
+    for (fee, most) in [(50, 50), (500, 500), (1500, 0)] {
+        assert_eq!(flat(fee).most(), tenths(most), "{fee}: what goes on some market, or nothing");
+    }
 }
 
-/// What one approval has to cover: the most an order on any market pays it, 880 with each
-/// market's own fee.
+/// Only the main key signs `approveBuilderFee`, and what the account approved is never guessed.
 #[test]
-fn the_approval_covers_the_most_any_market_pays() {
-    assert_eq!(at_88().most(), tenths(880));
-    assert_eq!(BuilderSetting::flat(builder(), tenths(50)).most(), tenths(50));
-    assert_eq!(BuilderSetting::flat(builder(), tenths(500)).most(), tenths(500), "over the perp cap, still spot's");
-    assert_eq!(BuilderSetting::flat(builder(), tenths(1500)).most(), BuilderFee::ZERO, "over every cap: nothing goes");
-}
-
-#[test]
-fn an_order_over_what_the_account_approved_asks_for_an_approval_first() {
-    let setting = at_88();
-    let perp = paying(0, 88);
-    let spot = paying(10_107, 880);
-    assert_eq!(setting.approval(&perp, &Approved::Unread, Key::Main), Err(ApprovalRefused::NotRead));
-    assert_eq!(
-        setting.approval(&perp, &Approved::Upto(BuilderFee::ZERO), Key::Main),
-        Ok(Approval::ApproveFirst { approved: BuilderFee::ZERO, rate: tenths(880) })
-    );
-    assert_eq!(setting.approval(&perp, &Approved::Upto(tenths(88)), Key::Main), Ok(Approval::Goes), "88 covers a perp");
-    assert_eq!(
-        setting.approval(&spot, &Approved::Upto(tenths(88)), Key::Main),
-        Ok(Approval::ApproveFirst { approved: tenths(88), rate: tenths(880) }),
-        "and not spot"
-    );
-    assert_eq!(setting.approval(&spot, &Approved::Upto(tenths(880)), Key::Main), Ok(Approval::Goes));
-}
-
-#[test]
-fn the_approval_is_the_exact_approve_builder_fee() {
-    let first = at_88().approval(&paying(10_107, 880), &Approved::Upto(tenths(88)), Key::Main).unwrap();
-    assert_eq!(first.max_fee_rate().as_deref(), Some("0.88%"), "maxFeeRate as approveBuilderFee takes it");
-    assert_eq!(Approval::Goes.max_fee_rate(), None);
-}
-
-#[test]
-fn nothing_to_approve_needs_no_read() {
-    let setting = at_88();
+fn an_order_needs_an_approval_only_for_a_fee_above_what_the_account_approved() {
+    let failed = || Approved::Failed("timed out".to_owned());
     let unrouted = PlaceOrder::one(Order::limit(Asset::from_id(0), Side::Buy, Dec::ONE, Dec::ONE, Tif::Gtc));
-    let failed = Approved::Failed("timed out".to_owned());
-    assert_eq!(setting.approval(&unrouted, &failed, Key::Agent), Ok(Approval::Goes), "no builder");
-    assert_eq!(setting.approval(&paying(0, 0), &failed, Key::Agent), Ok(Approval::Goes), "a fee of 0");
+    let other =
+        unrouted.clone().through(Builder::new(address("0x1111111111111111111111111111111111111111"), tenths(10)));
+    let first = |approved: u64| Ok(Approval::ApproveFirst { approved: tenths(approved), rate: tenths(880) });
+    let cases: [(PlaceOrder, Approved, Key, Result<Approval, ApprovalRefused>); 11] = [
+        (unrouted, failed(), Key::Agent, Ok(Approval::Goes)),
+        (paying(0, 0), failed(), Key::Agent, Ok(Approval::Goes)),
+        (paying(0, 88), Approved::Unread, Key::Main, Err(ApprovalRefused::NotRead)),
+        (paying(0, 88), failed(), Key::Main, Err(ApprovalRefused::Unreadable("timed out".to_owned()))),
+        (paying(0, 88), Approved::Upto(BuilderFee::ZERO), Key::Main, first(0)),
+        (paying(0, 88), Approved::Upto(tenths(88)), Key::Agent, Ok(Approval::Goes)),
+        (paying(10_107, 880), Approved::Upto(tenths(88)), Key::Main, first(88)),
+        (
+            paying(10_107, 880),
+            Approved::Upto(tenths(88)),
+            Key::Agent,
+            Err(ApprovalRefused::AgentCannotApprove { approved: tenths(88), rate: tenths(880) }),
+        ),
+        (paying(10_107, 880), Approved::Upto(tenths(880)), Key::Agent, Ok(Approval::Goes)),
+        (
+            other,
+            Approved::Upto(tenths(880)),
+            Key::Main,
+            Err(ApprovalRefused::OtherBuilder {
+                named: address("0x1111111111111111111111111111111111111111"),
+                set: builder(),
+            }),
+        ),
+        (
+            paying(0, 1000),
+            Approved::Upto(tenths(100)),
+            Key::Main,
+            Ok(Approval::ApproveFirst { approved: tenths(100), rate: tenths(1000) }),
+        ),
+    ];
+    for (order, approved, key, expected) in cases {
+        assert_eq!(at_88().approval(&order, &approved, key), expected, "{order:?} {approved:?} {key:?}");
+    }
 }
 
 #[test]
-fn what_is_not_known_is_refused_rather_than_guessed() {
-    let setting = at_88();
-    let failed = Approved::Failed("https://api.hyperliquid.xyz timed out".to_owned());
-    assert_eq!(
-        setting.approval(&paying(0, 88), &failed, Key::Main).unwrap_err().to_string(),
-        "the builder fee this account has approved would not read, so it is not guessed at: https://api.hyperliquid.xyz timed out"
-    );
-    assert_eq!(
-        setting.approval(&paying(0, 88), &Approved::Unread, Key::Main).unwrap_err().to_string(),
-        "the builder fee this account has approved is not read yet; try again in a moment"
-    );
-}
-
-/// Only the main key signs `approveBuilderFee`; with an agent the order is refused, and the reason
-/// names what the main key must approve.
-#[test]
-fn an_agent_cannot_approve_so_the_order_is_refused() {
-    let refused = at_88().approval(&paying(10_107, 880), &Approved::Upto(tenths(88)), Key::Agent).unwrap_err();
-    assert_eq!(refused, ApprovalRefused::AgentCannotApprove { approved: tenths(88), rate: tenths(880) });
-    assert_eq!(
-        refused.to_string(),
-        "the account's main key has to approve the builder fee up to 0.88% once (approved now: 0.088%); an agent key cannot sign approveBuilderFee"
-    );
-    assert_eq!(
-        at_88().approval(&paying(0, 88), &Approved::Upto(tenths(88)), Key::Agent),
-        Ok(Approval::Goes),
-        "already approved: an agent sends it"
-    );
-}
-
-#[test]
-fn an_order_naming_another_builder_is_not_checked_against_this_one() {
-    let other = PlaceOrder::one(Order::limit(Asset::from_id(0), Side::Buy, Dec::ONE, Dec::ONE, Tif::Gtc))
-        .through(Builder::new(address("0x1111111111111111111111111111111111111111"), tenths(10)));
-    assert!(matches!(
-        at_88().approval(&other, &Approved::Upto(tenths(880)), Key::Main),
-        Err(ApprovalRefused::OtherBuilder { .. })
-    ));
-}
-
-#[test]
-fn a_fee_reads_in_words() {
-    assert_eq!(Approved::Unread.words(), "not read yet");
-    assert_eq!(Approved::Upto(BuilderFee::ZERO).words(), "nothing yet");
-    assert_eq!(Approved::Upto(tenths(88)).words(), "up to 0.088%");
-    assert_eq!(Approved::Failed("timed out".to_owned()).words(), "would not read: timed out");
+fn an_approval_and_each_refusal_read_in_words() {
+    let first = Approval::ApproveFirst { approved: tenths(88), rate: tenths(880) };
+    assert_eq!((first.max_fee_rate().as_deref(), Approval::Goes.max_fee_rate()), (Some("0.88%"), None));
+    for (refused, words) in [
+        (ApprovalRefused::NotRead, "the builder fee this account has approved is not read yet; try again in a moment"),
+        (
+            ApprovalRefused::Unreadable("https://api.hyperliquid.xyz timed out".to_owned()),
+            "the builder fee this account has approved would not read, so it is not guessed at: https://api.hyperliquid.xyz timed out",
+        ),
+        (
+            ApprovalRefused::AgentCannotApprove { approved: tenths(88), rate: tenths(880) },
+            "the account's main key has to approve the builder fee up to 0.88% once (approved now: 0.088%); an agent key cannot sign approveBuilderFee",
+        ),
+    ] {
+        assert_eq!(refused.to_string(), words);
+    }
+    for (approved, words) in [
+        (Approved::Unread, "not read yet"),
+        (Approved::Upto(BuilderFee::ZERO), "nothing yet"),
+        (Approved::Upto(tenths(88)), "up to 0.088%"),
+        (Approved::Failed("timed out".to_owned()), "would not read: timed out"),
+    ] {
+        assert_eq!(approved.words(), words);
+    }
 }

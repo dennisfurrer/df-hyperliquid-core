@@ -64,39 +64,6 @@ impl fmt::Display for BuilderFee {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_fee_in_tenths_of_a_basis_point_reads_as_a_percent_and_back() {
-        for (tenths, percent) in
-            [(880, "0.88%"), (88, "0.088%"), (100, "0.1%"), (1000, "1%"), (10, "0.01%"), (1, "0.001%"), (0, "0%")]
-        {
-            assert_eq!(BuilderFee::from_tenths(tenths).percent(), percent, "{tenths}");
-            assert_eq!(BuilderFee::from_percent(percent), Some(BuilderFee::from_tenths(tenths)), "{percent}");
-        }
-        assert_eq!(BuilderFee::from_percent("0.880%"), Some(BuilderFee::from_tenths(880)));
-        for unreadable in ["0.0001%", "-1%", "+1%", "0.88", "", "%", "abc%", "1e1%"] {
-            assert_eq!(BuilderFee::from_percent(unreadable), None, "{unreadable}");
-        }
-    }
-
-    #[test]
-    fn max_builder_fee_answers_a_bare_number_of_tenths() {
-        let fee: BuilderFee = serde_json::from_str("880").unwrap();
-        assert_eq!(fee, BuilderFee::from_tenths(880));
-        assert_eq!(serde_json::from_str::<BuilderFee>("0").unwrap(), BuilderFee::ZERO);
-        assert!(serde_json::from_str::<BuilderFee>("\"0.88%\"").is_err());
-    }
-
-    #[test]
-    fn the_caps_are_a_tenth_of_a_percent_on_perps_and_one_percent_elsewhere() {
-        assert_eq!((PERP_BUILDER_CAP.percent(), SPOT_BUILDER_CAP.percent()), ("0.1%".to_owned(), "1%".to_owned()));
-        assert_eq!(OUTCOME_BUILDER_CAP, SPOT_BUILDER_CAP);
-    }
-}
-
 /// Who routed the order and what it takes: `{b, f}`, the address lowercase,
 /// the fee in tenths of a basis point.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -137,3 +104,7 @@ pub struct OverCap {
     pub cap: BuilderFee,
     pub kind: AssetKind,
 }
+
+#[cfg(test)]
+#[path = "tests/fee.rs"]
+mod tests;
