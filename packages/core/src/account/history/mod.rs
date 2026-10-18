@@ -11,7 +11,7 @@ pub use fills::{
     VolumeTier, user_fees, user_fees_request, user_fills, user_fills_by_time, user_fills_by_time_request,
     user_fills_request, user_twap_slice_fills, user_twap_slice_fills_request,
 };
-pub use ledger::{Delta, LedgerUpdate, find, ledger, ledger_request};
+pub use ledger::{Delta, LedgerUpdate, LiquidatedPosition, find, ledger, ledger_request};
 pub use orders::{
     FrontendOrder, OpenOrder, OrderKind, OrderLookup, OrderRecord, OrderState, frontend_open_orders,
     frontend_open_orders_request, historical_orders, historical_orders_request, open_orders, open_orders_request,

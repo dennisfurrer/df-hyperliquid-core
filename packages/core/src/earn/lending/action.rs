@@ -1,11 +1,14 @@
 //! `borrowLend`: `{type, operation, token, amount}`, keys in that order.
 
+use serde::Deserialize;
+
 use crate::account::{ActionKind, Signers};
 use crate::utils::Dec;
 use crate::utils::sign::{L1Action, Map, Value};
 
-/// What a `borrowLend` does to a reserve.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// What a `borrowLend` does to a reserve, as the action and the ledger row spell it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Operation {
     Supply,
     Withdraw,

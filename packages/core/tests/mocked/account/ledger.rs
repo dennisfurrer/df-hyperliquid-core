@@ -1,7 +1,7 @@
 //! HLP's leader's ledger, read by window as mainnet answers it: the day he made HLP, his early
-//! liquidations, which this build keeps as written, and nothing since his last row.
+//! liquidations, and nothing since his last row.
 
-use df_hyperliquid_core::account::history::{Delta, LedgerUpdate, ledger};
+use df_hyperliquid_core::account::history::{Delta, LedgerUpdate, LiquidatedPosition, ledger};
 use df_hyperliquid_core::{Client, Dec, Network};
 
 use super::{LEADER, address, bodies, dec};
@@ -25,7 +25,7 @@ fn kinds(rows: &[LedgerUpdate]) -> Vec<&str> {
 }
 
 #[tokio::test]
-async fn the_ledger_is_read_window_by_window_and_a_row_it_does_not_model_is_kept_as_written() {
+async fn the_ledger_is_read_window_by_window_liquidations_and_all() {
     let window = |start: u64| ("startTime", start.to_string());
     let (made, liquidated, since) = (window(MADE.0), window(LIQUIDATED.0), window(SINCE));
     let venue = Venue::mainnet()
@@ -89,11 +89,14 @@ async fn the_ledger_is_read_window_by_window_and_a_row_it_does_not_model_is_kept
     assert_eq!((sent_in, deposited), (dec("37945"), dec("37992.216076")), "what three accounts sent in, into HLP");
 
     assert_eq!(kinds(&liquidated), ["liquidation", "deposit", "liquidation"]);
-    let Delta::Other { fields, .. } = &liquidated[0].delta else { panic!("{:?}", liquidated[0].delta) };
     assert_eq!(
-        fields.compact(),
-        r#"{"type":"liquidation","liquidatedNtlPos":"356.80015","accountValue":"2.956494","leverageType":"Cross","liquidatedPositions":[{"coin":"ATOM","szi":"29.21"}]}"#,
-        "every key and digit"
+        liquidated[0].delta,
+        Delta::Liquidation {
+            liquidated_ntl_pos: dec("356.80015"),
+            account_value: dec("2.956494"),
+            leverage_type: "Cross".to_owned(),
+            liquidated_positions: vec![LiquidatedPosition { coin: "ATOM".to_owned(), szi: dec("29.21") }],
+        }
     );
     assert!(since.is_empty());
 }

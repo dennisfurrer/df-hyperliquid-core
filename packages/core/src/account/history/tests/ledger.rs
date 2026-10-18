@@ -1,7 +1,8 @@
 //! Ledger rows as the venue writes them. `transfer/ledger.json` is one live mainnet row of every
 //! type seen on 2026-10-06, keyed by type; `transfer/ledger_more.json` one each of `rewardsClaim` (a
 //! builder's claim), `subAccountTransfer` and `vaultCreate` (its creation fee charged), read on
-//! 2026-10-08. The read runs in the mocked journeys.
+//! 2026-10-08; `account/ledger_lending_mainnet.json` a builder's `borrowLend` of every operation
+//! and HLP's leader's 2023 liquidation, read on 2026-10-18. The read runs in the mocked journeys.
 
 use std::collections::BTreeMap;
 
@@ -11,6 +12,8 @@ use super::*;
 
 const LIVE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/transfer/ledger.json"));
 const MORE: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/transfer/ledger_more.json"));
+const LENDING: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/account/ledger_lending_mainnet.json"));
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -97,6 +100,45 @@ fn every_live_row_type_reads_field_for_field() {
         assert!(row.hash.starts_with("0x") && row.hash.len() == 66, "{}", row.kind());
         assert!(row.time > 1_700_000_000_000, "{}", row.kind());
     }
+}
+
+/// Every lending operation reads with the interest it carried, and a liquidation with what it took
+/// over; neither is left unread.
+#[test]
+fn lending_and_liquidation_rows_read_field_for_field() {
+    use crate::earn::lending::Operation;
+
+    let rows: BTreeMap<String, LedgerUpdate> = serde_json::from_str(LENDING).unwrap();
+    let lent: Vec<(Operation, Dec, Dec)> = ["supply", "borrow", "withdraw", "repay"]
+        .iter()
+        .map(|name| match &rows[*name].delta {
+            Delta::BorrowLend { token, operation, amount, interest_amount } if token == "USDC" => {
+                (*operation, *amount, *interest_amount)
+            }
+            other => panic!("{name}: {other:?}"),
+        })
+        .collect();
+    assert_eq!(
+        lent,
+        [
+            (Operation::Supply, dec("1.2"), Dec::ZERO),
+            (Operation::Borrow, dec("1.14345399"), Dec::ZERO),
+            (Operation::Withdraw, dec("2.20100634"), dec("0.00100634")),
+            (Operation::Repay, dec("1.14404811"), dec("0.00059412")),
+        ]
+    );
+    let liquidation = &rows["liquidation"];
+    assert_eq!(liquidation.kind(), "liquidation");
+    assert_eq!(
+        liquidation.delta,
+        Delta::Liquidation {
+            liquidated_ntl_pos: dec("356.80015"),
+            account_value: dec("2.956494"),
+            leverage_type: "Cross".to_owned(),
+            liquidated_positions: vec![LiquidatedPosition { coin: "ATOM".to_owned(), szi: dec("29.21") }],
+        }
+    );
+    assert_eq!(rows.values().filter_map(|row| row.delta.nonce()).count(), 0);
 }
 
 /// A send's row carries the nonce it was signed with, so a read back finds the very action; rows

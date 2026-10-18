@@ -6,6 +6,7 @@ use serde::{Deserialize, Deserializer, de};
 use serde_json::value::RawValue;
 
 use crate::client::{ApiError, Transport, info, info_request};
+use crate::earn::lending::Operation;
 use crate::utils::{Address, Dec, Json};
 
 /// `{"type":"userNonFundingLedgerUpdates","user":..,"startTime":..,"endTime"?:..}`,
@@ -177,6 +178,24 @@ pub enum Delta {
         usdc: Dec,
         fee: Dec,
     },
+    /// A supply, withdrawal, borrow or repayment on a lending reserve: `amount` of `token`, of which
+    /// `interest_amount` is interest earned or paid.
+    #[serde(rename_all = "camelCase")]
+    BorrowLend {
+        token: String,
+        operation: Operation,
+        amount: Dec,
+        interest_amount: Dec,
+    },
+    /// The account was liquidated: the notional taken over and what the account was worth then.
+    #[serde(rename_all = "camelCase")]
+    Liquidation {
+        liquidated_ntl_pos: Dec,
+        account_value: Dec,
+        /// `Cross` or `Isolated`, capitalized here unlike anywhere else.
+        leverage_type: String,
+        liquidated_positions: Vec<LiquidatedPosition>,
+    },
     /// A type this build does not read, or a known one that no longer reads as modelled: its
     /// `type` (empty when it names none) and the delta as written, every key and digit.
     #[serde(skip_deserializing)]
@@ -184,6 +203,13 @@ pub enum Delta {
         kind: String,
         fields: Json,
     },
+}
+
+/// A position a liquidation took over: its coin and signed size.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+pub struct LiquidatedPosition {
+    pub coin: String,
+    pub szi: Dec,
 }
 
 impl Delta {
@@ -206,6 +232,8 @@ impl Delta {
             Delta::RewardsClaim { .. } => "rewardsClaim",
             Delta::SubAccountTransfer { .. } => "subAccountTransfer",
             Delta::VaultCreate { .. } => "vaultCreate",
+            Delta::BorrowLend { .. } => "borrowLend",
+            Delta::Liquidation { .. } => "liquidation",
             Delta::Other { kind, .. } => kind,
         }
     }

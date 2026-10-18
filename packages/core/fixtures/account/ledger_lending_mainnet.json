@@ -1,0 +1,7 @@
+{
+ "supply": {"time":1790688702672,"hash":"0x8b5ddb3971b7a03f8cd70445773b7d020c7a001f0cbabf112f26868c30bb7a2a","delta":{"type":"borrowLend","token":"USDC","operation":"supply","amount":"1.2","interestAmount":"0.0"}},
+ "borrow": {"time":1790875613649,"hash":"0xe5fbfc5ff5760c11e77504459f0a04020733004590792ae389c4a7b2b479e5fc","delta":{"type":"borrowLend","token":"USDC","operation":"borrow","amount":"1.14345399","interestAmount":"0.0"}},
+ "withdraw": {"time":1791199746313,"hash":"0xe2e58eaa9e3d23cfe45f0445e415c80203cb0090393042a186ae39fd5d30fdba","delta":{"type":"borrowLend","token":"USDC","operation":"withdraw","amount":"2.20100634","interestAmount":"0.00100634"}},
+ "repay": {"time":1791199760811,"hash":"0xdff13c8e7f15341be16a0445e4169202019700741a1852ed83b9e7e13e190e06","delta":{"type":"borrowLend","token":"USDC","operation":"repay","amount":"1.14404811","interestAmount":"0.00059412"}},
+ "liquidation": {"time":1677618623525,"hash":"0x651383a8fda3daaf31cc0308597c0000f7f51388f97acf0df28797ee97ae278a","delta":{"type":"liquidation","liquidatedNtlPos":"356.80015","accountValue":"2.956494","leverageType":"Cross","liquidatedPositions":[{"coin":"ATOM","szi":"29.21"}]}}
+}
