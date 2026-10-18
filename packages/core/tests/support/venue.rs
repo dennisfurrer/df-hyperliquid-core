@@ -5,7 +5,10 @@
 //!   fresh and inside the venue's window, and an L1 action's signer is recovered from the JSON
 //!   exactly as posted (re-packed as msgpack, key order kept), so a body that differs from what
 //!   was signed shows up as the wrong signer. Answers come from a queue.
-//! - HyperEVM's JSON-RPC answers by method, or by the contract an `eth_call` goes to.
+//! - HyperEVM's JSON-RPC answers by method, or by the contract a call goes to; a raw transaction
+//!   with its hash, as a node does.
+//! - A failure can stand in for the next answer on a path: an HTTP status, or no answer at all.
+//!   The request is still taken, so a test sees what reached the venue.
 //!
 //! Anything it was not given an answer for fails the test, naming the request.
 //!
@@ -17,9 +20,9 @@ use std::future::{Future, ready};
 
 use df_hyperliquid_core::account::{Signature, recover};
 use df_hyperliquid_core::client::{Http, Method, Network, Request, Response, TransportError};
-use df_hyperliquid_core::utils::sign::l1_digest;
+use df_hyperliquid_core::utils::sign::{keccak256, l1_digest};
 use df_hyperliquid_core::utils::{Address, Json, hex};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use super::{NOW, fixture};
 
@@ -33,7 +36,17 @@ pub struct Venue {
     answers: RefCell<VecDeque<String>>,
     rpc: Vec<Rpc>,
     signer: Option<Address>,
+    failures: RefCell<VecDeque<Failure>>,
     sent: RefCell<Vec<Sent>>,
+}
+
+/// What the wire hands back.
+type Answer = Result<Response, TransportError>;
+
+/// An answer in place of the venue's own, for the next request whose URL ends in `path`.
+struct Failure {
+    path: String,
+    answer: Answer,
 }
 
 /// One `/info` answer: for reads of `kind` whose fields match.
@@ -43,7 +56,7 @@ struct Read {
     answer: String,
 }
 
-/// One JSON-RPC answer: for `method`, and for an `eth_call` to `to` when given.
+/// One JSON-RPC answer: for `method`, and for a call to `to` when given.
 struct Rpc {
     method: String,
     to: Option<String>,
@@ -90,6 +103,7 @@ impl Venue {
             answers: RefCell::default(),
             rpc: Vec::new(),
             signer: None,
+            failures: RefCell::default(),
             sent: RefCell::default(),
         }
     }
@@ -147,12 +161,46 @@ impl Venue {
 
     /// Answers every `eth_call` to the contract at `to` with `answer`.
     #[must_use]
-    pub fn rpc_call(mut self, to: &str, answer: &str) -> Venue {
+    pub fn rpc_call(self, to: &str, answer: &str) -> Venue {
+        self.rpc_to("eth_call", to, answer)
+    }
+
+    /// Answers every call to `method` whose call object goes to `to` with `answer`: an
+    /// `eth_estimateGas` for one contract, say. The first match wins, so give these before a
+    /// [`Venue::rpc`] for the same method.
+    #[must_use]
+    pub fn rpc_to(mut self, method: &str, to: &str, answer: &str) -> Venue {
         self.rpc.push(Rpc {
-            method: "eth_call".to_owned(),
+            method: method.to_owned(),
             to: Some(to.to_ascii_lowercase()),
             answer: serde_json::from_str(answer).unwrap(),
         });
+        self
+    }
+
+    /// Answers the next request to `path` (`/info`, `/exchange`, or HyperEVM's `/evm`) with HTTP
+    /// `status` and `body` in place of the venue's own answer.
+    #[must_use]
+    pub fn status(self, path: &str, status: u16, body: &str) -> Venue {
+        self.failing(path, Ok(Response { status, headers: Vec::new(), body: body.as_bytes().to_vec() }))
+    }
+
+    /// Answers the next request to `path` with a 429 whose `Retry-After` asks for `seconds`.
+    #[must_use]
+    pub fn retry_after(self, path: &str, seconds: u64) -> Venue {
+        let headers = vec![("Retry-After".to_owned(), seconds.to_string())];
+        self.failing(path, Ok(Response { status: 429, headers, body: b"null".to_vec() }))
+    }
+
+    /// The next request to `path` is taken but its answer never comes back: the wire reports it
+    /// unreachable. An action is checked and kept, as one that may have landed.
+    #[must_use]
+    pub fn unreachable(self, path: &str) -> Venue {
+        self.failing(path, Err(TransportError::Unreachable("the connection was reset".to_owned())))
+    }
+
+    fn failing(self, path: &str, answer: Answer) -> Venue {
+        self.failures.borrow_mut().push_back(Failure { path: path.to_owned(), answer });
         self
     }
 
@@ -191,37 +239,43 @@ impl Venue {
         self.sent().into_iter().filter_map(|sent| if let Sent::Rpc(call) = sent { Some(call) } else { None }).collect()
     }
 
-    fn answer(&self, request: &Request) -> Response {
+    fn answer(&self, request: &Request) -> Answer {
         assert_eq!(request.method, Method::Post, "the venue only takes posts: {}", request.url);
         let body = String::from_utf8(request.body.clone()).unwrap();
         let api = self.network.api_url();
+        let failure = self.failure(&request.url);
         if request.url == format!("{api}/info") {
-            ok(self.read(&body))
+            self.read(&body, failure)
         } else if request.url == format!("{api}/exchange") {
-            ok(self.act(&body))
+            self.act(&body, failure)
         } else if request.url == self.network.evm_rpc_url() {
-            ok(self.call(&body))
+            self.call(&body, failure)
         } else {
             panic!("the venue does not serve {}", request.url)
         }
     }
 
-    fn read(&self, body: &str) -> String {
+    /// The failure queued first for this URL, taken.
+    fn failure(&self, url: &str) -> Option<Answer> {
+        let mut failures = self.failures.borrow_mut();
+        let at = failures.iter().position(|failure| url.ends_with(&failure.path))?;
+        failures.remove(at).map(|failure| failure.answer)
+    }
+
+    fn read(&self, body: &str, failure: Option<Answer>) -> Answer {
         let read = Json::parse(body).unwrap_or_else(|error| panic!("an /info body that is not JSON ({error}): {body}"));
         let kind =
             read.get("type").and_then(Json::as_str).unwrap_or_else(|| panic!("an /info read with no type: {body}"));
-        let answer = self
-            .reads
-            .iter()
-            .find(|route| route.kind == kind && route.fields.iter().all(|(key, value)| matches(read.get(key), value)))
-            .unwrap_or_else(|| panic!("the venue has no answer for {body}"))
-            .answer
-            .clone();
-        self.sent.borrow_mut().push(Sent::Info(read));
-        answer
+        self.sent.borrow_mut().push(Sent::Info(read.clone()));
+        failure.unwrap_or_else(|| {
+            let route = self.reads.iter().find(|route| {
+                route.kind == kind && route.fields.iter().all(|(key, value)| matches(read.get(key), value))
+            });
+            ok(route.unwrap_or_else(|| panic!("the venue has no answer for {body}")).answer.clone())
+        })
     }
 
-    fn act(&self, body: &str) -> String {
+    fn act(&self, body: &str, failure: Option<Answer>) -> Answer {
         let posted =
             Json::parse(body).unwrap_or_else(|error| panic!("an /exchange body that is not JSON ({error}): {body}"));
         let action = posted.get("action").unwrap_or_else(|| panic!("no action in {body}")).clone();
@@ -252,34 +306,44 @@ impl Venue {
             (vault, Some(signer))
         };
         self.sent.borrow_mut().push(Sent::Exchange(Signed { action, nonce, vault, signer, chain }));
-        self.answers.borrow_mut().pop_front().unwrap_or_else(|| panic!("the venue has no answer queued for {body}"))
+        failure.unwrap_or_else(|| {
+            let answer = self.answers.borrow_mut().pop_front();
+            ok(answer.unwrap_or_else(|| panic!("the venue has no answer queued for {body}")))
+        })
     }
 
-    fn call(&self, body: &str) -> String {
+    fn call(&self, body: &str, failure: Option<Answer>) -> Answer {
         let call: Value = serde_json::from_str(body)
             .unwrap_or_else(|error| panic!("a JSON-RPC body that is not JSON ({error}): {body}"));
+        self.sent.borrow_mut().push(Sent::Rpc(call.clone()));
+        failure.unwrap_or_else(|| ok(self.node(&call, body)))
+    }
+
+    fn node(&self, call: &Value, body: &str) -> String {
         let method = call["method"].as_str().unwrap_or_else(|| panic!("a JSON-RPC call with no method: {body}"));
         let to = call["params"][0]["to"].as_str().map(str::to_ascii_lowercase);
-        let rpc = self
-            .rpc
-            .iter()
-            .find(|rpc| rpc.method == method && (rpc.to.is_none() || rpc.to == to))
-            .unwrap_or_else(|| panic!("the node has no answer for {body}"));
-        let mut answer = rpc.answer.clone();
+        let route = self.rpc.iter().find(|rpc| rpc.method == method && (rpc.to.is_none() || rpc.to == to));
+        let mut answer = match (route, method) {
+            (Some(rpc), _) => rpc.answer.clone(),
+            (None, "eth_sendRawTransaction") => {
+                let raw = hex::decode(call["params"][0].as_str().unwrap_or_default()).unwrap();
+                json!({"jsonrpc": "2.0", "result": hex::encode_prefixed(&keccak256(&raw))})
+            }
+            (None, _) => panic!("the node has no answer for {body}"),
+        };
         answer["id"] = call["id"].clone();
-        self.sent.borrow_mut().push(Sent::Rpc(call));
         answer.to_string()
     }
 }
 
 impl Http for Venue {
     fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>> {
-        ready(Ok(self.answer(&request)))
+        ready(self.answer(&request))
     }
 }
 
-fn ok(text: String) -> Response {
-    Response { status: 200, headers: Vec::new(), body: text.into_bytes() }
+fn ok(text: String) -> Answer {
+    Ok(Response { status: 200, headers: Vec::new(), body: text.into_bytes() })
 }
 
 fn matches(value: Option<&Json>, expected: &str) -> bool {

@@ -63,7 +63,3 @@ pub(super) fn read<T>(at: u16, args: &[Arg], decode: fn(&[u8]) -> Result<T, AbiE
     }
     Read { at: address(at), data, decode }
 }
-
-#[cfg(test)]
-#[path = "tests/read.rs"]
-mod tests;

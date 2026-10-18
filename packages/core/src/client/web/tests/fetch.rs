@@ -25,47 +25,36 @@ async fn echoed(request: impl FnOnce(&str) -> Request) -> Value {
 }
 
 #[wasm_bindgen_test]
-async fn a_post_reads_the_status_headers_and_body() {
-    let response = Web.send(Request::post_json(r#"data:application/json,{"ok":true}"#, "{}".to_owned())).await.unwrap();
-    assert_eq!(response.status, 200);
-    assert_eq!(response.header("Content-Type"), Some("application/json"));
-    assert_eq!(response.text(), r#"{"ok":true}"#);
+async fn an_answer_comes_back_whole_its_status_headers_and_bytes() {
+    for request in [
+        Request::post_json(r#"data:application/json,{"ok":true}"#, "{}".to_owned()),
+        Request::get(r#"data:application/json,{"ok":true}"#),
+    ] {
+        let response = Web.send(request).await.unwrap();
+        assert_eq!(response.status, 200);
+        assert_eq!(response.header("Content-Type"), Some("application/json"));
+        assert_eq!(response.text(), r#"{"ok":true}"#);
+    }
+    let request = Request::post_json("data:application/octet-stream;base64,AAH/gA==", "{}".to_owned());
+    assert_eq!(Web.send(request).await.unwrap().body, vec![0x00, 0x01, 0xff, 0x80]);
 }
 
 #[wasm_bindgen_test]
-async fn a_get_reads_the_status_headers_and_body() {
-    let response = Web.send(Request::get(r#"data:application/json,{"ok":true}"#)).await.unwrap();
-    assert_eq!(response.status, 200);
-    assert_eq!(response.header("Content-Type"), Some("application/json"));
-    assert_eq!(response.text(), r#"{"ok":true}"#);
-}
-
-#[wasm_bindgen_test]
-async fn a_get_goes_with_its_headers_and_without_a_body() {
-    let sent = echoed(|url| Request::get(format!("{url}/stats?days=7")).with_header("Authorization", "Bearer t")).await;
-    assert_eq!((&sent["method"], &sent["url"]), (&Value::from("GET"), &Value::from("/stats?days=7")));
-    assert_eq!(sent["headers"]["authorization"], "Bearer t");
-    assert_eq!(sent["headers"].get("content-type"), None);
-    assert_eq!(sent["body"], "");
-}
-
-#[wasm_bindgen_test]
-async fn a_post_carries_its_method_headers_and_body() {
-    let sent = echoed(|url| {
+async fn each_request_goes_out_with_its_method_headers_and_body() {
+    let post = echoed(|url| {
         Request::post_json(format!("{url}/info"), r#"{"type":"meta"}"#.to_owned()).with_header("X-Key", "k1")
     })
     .await;
-    assert_eq!((&sent["method"], &sent["url"]), (&Value::from("POST"), &Value::from("/info")));
-    assert_eq!(sent["headers"]["content-type"], "application/json");
-    assert_eq!(sent["headers"]["x-key"], "k1");
-    assert_eq!(sent["body"], r#"{"type":"meta"}"#);
-}
-
-#[wasm_bindgen_test]
-async fn a_binary_body_comes_back_byte_for_byte() {
-    let request = Request::post_json("data:application/octet-stream;base64,AAH/gA==", "{}".to_owned());
-    let response = Web.send(request).await.unwrap();
-    assert_eq!(response.body, vec![0x00, 0x01, 0xff, 0x80]);
+    assert_eq!((&post["method"], &post["url"]), (&Value::from("POST"), &Value::from("/info")));
+    assert_eq!(
+        (&post["headers"]["content-type"], &post["headers"]["x-key"]),
+        (&Value::from("application/json"), &Value::from("k1"))
+    );
+    assert_eq!(post["body"], r#"{"type":"meta"}"#);
+    let get = echoed(|url| Request::get(format!("{url}/stats?days=7")).with_header("Authorization", "Bearer t")).await;
+    assert_eq!((&get["method"], &get["url"]), (&Value::from("GET"), &Value::from("/stats?days=7")));
+    assert_eq!(get["headers"]["authorization"], "Bearer t");
+    assert_eq!((get["headers"].get("content-type"), &get["body"]), (None, &Value::from("")));
 }
 
 #[wasm_bindgen_test]
