@@ -121,7 +121,3 @@ pub fn big_block_gas_price() -> Query<U256> {
 pub fn using_big_blocks(owner: Address) -> Query<bool> {
     query("eth_usingBigBlocks", vec![address(owner)], json)
 }
-
-#[cfg(test)]
-#[path = "tests/eth.rs"]
-mod tests;

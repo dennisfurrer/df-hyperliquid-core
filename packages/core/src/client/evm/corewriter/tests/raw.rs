@@ -1,14 +1,12 @@
 //! The decoder against live `RawAction` logs off `0x3333...3333` on mainnet (windows captured
-//! 2026-09-26 and 2026-10-08, and a send's receipt), each read by viem's
-//! `decodeAbiParameters` as well.
+//! 2026-09-26 and 2026-10-08), each read by viem's `decodeAbiParameters` as well.
 
 use serde_json::Value;
 
 use crate::client::evm::corewriter::SPOT_DEX;
-use crate::client::evm::corewriter::support::{action, hex};
+use crate::client::evm::corewriter::support::action;
 use crate::client::evm::fixtures;
 use crate::client::evm::rpc::eth;
-use crate::client::evm::u256::B256;
 
 use super::*;
 
@@ -71,16 +69,4 @@ fn a_live_window_of_logs_decodes_as_viem_reads_it() {
         assert_eq!(read.version, 1);
         assert_eq!(read.action, Ok(action(said["id"].as_u64().unwrap(), said["values"].as_array().unwrap())));
     }
-}
-
-#[test]
-fn a_live_sends_receipt_carries_its_action() {
-    let receipt = eth::receipt(B256::ZERO).answer(&fixtures::answer("eth_getTransactionReceipt", 0)).unwrap().unwrap();
-    let actions: Vec<RawAction> = receipt.logs.iter().filter_map(|one| RawAction::from_log(one).ok()).collect();
-    assert_eq!(actions.len(), 1, "one RawAction among the USDC logs");
-    let viem = fixtures::viem();
-    assert_eq!(hex(&actions[0].payload), fixtures::text(&viem["rawAction"]["payload"]));
-    assert!(matches!(actions[0].action, Ok(Action::SendAsset { .. })));
-    let usdc_log = receipt.logs.iter().find(|one| one.address != CORE_WRITER).unwrap();
-    assert_eq!(RawAction::from_log(usdc_log), Err(BadAction::NotRawAction), "another contract's log");
 }

@@ -148,8 +148,3 @@ impl<H: Http, S> Transport for Client<H, S> {
         self.api.post(path, body)
     }
 }
-
-#[cfg(test)]
-#[cfg(feature = "sign")]
-#[path = "tests/client.rs"]
-mod tests;

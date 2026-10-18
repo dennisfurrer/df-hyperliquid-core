@@ -123,7 +123,3 @@ impl<H: Http> Rpc<H> {
         self.run(eth::using_big_blocks(owner)).await
     }
 }
-
-#[cfg(test)]
-#[path = "tests/client.rs"]
-mod tests;

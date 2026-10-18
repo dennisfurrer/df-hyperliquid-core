@@ -1,32 +1,30 @@
+//! The docs' weights, the minute's meter and the gate a 429 closes, each handed the time.
+
 use super::*;
 
 #[test]
-fn a_read_weighs_twenty_but_for_the_light_ones_and_user_role() {
-    for kind in ["l2Book", "allMids", "clearinghouseState", "orderStatus", "spotClearinghouseState", "exchangeStatus"] {
-        assert_eq!(base_weight(kind), 2, "{kind}");
+fn a_read_weighs_its_kind_and_its_items_and_an_action_its_batch() {
+    for (kind, items, weight) in [
+        ("l2Book", 0, 2),
+        ("allMids", 0, 2),
+        ("clearinghouseState", 0, 2),
+        ("orderStatus", 0, 2),
+        ("spotClearinghouseState", 0, 2),
+        ("exchangeStatus", 0, 2),
+        ("userRole", 0, 60),
+        ("metaAndAssetCtxs", 500, 20),
+        ("somethingNew", 0, 20),
+        ("userFills", 19, 20),
+        ("userFills", 45, 22),
+        ("fundingHistory", 40, 22),
+        ("candleSnapshot", 130, 22),
+    ] {
+        assert_eq!(read_weight(kind, items), weight, "{kind} with {items} items");
     }
-    assert_eq!(base_weight("userRole"), 60);
-    assert_eq!(base_weight("metaAndAssetCtxs"), 20);
-    assert_eq!(base_weight("somethingNew"), 20, "an unknown read is charged as an ordinary one");
-}
-
-#[test]
-fn a_read_that_answers_with_a_list_weighs_one_more_per_twenty_items() {
-    assert_eq!(read_weight("userFills", 19), 20);
-    assert_eq!(read_weight("userFills", 45), 22);
-    assert_eq!(read_weight("candleSnapshot", 130), 22, "candles are one more per sixty");
-    assert_eq!(read_weight("metaAndAssetCtxs", 500), 20, "a read that is not charged per item");
-    assert_eq!(per_items("fundingHistory"), Some(20));
-    assert_eq!(per_items("meta"), None);
-}
-
-#[test]
-fn an_action_weighs_one_and_one_more_per_forty_it_batches() {
-    assert_eq!(action_weight(0), 1);
-    assert_eq!(action_weight(1), 1);
-    assert_eq!(action_weight(39), 1);
-    assert_eq!(action_weight(40), 2);
-    assert_eq!(action_weight(85), 3);
+    assert_eq!((per_items("candleSnapshot"), per_items("meta")), (Some(60), None));
+    for (batched, weight) in [(0, 1), (1, 1), (39, 1), (40, 2), (85, 3)] {
+        assert_eq!(action_weight(batched), weight, "{batched} batched");
+    }
 }
 
 #[test]
@@ -39,6 +37,7 @@ fn reads_wait_once_the_minute_nears_the_limit() {
     assert_eq!(meter.wait_for(47_000, 20), None);
     assert_eq!(meter.wait_for(47_000, 40), Some(13_000), "until the first read rolls off");
     assert_eq!(meter.wait_for(47_000, 60), Some(14_000));
+    assert_eq!(meter.wait_for(47_000, 2_000), Some(WINDOW_MS), "more than a minute holds");
     assert_eq!(meter.wait_for(61_000, 40), None, "a minute on, room again");
 }
 
@@ -51,9 +50,7 @@ fn the_minute_adds_up_by_kind_heaviest_first_and_then_forgets() {
     meter.record(30, "exchange", 1);
     meter.refuse(40);
     let spent = meter.spent(1_000);
-    assert_eq!(spent.minute, 27);
-    assert_eq!(spent.limit, LIMIT);
-    assert_eq!(spent.refused, 1);
+    assert_eq!((spent.limit, spent.minute, spent.refused), (LIMIT, 27, 1));
     let kinds: Vec<(&str, u32, u32)> =
         spent.kinds.iter().map(|kind| (kind.name.as_str(), kind.count, kind.weight)).collect();
     assert_eq!(kinds, [("userFills", 1, 22), ("l2Book", 2, 4), ("exchange", 1, 1)]);
@@ -62,58 +59,35 @@ fn the_minute_adds_up_by_kind_heaviest_first_and_then_forgets() {
 }
 
 #[test]
-fn a_429_closes_the_gate_for_two_seconds_and_each_strike_doubles_it_to_a_minute() {
+fn a_strike_closes_the_gate_for_two_seconds_doubling_to_a_minute_unless_retry_after_asks_longer() {
     let mut gate = Gate::default();
     let mut now = 0;
     let mut waits = Vec::new();
     for _ in 0..7 {
         let ticket = gate.open(now).unwrap();
         waits.push(gate.struck(ticket, now, None));
-        now += waits.last().copied().unwrap();
+        assert_eq!(gate.open(now + 500).map(|_| ()), Err(waits[waits.len() - 1] - 500), "closed to everything");
+        now += waits[waits.len() - 1];
+        assert_eq!(gate.cooldown_ms(now), 0);
     }
     assert_eq!(waits, [2_000, 4_000, 8_000, 16_000, 32_000, 60_000, 60_000]);
+    for (retry_after, wait) in [(Some(10_000), 10_000), (Some(500), 2_000), (Some(120_000), 120_000)] {
+        let mut gate = Gate::default();
+        let ticket = gate.open(0).unwrap();
+        assert_eq!(gate.struck(ticket, 0, retry_after), wait, "{retry_after:?}");
+    }
 }
 
 #[test]
-fn the_gate_refuses_everything_until_the_cooldown_ends() {
-    let mut gate = Gate::default();
-    let ticket = gate.open(0).unwrap();
-    assert_eq!(gate.struck(ticket, 0, None), 2_000);
-    assert_eq!(gate.open(500).map(|_| ()), Err(1_500));
-    assert_eq!(gate.cooldown_ms(500), 1_500);
-    assert!(gate.open(2_000).is_ok());
-    assert_eq!(gate.cooldown_ms(2_000), 0);
-}
-
-#[test]
-fn a_longer_retry_after_wins_and_a_shorter_one_does_not() {
-    let mut gate = Gate::default();
-    let ticket = gate.open(0).unwrap();
-    assert_eq!(gate.struck(ticket, 0, Some(10_000)), 10_000);
-    let mut gate = Gate::default();
-    let ticket = gate.open(0).unwrap();
-    assert_eq!(gate.struck(ticket, 0, Some(500)), 2_000);
-}
-
-#[test]
-fn a_burst_is_one_strike() {
+fn a_burst_is_one_strike_and_only_a_success_after_the_last_strike_clears_them() {
     let mut gate = Gate::default();
     let first = gate.open(0).unwrap();
     let second = gate.open(0).unwrap();
     assert_eq!(gate.struck(first, 0, None), 2_000);
     assert_eq!(gate.struck(second, 10, None), 1_990, "sent before the strike, so it does not double the wait");
-    let third = gate.open(2_000).unwrap();
-    assert_eq!(gate.struck(third, 2_000, None), 4_000, "the next burst is the second strike");
-}
-
-#[test]
-fn a_success_clears_the_strikes_unless_a_strike_came_after_it_went_out() {
-    let mut gate = Gate::default();
-    let ticket = gate.open(0).unwrap();
-    gate.struck(ticket, 0, None);
     let early = gate.open(2_000).unwrap();
     let late = gate.open(2_000).unwrap();
-    gate.struck(late, 2_000, None);
+    assert_eq!(gate.struck(late, 2_000, None), 4_000, "the next burst is the second strike");
     gate.passed(early);
     let next = gate.open(6_000).unwrap();
     assert_eq!(gate.struck(next, 6_000, None), 8_000, "the early success predates the strike and clears nothing");

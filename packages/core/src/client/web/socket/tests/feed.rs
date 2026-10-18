@@ -242,22 +242,13 @@ async fn an_unanswered_post_is_reported_on_close_and_never_sent_again() {
 }
 
 #[wasm_bindgen_test]
-async fn a_post_is_refused_while_the_socket_is_closed() {
-    let server = listen().await;
-    let url = server.url();
-    server.close();
-    let feed = Feed::start_at(url, Session::new(Network::Mainnet).with_timing(FAST));
-    let request = Post::info(r#"{"type":"meta"}"#).unwrap();
-    assert_eq!(feed.post(request).await, Err(FeedError::Refused(Refused::Closed)));
-    feed.close();
-}
-
-#[wasm_bindgen_test]
-async fn a_socket_that_cannot_open_is_dialled_again_later_each_time() {
+async fn a_socket_that_cannot_open_refuses_posts_and_is_dialled_again_later_each_time() {
     let server = listen().await;
     let url = server.url();
     server.close();
     let mut feed = Feed::start_at(url, Session::new(Network::Mainnet).with_timing(FAST));
+    let request = Post::info(r#"{"type":"meta"}"#).unwrap();
+    assert_eq!(feed.post(request).await, Err(FeedError::Refused(Refused::Closed)));
     let mut delays = Vec::new();
     for _ in 0..2 {
         match event(&mut feed).await {

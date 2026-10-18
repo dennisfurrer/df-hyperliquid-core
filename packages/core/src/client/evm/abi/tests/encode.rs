@@ -1,6 +1,6 @@
 //! Encodings against viem's `encodeAbiParameters` over the same types and values, each
-//! case round-tripped by viem first. The values are built from the JSON, not by the code
-//! under test.
+//! case round-tripped by viem first, and recorded cases from typed text. The values are built
+//! from the JSON, not by the code under test.
 
 use crate::client::evm::abi::support::{hex, token};
 use crate::client::evm::abi::{decode, params};
@@ -9,7 +9,7 @@ use crate::client::evm::fixtures;
 use super::*;
 
 #[test]
-fn every_viem_case_encodes_and_decodes_byte_for_byte() {
+fn every_viem_and_recorded_case_encodes_byte_for_byte() {
     let viem = fixtures::viem();
     let cases = viem["abi"].as_array().unwrap();
     assert_eq!(cases.len(), 76, "every width of uint and int, and the rest");
@@ -25,10 +25,7 @@ fn every_viem_case_encodes_and_decodes_byte_for_byte() {
         assert_eq!(hex(&encode(&shape, &tokens).unwrap()), fixtures::text(&case["encoded"]), "{types}");
         assert_eq!(decode(&shape, &encoded).unwrap(), tokens, "{types}");
     }
-}
-
-#[test]
-fn recorded_cases_encode_from_typed_text() {
+    // The same from typed text, as a person writes the values.
     let file = fixtures::cases();
     for case in file["abi"]["encoded"].as_array().unwrap() {
         let types = fixtures::text(&case["types"]);

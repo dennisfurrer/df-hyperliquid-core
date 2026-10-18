@@ -1,106 +1,87 @@
+//! Everything that differs between mainnet and testnet. Testnet's tokens were read from its
+//! `spotMeta` on 2026-10-08; testnet's token 150 is a different token.
+
 use super::*;
 use crate::utils::sign::eip712::Domain;
 
 #[test]
-fn mainnet_is_arbitrum_one_and_source_a() {
-    let network = Network::Mainnet;
-    assert_eq!(network.api_url(), "https://api.hyperliquid.xyz");
-    assert_eq!(network.signature_chain_id(), 42_161);
-    assert_eq!(network.signature_chain_id_hex(), "0xa4b1");
-    assert_eq!(network.hyperliquid_chain(), "Mainnet");
-    assert_eq!(network.agent_source(), "a");
-    assert_eq!(network.usdc().wire, "USDC:0x6d1e7cde53ba9467b783cb7c530ce054");
-}
-
-/// Testnet's USDC was read from its `spotMeta` on 2026-10-08.
-#[test]
-fn testnet_is_arbitrum_sepolia_and_source_b() {
-    let network = Network::Testnet;
-    assert_eq!(network.api_url(), "https://api.hyperliquid-testnet.xyz");
-    assert_eq!(network.signature_chain_id(), 421_614);
-    assert_eq!(network.signature_chain_id_hex(), "0x66eee");
-    assert_eq!(network.hyperliquid_chain(), "Testnet");
-    assert_eq!(network.agent_source(), "b");
-    assert_eq!(network.usdc().wire, "USDC:0xeb62eee3685fc4c43992febcd9e75443");
-}
-
-#[test]
-fn each_chain_id_and_its_spelling_agree() {
-    for network in Network::ALL {
-        assert_eq!(format!("{:#x}", network.signature_chain_id()), network.signature_chain_id_hex(), "{network}");
+fn each_network_has_its_endpoints_chains_and_tokens() {
+    struct Expected {
+        api: &'static str,
+        ws: &'static str,
+        evm: &'static str,
+        evm_chain: u64,
+        signature_chain: u64,
+        spelled: &'static str,
+        chain: &'static str,
+        source: &'static str,
+        usdc: &'static str,
+        hype: (u32, &'static str),
     }
-}
-
-#[test]
-fn usdc_is_token_zero_in_eight_decimals_on_both() {
-    for network in Network::ALL {
-        let usdc = network.usdc();
-        assert_eq!((usdc.name, usdc.index, usdc.wei_decimals), ("USDC", 0, 8), "{network}");
-        assert_eq!(usdc.wire, format!("{}:{}", usdc.name, usdc.token_id), "{network}");
-        assert_eq!(usdc.token_id.len(), 34, "{network}");
+    for (network, expected) in [
+        (
+            Network::Mainnet,
+            Expected {
+                api: "https://api.hyperliquid.xyz",
+                ws: "wss://api.hyperliquid.xyz/ws",
+                evm: "https://rpc.hyperliquid.xyz/evm",
+                evm_chain: 999,
+                signature_chain: 42_161,
+                spelled: "0xa4b1",
+                chain: "Mainnet",
+                source: "a",
+                usdc: "0x6d1e7cde53ba9467b783cb7c530ce054",
+                hype: (150, "0x0d01dc56dcaaca66ad901c959b4011ec"),
+            },
+        ),
+        (
+            Network::Testnet,
+            Expected {
+                api: "https://api.hyperliquid-testnet.xyz",
+                ws: "wss://api.hyperliquid-testnet.xyz/ws",
+                evm: "https://rpc.hyperliquid-testnet.xyz/evm",
+                evm_chain: 998,
+                signature_chain: 421_614,
+                spelled: "0x66eee",
+                chain: "Testnet",
+                source: "b",
+                usdc: "0xeb62eee3685fc4c43992febcd9e75443",
+                hype: (1105, "0x7317beb7cceed72ef0b346074cc8e7ab"),
+            },
+        ),
+    ] {
+        assert_eq!(
+            (network.api_url(), network.ws_url(), network.evm_rpc_url()),
+            (expected.api, expected.ws, expected.evm)
+        );
+        assert_eq!(network.evm_chain_id(), expected.evm_chain, "{network}");
+        assert_eq!(
+            (network.signature_chain_id(), network.arbitrum_chain_id()),
+            (expected.signature_chain, expected.signature_chain)
+        );
+        assert_eq!(network.signature_chain_id_hex(), expected.spelled);
+        assert_eq!(format!("{:#x}", network.signature_chain_id()), expected.spelled, "the id and its spelling agree");
+        assert_eq!((network.hyperliquid_chain(), network.agent_source()), (expected.chain, expected.source));
+        assert_eq!(Domain::user_signed(network).chain_id, expected.signature_chain, "user-signed under its chain");
+        let (usdc, hype) = (network.usdc(), network.hype());
+        assert_eq!((usdc.name, usdc.index, usdc.token_id, usdc.wei_decimals), ("USDC", 0, expected.usdc, 8));
+        assert_eq!(
+            (hype.name, hype.index, hype.token_id, hype.wei_decimals),
+            ("HYPE", expected.hype.0, expected.hype.1, 8)
+        );
+        for token in [usdc, hype] {
+            assert_eq!(token.wire, format!("{}:{}", token.name, token.token_id), "{network}");
+        }
     }
+    assert_eq!((Domain::EXCHANGE.chain_id, L1_CHAIN_ID), (1337, 1337), "an L1 action's on both");
+    assert_eq!(Domain::user_signed(Network::Mainnet).name, "HyperliquidSignTransaction");
 }
 
 #[test]
-fn a_user_signed_action_is_signed_under_its_network_s_chain() {
-    for network in Network::ALL {
-        let domain = Domain::user_signed(network);
-        assert_eq!(domain.chain_id, network.signature_chain_id(), "{network}");
-        assert_eq!((domain.name, domain.version), ("HyperliquidSignTransaction", "1"));
-    }
-}
-
-#[test]
-fn an_l1_action_is_signed_under_1337_on_both() {
-    assert_eq!(Domain::EXCHANGE.chain_id, 1337);
-}
-
-#[test]
-fn a_network_reads_and_writes_its_name() {
+fn a_network_reads_and_writes_its_name_and_mainnet_is_the_default() {
     assert_eq!("mainnet".parse::<Network>(), Ok(Network::Mainnet));
     assert_eq!("Testnet".parse::<Network>(), Ok(Network::Testnet));
     assert_eq!("devnet".parse::<Network>(), Err(UnknownNetwork("devnet".to_owned())));
-    assert_eq!(Network::Mainnet.to_string(), "mainnet");
-    assert_eq!(Network::Testnet.to_string(), "testnet");
-}
-
-#[test]
-fn mainnet_is_the_default() {
+    assert_eq!(Network::ALL.map(|network| network.to_string()), ["mainnet", "testnet"]);
     assert_eq!(Network::default(), Network::Mainnet);
-}
-
-#[test]
-fn each_network_has_its_socket_and_its_hyperevm() {
-    assert_eq!(Network::Mainnet.ws_url(), "wss://api.hyperliquid.xyz/ws");
-    assert_eq!(Network::Testnet.ws_url(), "wss://api.hyperliquid-testnet.xyz/ws");
-    assert_eq!(Network::Mainnet.evm_rpc_url(), "https://rpc.hyperliquid.xyz/evm");
-    assert_eq!(Network::Testnet.evm_rpc_url(), "https://rpc.hyperliquid-testnet.xyz/evm");
-    assert_eq!(Network::Mainnet.evm_chain_id(), 999);
-    assert_eq!(Network::Testnet.evm_chain_id(), 998);
-}
-
-/// Both as a recorded `spotMeta` (2026-10-08) lists them. Testnet's token 150
-/// is a different token.
-#[test]
-fn hype_is_token_150_on_mainnet_and_1105_on_testnet() {
-    let mainnet = Network::Mainnet.hype();
-    assert_eq!((mainnet.name, mainnet.index, mainnet.wei_decimals), ("HYPE", 150, 8));
-    assert_eq!(mainnet.token_id, "0x0d01dc56dcaaca66ad901c959b4011ec");
-    assert_eq!(mainnet.wire, "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec");
-    let testnet = Network::Testnet.hype();
-    assert_eq!((testnet.name, testnet.index, testnet.wei_decimals), ("HYPE", 1105, 8));
-    assert_eq!(testnet.token_id, "0x7317beb7cceed72ef0b346074cc8e7ab");
-    assert_eq!(testnet.wire, "HYPE:0x7317beb7cceed72ef0b346074cc8e7ab");
-    for network in Network::ALL {
-        let hype = network.hype();
-        assert_eq!(hype.wire, format!("{}:{}", hype.name, hype.token_id), "{network}");
-    }
-}
-
-/// The chain the bridge is on: a deposit's, not a signature's, though the
-/// two agree today.
-#[test]
-fn the_bridge_is_on_arbitrum_one_and_arbitrum_sepolia() {
-    assert_eq!(Network::Mainnet.arbitrum_chain_id(), 42_161);
-    assert_eq!(Network::Testnet.arbitrum_chain_id(), 421_614);
 }
