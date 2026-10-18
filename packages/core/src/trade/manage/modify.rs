@@ -137,8 +137,8 @@ pub enum Change {
 }
 
 /// A resting order replaced in place, as `frontendOpenOrders` lists it. Its
-/// side and reduce only stay; a take profit or stop loss always places, as
-/// the venue requires of a trigger.
+/// side, reduce only and client order id stay; a take profit or stop loss
+/// always places, as the venue requires of a trigger.
 pub fn modify(market: &Market, order: &FrontendOrder, change: &Change) -> Result<BatchModify, Refusal> {
     let grid = market.grid();
     let side = order.side;
@@ -173,6 +173,10 @@ pub fn modify(market: &Market, order: &FrontendOrder, change: &Change) -> Result
     let new = match order.reduce_only {
         true => new.reduce_only(),
         false => new,
+    };
+    let new = match order.cloid {
+        Some(cloid) => new.with_cloid(cloid),
+        None => new,
     };
     Ok(BatchModify::new(vec![Modify::new(OrderRef::Oid(order.oid), new)]))
 }

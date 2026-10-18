@@ -95,11 +95,12 @@ async fn a_position_stop_the_venue_lists_is_moved_in_place_and_always_places() {
         client.http().reads()[1].compact(),
         format!(r#"{{"type":"frontendOpenOrders","user":"{}"}}"#, key().address().to_hex())
     );
-    // The short's stop buys, bounded 10% over the new trigger; size 0 still covers the whole position.
+    // The short's stop buys, bounded 10% over the new trigger; size 0 still covers the whole position,
+    // and the stop keeps the client order id it was listed with.
     assert_eq!(
         actions(&client),
         [
-            r#"{"type":"batchModify","modifies":[{"oid":569021780586,"order":{"a":101,"b":true,"p":"6.49","s":"0","r":true,"t":{"trigger":{"isMarket":true,"triggerPx":"5.9","tpsl":"sl"}}}}],"a":true}"#
+            r#"{"type":"batchModify","modifies":[{"oid":569021780586,"order":{"a":101,"b":true,"p":"6.49","s":"0","r":true,"t":{"trigger":{"isMarket":true,"triggerPx":"5.9","tpsl":"sl"}},"c":"0xba5ed11067f2cc01ba5ed10000ba5ed1"}}],"a":true}"#
         ]
     );
 }
