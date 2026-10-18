@@ -4,8 +4,7 @@
 //! `portfolio` history is left unread.
 
 use crate::client::{ApiError, Transport, info, info_request, user_request};
-use crate::earn::vaults::transfer::USD_DECIMALS;
-use crate::utils::{Address, Dec, Figure, Json, Round};
+use crate::utils::{Address, Dec, Figure, Json, Round, USDC_DECIMALS};
 use serde::Deserialize;
 
 /// `{"type":"vaultDetails","vaultAddress":..,"user"?:..}`: with `user`, the
@@ -118,7 +117,7 @@ impl VaultDetails {
                 .max_withdrawable
                 .as_ref()
                 .and_then(Figure::to_dec)
-                .map_or(Dec::ZERO, |most| most.round(USD_DECIMALS, Round::Down).max(Dec::ZERO)),
+                .map_or(Dec::ZERO, |most| most.round(USDC_DECIMALS, Round::Down).max(Dec::ZERO)),
             _ => Dec::ZERO,
         }
     }
@@ -182,7 +181,7 @@ impl VaultEquity {
     pub fn withdrawable(&self, now_ms: u64) -> Dec {
         match self.is_locked(now_ms) {
             true => Dec::ZERO,
-            false => self.equity.round(USD_DECIMALS, Round::Down).max(Dec::ZERO),
+            false => self.equity.round(USDC_DECIMALS, Round::Down).max(Dec::ZERO),
         }
     }
 }

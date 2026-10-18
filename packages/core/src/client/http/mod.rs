@@ -9,6 +9,6 @@ pub mod transport;
 pub(crate) use api::Api;
 pub use limit::{Kind, Spent};
 pub use transport::{
-    Accepted, ApiError, EXCHANGE, ExchangeResponse, Http, INFO, Request, Response, Status, Transport, TransportError,
-    exchange, info, info_request, user_request,
+    Accepted, ApiError, EXCHANGE, ExchangeResponse, Http, INFO, Method, Request, Response, Status, Transport,
+    TransportError, exchange, info, info_request, user_request,
 };

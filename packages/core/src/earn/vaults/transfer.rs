@@ -4,7 +4,7 @@
 use crate::account::{ActionKind, Signers};
 use crate::client::Network;
 use crate::utils::sign::{L1Action, Map};
-use crate::utils::{Address, BadUnits, Dec, exact_units};
+use crate::utils::{Address, BadUnits, Dec, USDC_DECIMALS, exact_units};
 
 const fn address(text: &str) -> Address {
     match Address::parse_const(text) {
@@ -30,9 +30,6 @@ pub const MAINNET_VAULT_LOCKUP_MS: u64 = 86_400_000;
 /// Testnet's lockup for any other vault: twenty seconds, as the single-deposit
 /// followers of its user vaults show.
 pub const TESTNET_VAULT_LOCKUP_MS: u64 = 20_000;
-
-/// `usd` counts USDC in 1e6.
-pub const USD_DECIMALS: u32 = 6;
 
 /// The network's HLP.
 #[must_use]
@@ -67,14 +64,14 @@ impl VaultTransfer {
     /// USDC from the perp balance into `vault`, at most six places: refused
     /// rather than rounded when finer.
     pub fn deposit(vault: Address, usdc: Dec) -> Result<VaultTransfer, BadUnits> {
-        Ok(VaultTransfer { vault, is_deposit: true, usd: exact_units(usdc, USD_DECIMALS)? })
+        Ok(VaultTransfer { vault, is_deposit: true, usd: exact_units(usdc, USDC_DECIMALS)? })
     }
 
     /// USDC out of `vault` once its lockup has passed. A whole equity runs
     /// past six places; cut it first (`crate::utils::cut_units`) or take
     /// `maxWithdrawable` from [`crate::earn::vaults::vault_details`].
     pub fn withdraw(vault: Address, usdc: Dec) -> Result<VaultTransfer, BadUnits> {
-        Ok(VaultTransfer { vault, is_deposit: false, usd: exact_units(usdc, USD_DECIMALS)? })
+        Ok(VaultTransfer { vault, is_deposit: false, usd: exact_units(usdc, USDC_DECIMALS)? })
     }
 
     /// From a count of millionths already made.

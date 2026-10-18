@@ -3,8 +3,7 @@
 //! except a validator's `stake`, which is wei.
 
 use crate::client::{ApiError, Network, Transport, info, info_request, user_request};
-use crate::earn::staking::actions::HYPE_DECIMALS;
-use crate::utils::{Address, Dec};
+use crate::utils::{Address, Dec, HYPE_DECIMALS};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 

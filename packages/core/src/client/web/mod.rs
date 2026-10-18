@@ -1,6 +1,6 @@
-//! HTTP and websocket for the browser and Workers: [`Web`] posts through the
-//! global `fetch`, [`clock`] is `Date.now()`, and a [`Feed`] keeps the
-//! websocket open over the global `WebSocket`. Hand the first two to a
+//! HTTP and websocket for the browser and Workers: [`Web`] sends requests
+//! through the global `fetch`, [`clock`] is `Date.now()`, and a [`Feed`] keeps
+//! the websocket open over the global `WebSocket`. Hand the first two to a
 //! [`crate::Client`]:
 //!
 //! ```ignore
@@ -31,8 +31,7 @@
 
 pub mod socket;
 
-use crate::client::http::transport::JSON;
-use crate::client::{Http, Request, Response, TransportError};
+use crate::client::{Http, Method, Request, Response, TransportError};
 use js_sys::{Array, Function, Promise, Reflect, Uint8Array};
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::JsFuture;
@@ -50,9 +49,14 @@ impl Http for Web {
         let fetch: Function =
             Reflect::get(&global, &JsValue::from_str("fetch")).map_err(unreachable)?.dyn_into().map_err(unreachable)?;
         let headers = Headers::new().map_err(unreachable)?;
-        headers.append("Content-Type", JSON).map_err(unreachable)?;
+        for (name, value) in &request.headers {
+            headers.append(name, value).map_err(unreachable)?;
+        }
         let init = RequestInit::new();
-        init.set_method("POST");
+        init.set_method(match request.method {
+            Method::Get => "GET",
+            Method::Post => "POST",
+        });
         init.set_headers(&headers);
         if !request.body.is_empty() {
             init.set_body(&Uint8Array::from(request.body.as_slice()));

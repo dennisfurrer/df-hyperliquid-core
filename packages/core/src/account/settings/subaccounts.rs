@@ -9,7 +9,7 @@ use crate::account::holdings::spot::SpotState;
 use crate::account::keys::signers::ActionKind;
 use crate::client::{ApiError, Transport, info, user_request};
 use crate::utils::sign::{L1Action, Map};
-use crate::utils::{Address, AssetKind, BadUnits, Dec, exact_units};
+use crate::utils::{Address, AssetKind, BadUnits, Dec, USDC_DECIMALS, exact_units};
 use serde::Deserialize;
 
 /// Whose account an action or a read is about: the master's own, or one of
@@ -151,12 +151,12 @@ impl SubAccountTransfer {
     /// Into the subaccount, at most six places: refused rather than rounded
     /// when finer.
     pub fn deposit(sub_account: Address, usdc: Dec) -> Result<SubAccountTransfer, BadUnits> {
-        Ok(SubAccountTransfer { sub_account, is_deposit: true, usd: exact_units(usdc, 6)? })
+        Ok(SubAccountTransfer { sub_account, is_deposit: true, usd: exact_units(usdc, USDC_DECIMALS)? })
     }
 
     /// Back to the master.
     pub fn withdraw(sub_account: Address, usdc: Dec) -> Result<SubAccountTransfer, BadUnits> {
-        Ok(SubAccountTransfer { sub_account, is_deposit: false, usd: exact_units(usdc, 6)? })
+        Ok(SubAccountTransfer { sub_account, is_deposit: false, usd: exact_units(usdc, USDC_DECIMALS)? })
     }
 
     /// From a count of millionths already made.

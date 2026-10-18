@@ -1,6 +1,7 @@
-//! HTTP and websocket for native programs: [`Native`] posts through reqwest on
-//! rustls, [`clock`] is the system clock, and a [`Feed`] keeps the websocket
-//! open over tokio-tungstenite. Hand the first two to a [`crate::Client`]:
+//! HTTP and websocket for native programs: [`Native`] sends requests through
+//! reqwest on rustls, [`clock`] is the system clock, and a [`Feed`] keeps the
+//! websocket open over tokio-tungstenite. Hand the first two to a
+//! [`crate::Client`]:
 //!
 //! ```no_run
 //! use df_hyperliquid_core::client::native::{Native, clock};
@@ -14,8 +15,7 @@
 
 pub mod socket;
 
-use crate::client::http::transport::JSON;
-use crate::client::{Http, Request, Response, TransportError};
+use crate::client::{Http, Method, Request, Response, TransportError};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub use socket::Feed;
@@ -56,7 +56,10 @@ impl Default for Native {
 impl Http for Native {
     async fn send(&self, request: Request) -> Result<Response, TransportError> {
         let unreachable = |error: reqwest::Error| TransportError::Unreachable(error.without_url().to_string());
-        let mut outgoing = self.client.post(&request.url).header(reqwest::header::CONTENT_TYPE, JSON);
+        let mut outgoing = self.client.request(method(request.method), &request.url);
+        for (name, value) in &request.headers {
+            outgoing = outgoing.header(name, value);
+        }
         if !request.body.is_empty() {
             outgoing = outgoing.body(request.body);
         }
@@ -69,6 +72,13 @@ impl Http for Native {
             .collect();
         let body = answer.bytes().await.map_err(unreachable)?.to_vec();
         Ok(Response { status, headers, body })
+    }
+}
+
+fn method(method: Method) -> reqwest::Method {
+    match method {
+        Method::Get => reqwest::Method::GET,
+        Method::Post => reqwest::Method::POST,
     }
 }
 

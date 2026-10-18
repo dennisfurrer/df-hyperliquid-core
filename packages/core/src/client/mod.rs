@@ -20,8 +20,8 @@ use crate::utils::{Address, NonceClock};
 use std::sync::{Mutex, PoisonError};
 
 pub use http::{
-    Accepted, ApiError, ExchangeResponse, Http, Request, Response, Spent, Status, Transport, TransportError, exchange,
-    info, info_request, user_request,
+    Accepted, ApiError, ExchangeResponse, Http, Method, Request, Response, Spent, Status, Transport, TransportError,
+    exchange, info, info_request, user_request,
 };
 pub use network::{
     L1_CHAIN_ID, MAINNET_HYPE, MAINNET_USDC, Network, TESTNET_HYPE, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork,

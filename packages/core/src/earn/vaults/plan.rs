@@ -5,8 +5,8 @@
 use crate::account::Signers;
 use crate::client::Network;
 use crate::earn::vaults::reads::{VaultDetails, VaultEquity};
-use crate::earn::vaults::transfer::{USD_DECIMALS, VaultTransfer, lockup_ms};
-use crate::utils::{Address, BadUnits, Dec, cut_units};
+use crate::earn::vaults::transfer::{VaultTransfer, lockup_ms};
+use crate::utils::{Address, BadUnits, Dec, USDC_DECIMALS, cut_units};
 
 /// A figure a read back checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -105,7 +105,7 @@ impl Ctx {
     /// The whole equity, cut to millionths so it never asks for more.
     pub fn withdraw_all(&self, equity: &VaultEquity) -> Result<Plan<VaultTransfer>, Refused> {
         unlocked(equity, self.now_ms)?;
-        let usd = cut_units(equity.equity, USD_DECIMALS)?;
+        let usd = cut_units(equity.equity, USDC_DECIMALS)?;
         let action = VaultTransfer::from_micros(equity.vault_address, false, usd);
         let amount = equity.withdrawable(self.now_ms);
         Ok(self.plan(action, Change::Falls(amount), None))

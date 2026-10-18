@@ -7,6 +7,9 @@ use crate::utils::dec::{Dec, Round};
 /// USDC's decimals on the perp side and on Arbitrum: millionths.
 pub const USDC_DECIMALS: u32 = 6;
 
+/// HYPE on HyperCore counts in 1e8: what `wei` means in staking and delegation.
+pub const HYPE_DECIMALS: u32 = 8;
+
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadUnits {
     #[error("{0} is not a positive amount")]

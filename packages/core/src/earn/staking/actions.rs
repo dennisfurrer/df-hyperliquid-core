@@ -3,10 +3,7 @@
 
 use crate::account::{ActionKind, Signers};
 use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
-use crate::utils::{Address, BadUnits, Dec, exact_units};
-
-/// HYPE on Core counts in 1e8: what `wei` means in staking.
-pub const HYPE_DECIMALS: u32 = 8;
+use crate::utils::{Address, BadUnits, Dec, HYPE_DECIMALS, exact_units};
 
 /// `hype` as the `wei` an action carries, refused rather than rounded when
 /// it has more than eight places.
