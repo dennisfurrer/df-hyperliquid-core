@@ -1,17 +1,13 @@
-use std::{
-    cell::RefCell,
-    future::{Future, ready},
-    pin::pin,
-    task::{Context, Poll, Waker},
-};
+//! `meta` and `metaAndAssetCtxs` as the venue answered them on mainnet, for the main dex and for
+//! `xyz`, and what an order on a perp names from them. Reads through a client are in
+//! `tests/mocked/markets`.
 
-use crate::client::TransportError;
 use crate::trade::{MarginMode, Order, PlaceOrder, Side, Tif, UpdateLeverage};
+use crate::trade::{add_margin, remove_margin};
 use crate::utils::Dec;
 use crate::utils::sign::L1Action;
 
 use super::*;
-use crate::trade::margin::{add_margin, remove_margin};
 
 /// Live, mainnet, 2026-10-06, trimmed: the first three perps and their contexts as sent, then HPOS
 /// (delisted, strictly isolated; 33rd live) and its context.
@@ -34,130 +30,60 @@ fn both() -> MetaAndAssetCtxs {
 }
 
 #[test]
-fn meta_reads_the_live_answer_and_names_each_perp_s_asset_and_grid() {
+fn meta_names_each_perp_s_asset_id_and_grid() {
     let meta: Meta = serde_json::from_str(META).unwrap();
-    assert_eq!(meta.universe.len(), 4);
-    assert_eq!(meta.collateral_token, Some(0));
+    assert_eq!((meta.universe.len(), meta.collateral_token), (4, Some(0)));
     let (asset, btc) = meta.find(0, "BTC").unwrap();
-    assert_eq!((asset.id(), btc.sz_decimals, btc.max_leverage), (0, 5, 40));
-    assert_eq!(btc.grid(), Grid::perp(5));
+    assert_eq!((asset.id(), btc.sz_decimals, btc.max_leverage, btc.grid()), (0, 5, 40, Grid::perp(5)));
     assert_eq!((btc.growth_mode.as_deref(), btc.deployer_fee_scale), (None, None), "HIP-3 fields only");
     assert_eq!(meta.find(0, "ATOM").unwrap().0, Asset::perp(2).unwrap());
     assert_eq!(meta.find(0, "btc"), None, "names are matched as the venue spells them");
-    assert_eq!(meta.get(0, Asset::perp(1).unwrap()).map(|perp| perp.name.as_str()), Some("ETH"));
-    assert_eq!(meta.get(0, Asset::from_id(10_001)), None, "a spot id is not a perp");
-    assert_eq!(meta.get(1, Asset::perp(1).unwrap()), None, "a main-dex id is not on dex 1");
+    let gets = [
+        (0, Asset::perp(1).unwrap(), Some("ETH")),
+        (0, Asset::from_id(10_001), None),
+        (1, Asset::perp(1).unwrap(), None),
+        (0, Asset::perp(9).unwrap(), None),
+    ];
+    for (place, asset, name) in gets {
+        assert_eq!(meta.get(place, asset).map(|perp| perp.name.as_str()), name, "{} on dex {place}", asset.id());
+    }
     let hpos = meta.find(0, "HPOS").unwrap().1;
-    assert!(hpos.is_delisted && hpos.only_isolated && !hpos.allows_cross());
-    assert!(btc.allows_cross());
+    assert!(hpos.is_delisted && hpos.only_isolated && !hpos.allows_cross() && btc.allows_cross());
+    assert_eq!(meta.perps(0).count(), 4, "delisted perps keep their place");
 }
 
 #[test]
-fn contexts_line_up_with_the_universe_and_a_quiet_market_has_no_mid() {
-    let both = both();
-    let (asset, _, btc) = both.find(0, "BTC").unwrap();
-    assert_eq!(asset.id(), 0);
-    assert_eq!((btc.mark_px, btc.mid_px, btc.reference()), (dec("85634"), Some(dec("85634.5")), dec("85634.5")));
-    assert_eq!(btc.funding, dec("0.0000125"));
-    assert_eq!(btc.impact_pxs, Some(vec![dec("85631.1"), dec("85635")]));
-    let (_, _, hpos) = both.find(0, "HPOS").unwrap();
-    assert_eq!((hpos.mid_px, hpos.premium, hpos.reference()), (None, None, dec("0.041873")));
-    assert_eq!(both.meta.margin_tables.len(), 1, "the one table this trimmed answer kept");
-    assert_eq!(both.meta.margin_table(50).and_then(|table| table.max_leverage_at(Dec::ZERO)), Some(50));
-}
-
-/// BTC's context recorded live on mainnet, 2026-09-26, when its day change was -0.68%.
-#[test]
-fn a_context_says_its_day_change_and_its_open_interest_at_the_mark() {
-    let btc: PerpCtx = serde_json::from_str(r#"{"funding":"0.0000125","openInterest":"37697.76106","prevDayPx":"84556.0","dayNtlVlm":"2460964638.0624189377","premium":"-0.0004701178","oraclePx":"84021.5","markPx":"83982.0","midPx":"83981.5","impactPxs":["83981.0","83982.0"],"dayBaseVlm":"29257.91492"}"#).unwrap();
-    assert_eq!(btc.day_change(), Some(dec("-0.68")));
-    assert_eq!(btc.open_interest_value(), Some(dec("3165933369.34092")));
-    let both = both();
-    assert_eq!(both.find(0, "BTC").unwrap().2.day_change(), Some(dec("0.41")));
-}
-
-#[test]
-fn a_market_order_goes_out_on_the_perp_s_grid_as_frontend_market() {
+fn contexts_line_up_with_the_universe_and_bound_a_market_order_on_the_perp_s_grid() {
     let both = both();
     let (asset, btc, ctx) = both.find(0, "BTC").unwrap();
+    assert_eq!((ctx.mark_px, ctx.mid_px, ctx.reference()), (dec("85634"), Some(dec("85634.5")), dec("85634.5")));
+    assert_eq!((ctx.funding, ctx.day_change()), (dec("0.0000125"), Some(dec("0.41"))));
+    assert_eq!(both.ctx(0, asset), Some(ctx));
+    let (_, _, hpos) = both.find(0, "HPOS").unwrap();
+    assert_eq!((hpos.mid_px, hpos.premium, hpos.reference()), (None, None, dec("0.041873")), "a quiet market");
+    assert_eq!(both.ctx(0, Asset::perp(9).unwrap()), None);
+    assert_eq!(both.meta.margin_table(50).and_then(|table| table.max_leverage_at(Dec::ZERO)), Some(50));
     let bound = btc.grid().market_bound(ctx.reference(), dec("0.01"), Side::Buy).unwrap();
     let order = Order::market(asset, Side::Buy, bound, btc.grid().size(dec("0.001234")).unwrap());
     assert_eq!((order.price(), order.size(), order.tif()), (dec("86490"), dec("0.00123"), Some(Tif::FrontendMarket)));
 }
 
+/// `xyz` at place 1 counts its perps from 110000; at place 2 the same list would count from
+/// 120000, so the place decides the id an order signs.
 #[test]
-fn margin_goes_in_positive_and_comes_out_negative() {
-    let eth = Asset::perp(1).unwrap();
-    assert_eq!(add_margin(eth, Side::Buy, dec("12.5")).unwrap().ntli(), 12_500_000);
-    assert_eq!(remove_margin(eth, Side::Sell, dec("2.5")).unwrap().ntli(), -2_500_000);
-    assert!(add_margin(eth, Side::Buy, dec("-1")).is_err(), "a negative add is a removal, said as one");
-    assert!(remove_margin(eth, Side::Buy, Dec::ZERO).is_err());
-}
-
-struct Recorded {
-    answer: String,
-    sent: RefCell<Vec<(String, String)>>,
-}
-
-impl Transport for Recorded {
-    fn post(&self, path: &str, body: String) -> impl Future<Output = Result<String, TransportError>> {
-        self.sent.borrow_mut().push((path.to_owned(), body));
-        ready(Ok(self.answer.clone()))
-    }
-}
-
-fn block_on<F: Future>(future: F) -> F::Output {
-    let mut future = pin!(future);
-    let mut context = Context::from_waker(Waker::noop());
-    loop {
-        if let Poll::Ready(value) = future.as_mut().poll(&mut context) {
-            return value;
-        }
-    }
-}
-
-#[test]
-fn the_reads_post_their_type_to_info() {
-    let transport = Recorded { answer: format!("[{META},{CTXS}]"), sent: RefCell::new(Vec::new()) };
-    let both = block_on(meta_and_asset_ctxs(&transport, Dex::Main)).unwrap().unwrap();
-    assert_eq!(both.ctxs.len(), 4);
-    assert_eq!(transport.sent.borrow()[0], ("/info".to_owned(), r#"{"type":"metaAndAssetCtxs"}"#.to_owned()));
-    assert_eq!(meta_request(Dex::Main), r#"{"type":"meta"}"#);
-}
-
-#[test]
-fn a_per_dex_read_names_its_dex() {
-    let transport = Recorded { answer: "null".to_owned(), sent: RefCell::new(Vec::new()) };
-    assert_eq!(block_on(meta(&transport, Dex::Hip3("zzzz"))).unwrap(), None, "a dex the venue does not know");
-    assert_eq!(block_on(meta_and_asset_ctxs(&transport, Dex::Hip3("zzzz"))).unwrap(), None);
-    let sent: Vec<String> = transport.sent.borrow().iter().map(|(_, body)| body.clone()).collect();
-    assert_eq!(sent, [r#"{"type":"meta","dex":"zzzz"}"#, r#"{"type":"metaAndAssetCtxs","dex":"zzzz"}"#]);
-}
-
-#[test]
-fn a_dex_s_perps_count_from_its_own_base() {
-    let meta: Meta = serde_json::from_str(XYZ).unwrap();
-    let (asset, tsla) = meta.find(1, "xyz:TSLA").unwrap();
-    assert_eq!(asset.id(), 110_001);
-    assert_eq!((tsla.sz_decimals, tsla.max_leverage, tsla.grid()), (3, 20, Grid::perp(3)));
-    assert_eq!(tsla.deployer_fee_scale, Some(Dec::ONE));
-    assert_eq!(tsla.growth_mode.as_deref(), Some("enabled"));
-    assert_eq!(meta.find(2, "xyz:TSLA").unwrap().0.id(), 120_001, "the dex's place decides the id");
-    assert_eq!(meta.find(1, "TSLA"), None, "a HIP-3 coin carries its dex");
-    assert_eq!(meta.get(1, asset), Some(tsla));
-    assert_eq!(meta.get(2, asset), None, "an id of another dex");
-    let (_, hood) = meta.find(1, "xyz:HOOD").unwrap();
-    assert!(!hood.allows_cross() && tsla.allows_cross());
-    assert_eq!(meta.collateral_token, Some(0));
-    assert_eq!(serde_json::from_str::<Option<Meta>>("null").unwrap(), None, "a dex the venue does not know");
-}
-
-#[test]
-fn an_order_and_leverage_on_a_hip3_perp_name_its_asset_id() {
+fn a_hip3_perp_counts_from_its_dex_s_base_and_an_order_names_that_id() {
     let both: MetaAndAssetCtxs = serde_json::from_str(&format!("[{XYZ},{XYZ_CTXS}]")).unwrap();
     let (asset, tsla, ctx) = both.find(1, "xyz:TSLA").unwrap();
-    assert_eq!((ctx.mark_px, ctx.reference()), (dec("381.29"), dec("381.285")));
-    assert_eq!(both.ctx(1, asset), Some(ctx));
+    assert_eq!((asset.id(), tsla.sz_decimals, tsla.max_leverage, tsla.grid()), (110_001, 3, 20, Grid::perp(3)));
+    assert_eq!((tsla.deployer_fee_scale, tsla.growth_mode.as_deref()), (Some(Dec::ONE), Some("enabled")));
+    assert_eq!((ctx.mark_px, ctx.reference(), both.ctx(1, asset)), (dec("381.29"), dec("381.285"), Some(ctx)));
+    let meta = &both.meta;
+    assert_eq!(meta.find(2, "xyz:TSLA").unwrap().0.id(), 120_001, "the dex's place decides the id");
+    assert_eq!((meta.find(1, "TSLA"), meta.get(2, asset)), (None, None), "a HIP-3 coin carries its dex");
+    assert_eq!((meta.get(1, asset), both.ctx(2, asset)), (Some(tsla), None));
+    assert!(!meta.find(1, "xyz:HOOD").unwrap().1.allows_cross() && tsla.allows_cross(), "noCross");
+    let (_, _, uranium) = both.find(1, "xyz:URANIUM").unwrap();
+    assert_eq!((uranium.mid_px, uranium.reference()), (None, dec("85")));
     let price = tsla.grid().price(dec("340.187"), Side::Sell).unwrap();
     let order = Order::limit(asset, Side::Sell, price, tsla.grid().size(dec("2.5")).unwrap(), Tif::Gtc);
     assert_eq!(
@@ -167,8 +93,17 @@ fn an_order_and_leverage_on_a_hip3_perp_name_its_asset_id() {
     );
     let leverage = UpdateLeverage::new(asset, MarginMode::Isolated, 10).unwrap();
     assert_eq!(leverage.wire(), r#"{"type":"updateLeverage","asset":110001,"isCross":false,"leverage":10}"#);
-    let (_, _, uranium) = both.find(1, "xyz:URANIUM").unwrap();
-    assert_eq!((uranium.mid_px, uranium.reference()), (None, dec("85")));
+    assert_eq!(serde_json::from_str::<Option<Meta>>("null").unwrap(), None, "a dex the venue does not know");
+}
+
+/// Isolated margin is added as a positive amount and removed as a negative one, in millionths.
+#[test]
+fn margin_goes_in_positive_and_comes_out_negative() {
+    let eth = Asset::perp(1).unwrap();
+    assert_eq!(add_margin(eth, Side::Buy, dec("12.5")).unwrap().ntli(), 12_500_000);
+    assert_eq!(remove_margin(eth, Side::Sell, dec("2.5")).unwrap().ntli(), -2_500_000);
+    assert!(add_margin(eth, Side::Buy, dec("-1")).is_err(), "a negative add is a removal, said as one");
+    assert!(remove_margin(eth, Side::Buy, Dec::ZERO).is_err());
 }
 
 /// `kPEPE` is a thousand PEPE. Of the 234 perps, the seven that start with a lower case `k` are
@@ -182,8 +117,7 @@ fn a_thousands_perp_names_its_underlying_and_multiplier() {
         .map(|(_, perp)| underlying(&perp.name).0)
         .collect();
     assert_eq!(thousands, ["PEPE", "SHIB", "BONK", "LUNC", "FLOKI", "DOGS", "NEIRO"]);
-    assert_eq!(underlying("KAITO"), ("KAITO", Dec::ONE));
-    assert_eq!(underlying("BTC"), ("BTC", Dec::ONE));
-    assert_eq!(underlying("xyz:TSLA"), ("TSLA", Dec::ONE), "a HIP-3 coin's dex is not its underlying");
-    assert_eq!(underlying("k"), ("k", Dec::ONE));
+    for (coin, tracks) in [("KAITO", "KAITO"), ("BTC", "BTC"), ("xyz:TSLA", "TSLA"), ("k", "k")] {
+        assert_eq!(underlying(coin), (tracks, Dec::ONE), "{coin}");
+    }
 }

@@ -1,3 +1,6 @@
+//! `outcomeMeta` as the venue answered it, and the settlement copied from what it lists. Reads
+//! through a client are in `tests/mocked/markets`.
+
 use crate::utils::sign::L1Action;
 
 use super::*;
@@ -46,9 +49,4 @@ fn a_settlement_copies_what_outcome_meta_lists() {
     let one_sided =
         Outcome { side_specs: vec![SideSpec { name: "Yes".to_owned() }], ..meta.outcome(9015).unwrap().clone() };
     assert_eq!(one_sided.settlement(Fraction::ONE), None);
-}
-
-#[test]
-fn the_read_names_its_type() {
-    assert_eq!(outcome_meta_request(), r#"{"type":"outcomeMeta"}"#);
 }

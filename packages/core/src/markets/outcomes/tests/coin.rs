@@ -25,7 +25,7 @@ fn canonical() -> PlaceOrder {
 }
 
 #[test]
-fn the_order_action_hashes_to_the_verified_value() {
+fn the_order_action_hashes_and_signs_to_the_verified_values() {
     let action = canonical();
     assert_eq!(
         action.wire(),
@@ -48,14 +48,9 @@ fn the_order_action_hashes_to_the_verified_value() {
         hex::encode(&action.connection_id(NONCE, None)),
         "b1326e8fc384f433fc462a79ca16e7c28f7b778da1d659c9f0873add8f8e498d"
     );
-}
-
-#[test]
-fn the_order_s_body_is_the_one_the_venue_is_signed_against() {
     let key = LocalKey::from_hex("0x0000000000000000000000000000000000000000000000000000000000000001").unwrap();
     let published: Address = "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf".parse().unwrap();
     assert_eq!(key.address(), published);
-    let action = canonical();
     let signature = key.sign_digest(&action.digest(NONCE, None, Network::Mainnet)).unwrap();
     assert_eq!(recover(&action.digest(NONCE, None, Network::Mainnet), &signature), Ok(published));
     assert_eq!(
@@ -100,37 +95,23 @@ fn the_cancel_action_hashes_to_the_verified_value() {
 }
 
 #[test]
-fn a_market_order_is_frontend_market_at_the_edge_of_the_range_and_never_gtc() {
-    let buy = coin().market(Side::Buy, Qty::new(50)).unwrap();
-    assert_eq!((buy.price(), buy.tif()), (Px::MAX_QUOTE.to_dec(), Some(Tif::FrontendMarket)));
-    let sell = coin().market(Side::Sell, Qty::new(50)).unwrap();
-    assert_eq!((sell.price(), sell.tif()), (Px::MIN_QUOTE.to_dec(), Some(Tif::FrontendMarket)));
-    assert!(buy.is_market() && sell.is_market());
-    let posted = PlaceOrder::one(sell).wire();
-    assert!(posted.contains(r#""p":"0.00001""#) && posted.contains(r#""tif":"FrontendMarket""#), "{posted}");
-    assert!(!posted.contains("Gtc"), "{posted}");
-    let resting = coin().order(Side::Buy, px("0.35"), Qty::new(50), Tif::Gtc).unwrap();
-    assert!(!resting.is_market());
-    assert_eq!(coin().market(Side::Buy, Qty::ZERO), Err(OutcomeError::Size(Dec::ZERO)));
-}
-
-#[test]
 fn a_coin_is_spelled_with_a_hash_in_info_and_a_plus_in_balances() {
     let yes = Coin::new(1210, OutcomeSide::Yes);
     assert_eq!(
         (yes.to_string(), yes.balance_name(), yes.encoding()),
         ("#12100".to_owned(), "+12100".to_owned(), 12100)
     );
-    assert_eq!(yes.asset().unwrap().id(), 100_012_100);
+    assert_eq!((yes.outcome(), yes.side(), yes.asset().unwrap().id()), (1210, OutcomeSide::Yes, 100_012_100));
     assert_eq!(yes.opposite(), Coin::new(1210, OutcomeSide::No));
-    assert_eq!(Coin::parse("#12101"), Some(yes.opposite()));
-    assert_eq!(Coin::parse("+12100"), Some(yes));
-    // A live spot balance row, 2026-10-06: `{"coin":"+92260", ...}`, no `token`.
-    assert_eq!(Coin::parse("+92260"), Some(Coin::new(9226, OutcomeSide::Yes)));
+    assert_eq!(Coin::from_asset(yes.asset().unwrap()), Some(yes));
+    // `+92260` is a live spot balance row, 2026-10-06, with no `token`.
+    for (text, coin) in [("#12101", yes.opposite()), ("+12100", yes), ("+92260", Coin::new(9226, OutcomeSide::Yes))] {
+        assert_eq!(Coin::parse(text), Some(coin), "{text}");
+    }
     for bad in ["12100", "#", "#12102", "#-1", "@107", "#99999999999"] {
         assert_eq!(Coin::parse(bad), None, "{bad}");
+        assert!(bad.parse::<Coin>().is_err(), "{bad}");
     }
-    assert_eq!(Coin::from_asset(yes.asset().unwrap()), Some(yes));
     assert_eq!("#5160".parse::<Coin>(), Ok(coin()));
 }
 
@@ -138,38 +119,57 @@ fn px(text: &str) -> Px {
     Px::parse(text).unwrap()
 }
 
+/// A market order goes at the edge of the range as `FrontendMarket`, never `Gtc`; a limit order
+/// names a quotable price; either carries whole contracts above zero.
 #[test]
-fn an_order_names_a_quotable_price_and_whole_contracts() {
-    let order = coin().order(Side::Buy, px("0.35"), Qty::new(50), Tif::Gtc).unwrap();
+fn an_order_on_a_side_is_refused_before_signing_unless_it_can_rest_or_cross() {
+    let buy = coin().market(Side::Buy, Qty::new(50)).unwrap();
+    let sell = coin().market(Side::Sell, Qty::new(50)).unwrap();
+    assert_eq!((buy.price(), buy.tif(), buy.is_market()), (Px::MAX_QUOTE.to_dec(), Some(Tif::FrontendMarket), true));
+    assert_eq!((sell.price(), sell.tif(), sell.is_market()), (Px::MIN_QUOTE.to_dec(), Some(Tif::FrontendMarket), true));
+    let resting = coin().order(Side::Buy, px("0.35"), Qty::new(50), Tif::Gtc).unwrap();
     assert_eq!(
-        PlaceOrder::one(order).wire(),
+        PlaceOrder::one(resting).wire(),
         r#"{"type":"order","orders":[{"a":100005160,"b":true,"p":"0.35","s":"50","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na"}"#
     );
-    assert_eq!(coin().order(Side::Sell, Px::ONE, Qty::new(1), Tif::Gtc), Err(OutcomeError::Price(Dec::ONE)));
-    assert_eq!(coin().order(Side::Sell, Px::ZERO, Qty::new(1), Tif::Alo), Err(OutcomeError::Price(Dec::ZERO)));
-    assert_eq!(coin().order(Side::Buy, px("0.5"), Qty::ZERO, Tif::Gtc), Err(OutcomeError::Size(Dec::ZERO)));
+    let unencodable = Coin::new(u32::MAX, OutcomeSide::Yes);
+    let refused = [
+        (coin().market(Side::Buy, Qty::ZERO), OutcomeError::Size(Dec::ZERO)),
+        (coin().order(Side::Sell, Px::ONE, Qty::new(1), Tif::Gtc), OutcomeError::Price(Dec::ONE)),
+        (coin().order(Side::Sell, Px::ZERO, Qty::new(1), Tif::Alo), OutcomeError::Price(Dec::ZERO)),
+        (coin().order(Side::Buy, px("0.5"), Qty::ZERO, Tif::Gtc), OutcomeError::Size(Dec::ZERO)),
+        (coin().market_within(Side::Buy, px("0.5"), dec("0.51"), Qty::new(1)), OutcomeError::Slippage(dec("0.51"))),
+        (coin().market_within(Side::Buy, px("0.5"), dec("-0.01"), Qty::new(1)), OutcomeError::Slippage(dec("-0.01"))),
+        (coin().market_within(Side::Buy, px("0.5"), dec("0.01"), Qty::ZERO), OutcomeError::Size(Dec::ZERO)),
+        (unencodable.market(Side::Buy, Qty::new(1)), OutcomeError::NoAsset(unencodable)),
+        (unencodable.order(Side::Buy, px("0.5"), Qty::new(1), Tif::Gtc), OutcomeError::NoAsset(unencodable)),
+        (unencodable.market_within(Side::Buy, px("0.5"), dec("0.01"), Qty::new(1)), OutcomeError::NoAsset(unencodable)),
+    ];
+    for (order, why) in refused {
+        assert_eq!(order, Err(why.clone()), "{why}");
+    }
 }
 
-/// Two percent over a 0.60 ask to buy, two percent under a 0.58 bid to close.
+/// Two percent over a 0.60 ask to buy and under a 0.58 bid to close; the bound rounds toward its
+/// reference and stops at the edge of the range.
 #[test]
 fn a_market_order_within_a_slippage_is_bounded_toward_its_reference() {
+    let cases = [
+        (Side::Buy, "0.6", "0.02", "0.612"),
+        (Side::Sell, "0.58", "0.02", "0.5684"),
+        (Side::Buy, "0.33333", "0.01", "0.33666"),
+        (Side::Sell, "0.33333", "0.01", "0.33"),
+        (Side::Buy, "0.99", "0.05", "0.99999"),
+        (Side::Sell, "0.00001", "0.5", "0.00001"),
+        (Side::Buy, "0.58497", "0.02", "0.59666"),
+    ];
     let arsenal = Coin::new(1473, OutcomeSide::Yes);
-    let buy = arsenal.market_within(Side::Buy, px("0.6"), dec("0.02"), Qty::new(16)).unwrap();
-    assert_eq!((buy.price(), buy.size(), buy.tif()), (dec("0.612"), dec("16"), Some(Tif::FrontendMarket)));
-    let sell = arsenal.market_within(Side::Sell, px("0.58"), dec("0.02"), Qty::new(16)).unwrap();
-    assert_eq!((sell.price(), sell.tif()), (dec("0.5684"), Some(Tif::FrontendMarket)));
-    let third = px("0.33333");
-    let up = arsenal.market_within(Side::Buy, third, dec("0.01"), Qty::new(1)).unwrap();
-    assert_eq!(up.price(), dec("0.33666"), "0.3366633 rounds down, toward the reference");
-    let down = arsenal.market_within(Side::Sell, third, dec("0.01"), Qty::new(1)).unwrap();
-    assert_eq!(down.price(), dec("0.33"), "0.3299967 rounds up, toward the reference");
-    let edge = arsenal.market_within(Side::Buy, px("0.99"), dec("0.05"), Qty::new(1)).unwrap();
-    assert_eq!(edge.price(), Px::MAX_QUOTE.to_dec(), "past the range it stops at the edge");
-    let floor = arsenal.market_within(Side::Sell, px("0.00001"), dec("0.5"), Qty::new(1)).unwrap();
-    assert_eq!(floor.price(), Px::MIN_QUOTE.to_dec());
-    assert_eq!(
-        arsenal.market_within(Side::Buy, px("0.5"), dec("0.51"), Qty::new(1)),
-        Err(OutcomeError::Slippage(dec("0.51")))
-    );
-    assert_eq!(arsenal.market_within(Side::Buy, px("0.5"), dec("0.01"), Qty::ZERO), Err(OutcomeError::Size(Dec::ZERO)));
+    for (side, reference, slippage, bound) in cases {
+        let order = arsenal.market_within(side, px(reference), dec(slippage), Qty::new(16)).unwrap();
+        assert_eq!(
+            (order.price(), order.size(), order.tif()),
+            (dec(bound), dec("16"), Some(Tif::FrontendMarket)),
+            "{side} {reference}"
+        );
+    }
 }

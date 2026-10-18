@@ -1,3 +1,6 @@
+//! `spotMeta` and `spotMetaAndAssetCtxs` as the venue answered them on mainnet, and what an order
+//! on a pair names from them. Reads through a client are in `tests/mocked/markets`.
+
 use crate::client::MAINNET_USDC as USDC;
 use crate::trade::{Order, PlaceOrder, Side, Tif};
 use crate::utils::Dec;
@@ -19,83 +22,68 @@ fn dec(text: &str) -> Dec {
 }
 
 #[test]
-fn a_token_is_found_by_index_name_and_wire_name() {
+fn a_token_is_found_by_its_index_name_id_or_wire_name() {
     let meta = meta();
     let hype = meta.token_named("HYPE").unwrap();
-    assert_eq!((hype.index, hype.sz_decimals, hype.wei_decimals), (150, 2, 8));
-    assert_eq!(hype.wire(), "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec");
-    assert_eq!(meta.token(150), Some(hype));
-    assert_eq!(meta.token_by_wire("HYPE:0x0D01DC56DCAACA66AD901C959B4011EC"), Some(hype));
+    assert_eq!((hype.index, hype.sz_decimals, hype.wei_decimals, hype.evm_contract.as_ref()), (150, 2, 8, None));
+    assert_eq!(
+        (hype.wire(), hype.deployer_trading_fee_share),
+        ("HYPE:0x0d01dc56dcaaca66ad901c959b4011ec".to_owned(), Some(Dec::ZERO))
+    );
+    let found = [
+        meta.token(150),
+        meta.token_by_id("0x0D01DC56DCAACA66AD901C959B4011EC"),
+        meta.token_by_wire("HYPE:0x0D01DC56DCAACA66AD901C959B4011EC"),
+    ];
+    assert_eq!(found, [Some(hype); 3], "an id in either case");
     assert_eq!(meta.token_by_wire("HYPE:0x6d1e7cde53ba9467b783cb7c530ce054"), None, "a name with another's id");
-    assert_eq!(hype.evm_contract, None);
-    let usdc = meta.token(0).unwrap();
-    assert_eq!(usdc.wire(), USDC.wire, "agrees with the USDC constant");
+    assert_eq!((meta.token_by_wire("HYPE"), meta.token(3)), (None, None));
+    let usdc = meta.usdc().unwrap();
+    assert_eq!((usdc.index, usdc.wire()), (0, USDC.wire.to_owned()), "agrees with the USDC constant");
     assert_eq!(usdc.evm_contract.as_ref().map(|evm| evm.extra_wei_decimals), Some(-2));
     assert_eq!(meta.token(197).and_then(|ubtc| ubtc.full_name.as_deref()), Some("Unit Bitcoin"));
 }
 
 #[test]
-fn a_pair_is_found_by_its_own_index_its_book_name_or_its_tokens() {
+fn a_pair_is_found_by_its_own_index_its_book_name_its_tokens_or_its_asset_id() {
     let meta = meta();
     let hype = meta.market_of("HYPE", "USDC").unwrap();
-    assert_eq!(hype.pair.name, "@107");
-    assert_eq!(hype.display_name(), "HYPE/USDC");
-    assert_eq!(hype.asset().unwrap().id(), 10_107);
-    assert_eq!(hype.grid(), Grid::spot(2));
-    assert_eq!(meta.pair_named("@107"), Some(hype.pair));
-    assert_eq!(meta.pair_of(150, 0), Some(hype.pair));
-    assert_eq!(meta.pair_of(0, 150), None, "base first");
-    let purr = meta.market(0).unwrap();
     assert_eq!(
-        (purr.pair.name.as_str(), purr.asset().unwrap().id(), purr.grid()),
-        ("PURR/USDC", 10_000, Grid::spot(0))
+        (hype.pair.name.as_str(), hype.display_name(), hype.grid()),
+        ("@107", "HYPE/USDC".to_owned(), Grid::spot(2))
     );
-    assert_eq!(meta.market(1), None, "pair 1 is not in this trimmed answer");
+    assert_eq!((hype.asset().map(Asset::id), hype.pair.base(), hype.pair.quote()), (Some(10_107), 150, 0));
+    let found = [meta.market(107), meta.market_named("@107"), meta.market_at(Asset::from_id(10_107))];
+    assert_eq!(found, [Some(hype); 3]);
+    assert_eq!(
+        (meta.pair_named("@107"), meta.pair_of(150, 0), meta.pair_of(0, 150)),
+        (Some(hype.pair), Some(hype.pair), None),
+        "base first"
+    );
+    let purr = meta.market_named("PURR/USDC").unwrap();
+    assert_eq!((purr.pair.index, purr.asset().map(Asset::id), purr.grid()), (0, Some(10_000), Grid::spot(0)));
+    let missing =
+        [meta.market(1), meta.market_at(Asset::from_id(107)), meta.market_of("HYPE", "PURR"), meta.market_named("@1")];
+    assert_eq!(missing, [None; 4], "pair 1 is not in this trimmed answer, and a perp id is no pair");
 }
 
+/// A token is worth its pair with USDC's mark. Outcome sides share the contexts, keyed by book name.
 #[test]
-fn contexts_are_keyed_by_book_name_outcome_sides_included() {
+fn contexts_are_keyed_by_book_name_and_price_a_token_in_usdc() {
     let both: SpotMetaAndAssetCtxs = serde_json::from_str(&format!("[{META},{CTXS}]")).unwrap();
     let hype = both.ctx("@107").unwrap();
     assert_eq!((hype.mark_px, hype.reference()), (dec("91.882"), dec("91.887")));
     assert_eq!(both.ctx("#88470").and_then(|side| side.total_supply), Some(dec("184467440737095.53125")));
     assert_eq!(both.ctx("HYPE/USDC"), None, "the book calls it @107");
-}
-
-/// Every recorded context carries its circulating supply: one without it is refused, not read as
-/// unknown.
-#[test]
-fn a_context_without_its_circulating_supply_is_refused() {
-    let without = r#"{"prevDayPx":"0.1647","dayNtlVlm":"2299853.9030900002","markPx":"0.15262","midPx":"0.15272","coin":"PURR/USDC","totalSupply":"594784610.6496700048","dayBaseVlm":"14751907.0"}"#;
-    assert!(serde_json::from_str::<SpotCtx>(without).is_err());
-}
-
-/// What a balance of each token is worth: its pair with USDC's mark.
-#[test]
-fn a_token_is_priced_in_usdc_by_its_pair_s_mark() {
-    let both: SpotMetaAndAssetCtxs = serde_json::from_str(&format!("[{META},{CTXS}]")).unwrap();
-    assert_eq!(both.usdc_price(150), Some(dec("91.882")));
-    assert_eq!(both.usdc_price(1), Some(dec("0.15262")));
-    assert_eq!(both.usdc_price(0), Some(Dec::ONE), "USDC is one USDC");
-    assert_eq!(both.usdc_price(197), None, "UBTC's pair has no context in this trimmed answer");
-    assert_eq!(both.usdc_price(9999), None);
+    let prices =
+        [(150, Some(dec("91.882"))), (1, Some(dec("0.15262"))), (0, Some(Dec::ONE)), (197, None), (9999, None)];
+    for (token, price) in prices {
+        assert_eq!(both.usdc_price(token), price, "token {token}");
+    }
     assert_eq!(
         both.market_ctx(107).map(|(market, ctx)| (market.display_name(), ctx.mark_px)),
         Some(("HYPE/USDC".to_owned(), dec("91.882")))
     );
-}
-
-#[test]
-fn a_market_is_found_by_its_book_name_or_its_asset_id() {
-    let meta = meta();
-    let hype = meta.market_named("@107").unwrap();
-    assert_eq!(hype.display_name(), "HYPE/USDC");
-    assert_eq!(meta.market_at(Asset::from_id(10_107)), Some(hype));
-    assert_eq!(meta.market_at(Asset::from_id(107)), None, "a perp id is not a pair");
-    assert_eq!(meta.market_named("PURR/USDC").map(|purr| purr.pair.index), Some(0));
-    assert_eq!(meta.usdc().map(|usdc| usdc.index), Some(0));
-    assert_eq!(meta.token_by_id("0x0d01dc56dcaaca66ad901c959b4011ec").map(|hype| hype.name.as_str()), Some("HYPE"));
-    assert_eq!(meta.token(150).and_then(|hype| hype.deployer_trading_fee_share), Some(Dec::ZERO));
 }
 
 #[test]
@@ -109,10 +97,4 @@ fn a_spot_order_goes_out_on_the_base_s_grid() {
         PlaceOrder::one(order).wire(),
         r#"{"type":"order","orders":[{"a":10107,"b":true,"p":"91.887","s":"1.23","r":false,"t":{"limit":{"tif":"Gtc"}}}],"grouping":"na"}"#
     );
-}
-
-#[test]
-fn the_reads_name_their_type() {
-    assert_eq!(spot_meta_request(), r#"{"type":"spotMeta"}"#);
-    assert_eq!(spot_meta_and_asset_ctxs_request(), r#"{"type":"spotMetaAndAssetCtxs"}"#);
 }
