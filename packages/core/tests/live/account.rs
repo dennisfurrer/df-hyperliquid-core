@@ -16,7 +16,7 @@ const UNIFIED_SUB: &str = "0x1a16ca90bc961b6bce46f400be2afb0f9f71b93f";
 const LEADER: &str = "0x677d831aef5328190852e24f13c46cac05f984e7";
 /// A builder.
 const BUILDER: &str = "0x6967d7acd1ec5f210e9590666498e0cc5d13a843";
-/// An address the venue has never seen: the mocked suite's owner.
+/// An address the venue has never seen.
 const FRESH: &str = "0x13765b62653adb4e912c9b1cbdc789efa883c106";
 
 fn address(text: &str) -> Address {

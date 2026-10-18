@@ -46,15 +46,32 @@ pub fn last(client: &Client<Tap>) -> Value {
 /// `<path>#<key>`. Fails naming every key path the venue has added since it was recorded, and
 /// keeps the live answer as `target/tmp/live/<path>` to re-record from.
 pub fn same_shape(client: &Client<Tap>, recording: &str) {
+    same_shape_as_any(client, &[recording]);
+}
+
+/// [`same_shape`] against several recordings of one read, for fields the venue sends on some rows
+/// only (a fill's `liquidation`): a path counts as added only when none of them has it.
+pub fn same_shape_as_any(client: &Client<Tap>, recordings: &[&str]) {
     let live = last(client);
-    let recorded = match recording.split_once('#') {
+    keep(recordings[0], &live);
+    let mut unseen: Option<Vec<String>> = None;
+    for recording in recordings {
+        let recorded: Value = serde_json::from_str(&recorded(recording)).unwrap();
+        let missing = added(&recorded, &live);
+        unseen = Some(match unseen {
+            None => missing,
+            Some(before) => before.into_iter().filter(|path| missing.contains(path)).collect(),
+        });
+    }
+    let unseen = unseen.unwrap_or_default();
+    assert!(unseen.is_empty(), "the venue now answers {recordings:?} with fields it did not have: {unseen:#?}");
+}
+
+fn recorded(recording: &str) -> String {
+    match recording.split_once('#') {
         Some((path, key)) => entry(path, key),
         None => fixture(recording),
-    };
-    let recorded: Value = serde_json::from_str(&recorded).unwrap();
-    keep(recording, &live);
-    let added = added(&recorded, &live);
-    assert!(added.is_empty(), "the venue now answers {recording} with fields it did not have: {added:#?}");
+    }
 }
 
 fn keep(recording: &str, live: &Value) {

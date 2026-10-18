@@ -11,7 +11,7 @@ use df_hyperliquid_core::markets::Dex;
 use df_hyperliquid_core::trade::OrderRef;
 
 use super::{LEADER, UNIFIED, address};
-use crate::tap::{reader, same_shape};
+use crate::tap::{reader, same_shape, same_shape_as_any};
 
 const TRADER: &str = "0xd80adf681abe30a3d644db1daae9abaa2d25a895";
 const WATCHED: &str = "0xf77a75616ff4aa16c890fabb4ab725a732d7e2b7";
@@ -42,10 +42,11 @@ async fn the_trader_s_fills_read_by_window_and_by_twap_slice() {
 async fn the_trader_s_latest_fills_read_split_and_aggregated() {
     let client = reader();
     let trader = address(TRADER);
+    let fills = ["trade/user_fills.json", "account/user_fills_liquidated_mainnet.json"];
     user_fills(&client, trader, false).await.unwrap();
-    same_shape(&client, "trade/user_fills.json");
+    same_shape_as_any(&client, &fills);
     user_fills(&client, trader, true).await.unwrap();
-    same_shape(&client, "trade/user_fills.json");
+    same_shape_as_any(&client, &fills);
 }
 
 #[tokio::test]
