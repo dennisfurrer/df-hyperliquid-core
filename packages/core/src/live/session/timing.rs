@@ -6,8 +6,8 @@ use crate::live::session::{Link, Session};
 /// The clock's rules, in milliseconds.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Timing {
-    /// Ping a socket nothing has arrived on for this long. The venue closes one it has sent
-    /// nothing to for 60 s; a ping makes it send a pong.
+    /// Ping a socket no pong or data has arrived on for this long. The venue closes one it has
+    /// sent nothing to for 60 s, and its acks do not count; a ping makes it send a pong.
     pub ping_after_ms: u64,
     /// A socket nothing has arrived on for this long, pong included, is dead. The venue would
     /// have closed it by now; when no close came, the connection is half open.
@@ -61,15 +61,15 @@ pub struct Retry {
 }
 
 impl Session {
-    /// What the socket needs at `now`: a ping after [`Timing::ping_after_ms`] of quiet (once,
-    /// until something arrives or as long again passes), or a reconnect after
-    /// [`Timing::silent_ms`] of nothing.
+    /// What the socket needs at `now`: a ping after [`Timing::ping_after_ms`] with no pong or
+    /// data (once, until one arrives or as long again passes), or a reconnect after
+    /// [`Timing::silent_ms`] of nothing at all.
     pub fn tick(&mut self, now: u64) -> Tick {
-        let Link::Open { heard, pinged, .. } = &mut self.link else { return Tick::Wait };
+        let Link::Open { heard, kept, pinged, .. } = &mut self.link else { return Tick::Wait };
         if now.saturating_sub(*heard) >= self.timing.silent_ms {
             return Tick::Reconnect;
         }
-        if now.saturating_sub((*heard).max(*pinged)) >= self.timing.ping_after_ms {
+        if now.saturating_sub((*kept).max(*pinged)) >= self.timing.ping_after_ms {
             *pinged = now;
             return Tick::Ping;
         }
@@ -79,8 +79,8 @@ impl Session {
     /// When a tick next has something to do; `None` while closed.
     #[must_use]
     pub fn due(&self) -> Option<u64> {
-        let Link::Open { heard, pinged, .. } = self.link else { return None };
-        let ping = heard.max(pinged).saturating_add(self.timing.ping_after_ms);
+        let Link::Open { heard, kept, pinged, .. } = self.link else { return None };
+        let ping = kept.max(pinged).saturating_add(self.timing.ping_after_ms);
         let silent = heard.saturating_add(self.timing.silent_ms);
         Some(ping.min(silent))
     }

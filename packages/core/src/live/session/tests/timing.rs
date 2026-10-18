@@ -39,6 +39,25 @@ fn a_quiet_socket_is_pinged_after_thirty_seconds_and_a_busy_one_never() {
     }
 }
 
+/// The venue's acks, refusals and post answers keep the socket alive to us but not to the venue:
+/// on 2026-10-18 a socket that subscribed and unsubscribed every 20 s, getting only acks, was
+/// closed at 60 s ("1000 Inactive"). So they never put off a ping; data and pongs do.
+#[test]
+fn acks_refusals_and_post_answers_do_not_put_off_the_ping() {
+    for quiet in ["ack.l2Book", "error.alreadySubscribed", "post.info.l2Book"] {
+        let mut session = open(0);
+        assert!(session.received(20_000, &mainnet(quiet)).is_ok(), "{quiet}");
+        assert_eq!((session.due(), session.tick(30_000)), (Some(30_000), Tick::Ping), "{quiet}");
+        assert_eq!(session.tick(59_999), Tick::Wait, "{quiet}");
+        assert_eq!(session.tick(60_000), Tick::Ping, "{quiet}: no pong yet, so again");
+        assert_eq!(session.tick(79_999), Tick::Wait, "{quiet}: alive to us until 60 s after it arrived");
+        assert_eq!(session.tick(80_000), Tick::Reconnect, "{quiet}");
+    }
+    let mut session = open(0);
+    assert!(session.received(20_000, &mainnet("l2Book")).is_ok());
+    assert_eq!((session.due(), session.tick(30_000)), (Some(50_000), Tick::Wait), "data does");
+}
+
 #[test]
 fn sixty_seconds_of_nothing_pong_included_is_a_dead_socket() {
     let mut session = open(0);

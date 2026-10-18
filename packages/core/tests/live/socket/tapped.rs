@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use df_hyperliquid_core::Network;
 use df_hyperliquid_core::client::native::Feed;
-use df_hyperliquid_core::live::{Event, Frame, Method, Session, Subscription, Timing};
+use df_hyperliquid_core::live::{Event, Frame, Method, Session, Subscription};
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
 use tokio::net::TcpListener;
@@ -25,9 +25,9 @@ pub struct Tapped {
 }
 
 impl Tapped {
-    /// Each time the feed dials, the tap dials the venue. The venue closes a socket after a minute
-    /// in which it sent nothing but acknowledgements, so the feed pings after ten quiet seconds,
-    /// not thirty, to stay open across the channels that send only on change.
+    /// Each time the feed dials, the tap dials the venue. The feed keeps its default timing: the
+    /// channels that send only on change leave the socket with nothing but acks for minutes, and
+    /// its pings must keep it open regardless.
     pub async fn open() -> Tapped {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let url = format!("ws://{}", listener.local_addr().unwrap());
@@ -61,8 +61,7 @@ impl Tapped {
                 }
             }
         });
-        let timing = Timing { ping_after_ms: 10_000, ..Timing::DEFAULT };
-        Tapped { feed: Feed::start_at(url, Session::new(Network::Mainnet).with_timing(timing)), kept }
+        Tapped { feed: Feed::start_at(url, Session::new(Network::Mainnet)), kept }
     }
 
     /// Subscribes, waits for the venue's acknowledgement and the channel's first frame, and

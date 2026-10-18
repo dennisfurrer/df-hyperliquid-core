@@ -22,6 +22,10 @@ enum Link {
         since: u64,
         /// When anything last arrived; `since` until something does.
         heard: u64,
+        /// When the venue last sent what keeps the socket open on its side, a pong or a
+        /// subscription's data; `since` until it does. Its acks, refusals and post answers do
+        /// not count: a socket that gets only acks is closed at 60 s all the same.
+        kept: u64,
         /// Whether anything has arrived at all.
         talked: bool,
         /// When the last ping went out; `since` until one does.
@@ -157,18 +161,22 @@ impl Session {
     /// The socket opened at `now`. Gives the frames that subscribe to everything wanted, in
     /// order.
     pub fn opened(&mut self, now: u64) -> Vec<String> {
-        self.link = Link::Open { since: now, heard: now, talked: false, pinged: now };
+        self.link = Link::Open { since: now, heard: now, kept: now, talked: false, pinged: now };
         self.wanted.iter().map(subscribe).collect()
     }
 
     /// A text frame arrived at `now`. Anything that arrives shows the socket is alive, whether it
-    /// reads or not. A post's answer or refusal stops it waiting.
+    /// reads or not; only a pong or a subscription's data puts off the next ping. A post's answer
+    /// or refusal stops it waiting.
     pub fn received(&mut self, now: u64, text: &str) -> Result<Frame, BadFrame> {
-        if let Link::Open { heard, talked, .. } = &mut self.link {
+        let frame = decode(text);
+        if let Link::Open { heard, kept, talked, .. } = &mut self.link {
             *heard = (*heard).max(now);
             *talked = true;
+            if frame.as_ref().is_ok_and(|frame| !matches!(frame, Frame::Ack(_) | Frame::Error(_) | Frame::Post(_))) {
+                *kept = (*kept).max(now);
+            }
         }
-        let frame = decode(text);
         let answered = match &frame {
             Ok(Frame::Post(reply)) => Some(reply.id),
             Ok(Frame::Error(refusal)) => refusal.post_id(),
