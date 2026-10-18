@@ -1,6 +1,6 @@
 //! What the outcome action tests share: values typed the way a caller types them, `outcomeMeta`
 //! listings for a settlement to copy, and the actions of the Python SDK's script, whose hashes
-//! `tests/conformance/hip4.rs` holds.
+//! `tests/conformance/hip4/deploy.rs` holds.
 
 use crate::deploy::outcomes::actions::{
     FeeScale, Fraction, Grant, Instance, Keywords, OutcomeDeploy, Permission, Venue,

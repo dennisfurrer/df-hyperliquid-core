@@ -1,5 +1,5 @@
 //! Each operation's key, body and the grant a sub-deployer needs to send it, and every grant on the
-//! wire. The deployer vectors made outside this crate are in `tests/conformance/hip4.rs`.
+//! wire. The deployer vectors made outside this crate are in `tests/conformance/hip4/deploy.rs`.
 
 use super::*;
 use crate::deploy::outcomes::actions::outcome_deploy::OutcomeDeploy;
