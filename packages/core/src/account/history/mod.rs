@@ -15,6 +15,6 @@ pub use ledger::{Delta, LedgerUpdate, LiquidatedPosition, find, ledger, ledger_r
 pub use orders::{
     FrontendOrder, OpenOrder, OrderKind, OrderLookup, OrderRecord, OrderState, frontend_open_orders,
     frontend_open_orders_request, historical_orders, historical_orders_request, open_orders, open_orders_request,
-    order_status, order_status_request,
+    order_status, order_status_request, twap_history, twap_history_request,
 };
 pub use portfolio::{History, Portfolio, Span, portfolio, portfolio_request, summed};

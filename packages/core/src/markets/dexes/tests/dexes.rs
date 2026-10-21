@@ -1,7 +1,9 @@
 //! Live answers from 2026-09-26 and 27, stored as sent: `perpDexs`, `allPerpMetas` (all 11 dexes,
 //! 528 perps), `perpDexLimits` and `perpDexStatus` for `xyz`, and `metaAndAssetCtxs` for `para`, all
-//! mainnet. Reads through a client are in `tests/mocked/markets`.
+//! mainnet; and `perpCategories` from 2026-10-21, whole. Reads through a client are in
+//! `tests/mocked/markets`.
 
+use crate::markets::dex::split_coin;
 use crate::markets::dexes::dex::PerpDexs;
 use crate::markets::dexes::limits::{DexLimits, DexStatus};
 use crate::markets::dexes::listing::{Dexes, Misaligned};
@@ -16,6 +18,8 @@ const STATUS: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_dex_status_xyz_mainnet.json"));
 const PARA: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/meta_and_asset_ctxs_para_mainnet.json"));
+const CATEGORIES: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_categories_mainnet.json"));
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -138,4 +142,21 @@ fn a_dex_s_limits_status_and_contexts_agree_with_its_listing() {
         (ctx.impact_pxs.clone(), ctx.day_base_vlm),
         (Some(vec![dec("5.16283"), dec("5.17184")]), Some(dec("1005.4")))
     );
+}
+
+/// Every category names a HIP-3 perp, once, on a dex `perpDexs` lists; none is the main dex's. The
+/// words are kept as the deployers wrote them.
+#[test]
+fn each_hip3_perp_s_category_is_read_by_its_coin_as_written() {
+    let categories: Vec<(String, String)> = serde_json::from_str(CATEGORIES).unwrap();
+    assert_eq!(categories.len(), 222);
+    let dexes = list();
+    for (coin, _) in &categories {
+        let (dex, _) = split_coin(coin).unwrap_or_else(|| panic!("{coin} is on the main dex"));
+        assert!(dexes.get(dex).is_some(), "{coin}");
+        assert_eq!(categories.iter().filter(|(other, _)| other == coin).count(), 1, "{coin}");
+    }
+    let of = |coin: &str| categories.iter().find(|(listed, _)| listed == coin).map(|(_, category)| category.as_str());
+    assert_eq!((of("xyz:TSLA"), of("xyz:EUR"), of("km:EUR")), (Some("stocks"), Some("fx"), Some("FX")));
+    assert_eq!((of("para:AAOI"), of("BTC")), (Some("stock"), None));
 }

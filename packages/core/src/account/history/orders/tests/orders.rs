@@ -1,7 +1,7 @@
 //! The order rows as the venue writes them. Live answers, mainnet, 2026-10-08, trimmed to a few whole
 //! rows each: one account's resting orders, and another's order history, one row of each status,
-//! order type and time in force. The reads, and the statuses by either id, run in the mocked
-//! journeys.
+//! order type and time in force; and a third's TWAP history, 2026-10-21, cut to its newest four
+//! rows. The reads, and the statuses by either id, run in the mocked journeys.
 
 use crate::utils::Dec;
 
@@ -11,6 +11,7 @@ use crate::trade::orders::{Side, Tif, Tpsl};
 const OPEN: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/open_orders.json"));
 const FRONTEND: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/frontend_open_orders.json"));
 const HISTORY: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/historical_orders.json"));
+const TWAPS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/trade/twap_history_mainnet.json"));
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -96,4 +97,32 @@ fn every_status_reads_as_its_kind_of_end_and_an_unread_lookup_is_refused() {
     }
     let unread = serde_json::from_str::<OrderLookup>(r#"{"status":"somethingElse"}"#).unwrap_err();
     assert!(unread.to_string().contains("orderStatus answered `somethingElse`"), "{unread}");
+}
+
+/// Two TWAPs, newest first, each stopped after it started. A row's `time` is in seconds and its
+/// TWAP's `timestamp` in milliseconds: the start is the second its TWAP was placed.
+#[test]
+fn a_twap_history_keeps_a_row_for_each_change_of_state_newest_first() {
+    let rows: Vec<TwapEvent> = serde_json::from_str(TWAPS).unwrap();
+    let ids: Vec<(Option<u64>, &str)> = rows.iter().map(|row| (row.twap_id, row.status.status.as_str())).collect();
+    assert_eq!(
+        ids,
+        [
+            (Some(2_305_816), "terminated"),
+            (Some(2_305_816), "activated"),
+            (Some(2_281_204), "terminated"),
+            (Some(2_281_204), "activated"),
+        ]
+    );
+    assert!(rows.windows(2).all(|pair| pair[0].time >= pair[1].time), "newest first");
+    let (stopped, started) = (&rows[0], &rows[1]);
+    assert_eq!((stopped.state.coin.as_str(), stopped.state.side, stopped.state.minutes), ("BTC", Side::Buy, 10_080));
+    assert_eq!(
+        (stopped.state.sz, stopped.state.executed_sz, stopped.state.executed_ntl),
+        (dec("1.14828"), dec("0.0051"), dec("424.3892"))
+    );
+    assert_eq!((started.state.executed_sz, started.status.description.as_deref()), (Dec::ZERO, None));
+    assert_eq!((started.time, started.state.timestamp), (1_791_731_384, 1_791_731_384_499));
+    assert_eq!(started.time, started.state.timestamp / 1000);
+    assert_eq!(stopped.state.user, "0x8d1548a936241928cef288a1c377919a5d511f7a".parse::<Address>().unwrap());
 }

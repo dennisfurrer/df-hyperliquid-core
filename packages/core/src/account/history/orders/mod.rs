@@ -1,6 +1,6 @@
 //! An account's orders as the venue reads them back, on every market kind: `openOrders`,
-//! `frontendOpenOrders`, `orderStatus` and `historicalOrders`. Figures are exact decimals; sides
-//! are `B` (a buy) and `A` (a sell).
+//! `frontendOpenOrders`, `orderStatus`, `historicalOrders` and `twapHistory`. Figures are exact
+//! decimals; sides are `B` (a buy) and `A` (a sell).
 
 pub mod types;
 
@@ -9,6 +9,7 @@ pub use types::{FrontendOrder, OpenOrder, OrderKind, OrderRecord, OrderState};
 use serde::{Deserialize, Deserializer, de};
 
 use crate::client::{ApiError, Transport, info, info_request, user_request};
+use crate::live::TwapEvent;
 use crate::markets::Dex;
 use crate::trade::manage::OrderRef;
 use crate::utils::{Address, Json};
@@ -76,6 +77,12 @@ pub fn historical_orders_request(account: Address) -> String {
     user_request("historicalOrders", account)
 }
 
+/// `{"type":"twapHistory","user":..}`.
+#[must_use]
+pub fn twap_history_request(account: Address) -> String {
+    user_request("twapHistory", account)
+}
+
 /// The account's resting orders on one dex.
 pub async fn open_orders(
     transport: &impl Transport,
@@ -106,6 +113,13 @@ pub async fn order_status(
 /// The account's order history, newest first.
 pub async fn historical_orders(transport: &impl Transport, account: Address) -> Result<Vec<OrderRecord>, ApiError> {
     info(transport, historical_orders_request(account)).await
+}
+
+/// Every TWAP the account has run, a row each time one started, finished, was stopped or failed,
+/// newest first: the rows `userTwapHistory` sends on the socket. The newest row for a `twap_id` says
+/// where that TWAP stands.
+pub async fn twap_history(transport: &impl Transport, account: Address) -> Result<Vec<TwapEvent>, ApiError> {
+    info(transport, twap_history_request(account)).await
 }
 
 #[cfg(test)]

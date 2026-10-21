@@ -73,6 +73,9 @@ async fn every_hip3_dex_lines_up_with_its_meta() {
     same_shape(&client, "hip3/all_perp_metas_mainnet.json");
     let joined = Dexes::new(list, metas).unwrap();
     assert_eq!(joined.find("xyz:TSLA").map(|(asset, _)| asset.id()), Some(110_001));
+    let categories = dexes::perp_categories(&client).await.unwrap();
+    assert!(categories.iter().all(|(coin, _)| markets::split_coin(coin).is_some()), "HIP-3 perps only");
+    same_shape(&client, "hip3/perp_categories_mainnet.json");
 }
 
 #[tokio::test]

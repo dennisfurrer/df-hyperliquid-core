@@ -1,10 +1,10 @@
 //! What accounts did, read from mainnet: the trader's fills, fees and orders, the watched account's
-//! resting orders, and HLP's leader's ledger, over the windows the recordings were taken for where a
-//! read takes one.
+//! resting orders, another's TWAP history, and HLP's leader's ledger, over the windows the
+//! recordings were taken for where a read takes one.
 
 use df_hyperliquid_core::account::OrderLookup;
 use df_hyperliquid_core::account::history::{
-    frontend_open_orders, historical_orders, ledger, open_orders, order_status, user_fees, user_fills,
+    frontend_open_orders, historical_orders, ledger, open_orders, order_status, twap_history, user_fees, user_fills,
     user_fills_by_time, user_twap_slice_fills,
 };
 use df_hyperliquid_core::markets::Dex;
@@ -15,6 +15,8 @@ use crate::tap::{reader, same_shape, same_shape_as_any};
 
 const TRADER: &str = "0xd80adf681abe30a3d644db1daae9abaa2d25a895";
 const WATCHED: &str = "0xf77a75616ff4aa16c890fabb4ab725a732d7e2b7";
+/// An account whose TWAPs `trade/twap_history_mainnet.json` recorded.
+const TWAPPER: &str = "0x8d1548a936241928cef288a1c377919a5d511f7a";
 /// The trader's market sell of GRAM, and the millisecond it filled.
 const SELL: u64 = 569_016_338_230;
 const FILLED: u64 = 1_791_480_420_925;
@@ -80,6 +82,16 @@ async fn orders_read_resting_by_either_id_and_in_history() {
     same_shape(&client, "trade/order_status_unknown.json");
     historical_orders(&client, trader).await.unwrap();
     same_shape(&client, "trade/historical_orders.json");
+}
+
+/// Whatever it has run since the recording, newest first, in its shape.
+#[tokio::test]
+#[ignore = "mainnet"]
+async fn a_twap_history_reads_newest_first() {
+    let client = reader();
+    let rows = twap_history(&client, address(TWAPPER)).await.unwrap();
+    assert!(rows.windows(2).all(|pair| pair[0].time >= pair[1].time));
+    same_shape(&client, "trade/twap_history_mainnet.json");
 }
 
 #[tokio::test]
