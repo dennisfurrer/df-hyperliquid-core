@@ -90,6 +90,13 @@ impl fmt::Display for Direction {
     }
 }
 
+/// As [`Direction::slug`] writes it: `split_outcome`, or an unknown `dir` as the venue wrote it.
+impl serde::Serialize for Direction {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.slug())
+    }
+}
+
 /// One outcome fill, read from a `userFills` or `userFillsByTime` row. Perp and spot rows come in
 /// the same answer; [`Fill::read`] skips them.
 #[derive(Debug, Clone, PartialEq, Eq)]

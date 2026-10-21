@@ -40,3 +40,18 @@ fn every_name_reads_into_its_family_and_version() {
         "the families that describe a question rather than a book"
     );
 }
+
+/// Every family has its own name, reads back from it, and serde writes and reads the same.
+#[test]
+fn each_family_has_a_name_that_reads_back() {
+    let names: std::collections::BTreeSet<&str> = Family::ALL.iter().map(|family| family.as_str()).collect();
+    assert_eq!(names.len(), Family::ALL.len(), "no two share a name");
+    for family in Family::ALL {
+        assert_eq!(family.as_str().parse::<Family>(), Ok(family));
+        assert_eq!(family.to_string(), family.as_str());
+        let text = serde_json::to_string(&family).unwrap();
+        assert_eq!(serde_json::from_str::<Family>(&text).unwrap(), family);
+    }
+    assert_eq!(" binary_price ".parse::<Family>(), Ok(Family::BinaryPrice));
+    assert!("binaryPrice".parse::<Family>().is_err());
+}

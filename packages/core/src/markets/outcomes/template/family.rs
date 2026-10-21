@@ -2,7 +2,8 @@
 //! template's version; a fallback, a `Recurring` name and a deployer's own name read too.
 
 /// Which way a policy rate moves, for the three named outcomes of a rate decision.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RateMove {
     Increase,
     Decrease,
@@ -35,10 +36,91 @@ pub enum Family {
 }
 
 impl Family {
+    /// Every family, in the order a listing reports them.
+    pub const ALL: [Family; 19] = [
+        Family::BinaryPrice,
+        Family::PriceTouch,
+        Family::ScalarPrice,
+        Family::ContestWinner,
+        Family::ContestParticipant,
+        Family::ContestDraw,
+        Family::TournamentParticipant,
+        Family::SportsScalar,
+        Family::SportsOverUnder,
+        Family::PolicyRate(RateMove::Increase),
+        Family::PolicyRate(RateMove::Decrease),
+        Family::PolicyRate(RateMove::NoChange),
+        Family::Recurring,
+        Family::Fallback,
+        Family::Named,
+        Family::ContestResult,
+        Family::TournamentWinner,
+        Family::PolicyRateDecision,
+        Family::Template,
+    ];
+
+    /// Its name in snake case, as serde writes it and a filter names it: `binary_price`.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Family::BinaryPrice => "binary_price",
+            Family::PriceTouch => "price_touch",
+            Family::ScalarPrice => "scalar_price",
+            Family::ContestWinner => "contest_winner",
+            Family::ContestParticipant => "contest_participant",
+            Family::ContestDraw => "contest_draw",
+            Family::TournamentParticipant => "tournament_participant",
+            Family::SportsScalar => "sports_scalar",
+            Family::SportsOverUnder => "sports_over_under",
+            Family::PolicyRate(RateMove::Increase) => "policy_rate_increase",
+            Family::PolicyRate(RateMove::Decrease) => "policy_rate_decrease",
+            Family::PolicyRate(RateMove::NoChange) => "policy_rate_no_change",
+            Family::Recurring => "recurring",
+            Family::Fallback => "fallback",
+            Family::Named => "named",
+            Family::ContestResult => "contest_result",
+            Family::TournamentWinner => "tournament_winner",
+            Family::PolicyRateDecision => "policy_rate_decision",
+            Family::Template => "template",
+        }
+    }
+
     /// The families that describe a question rather than a book.
     #[must_use]
     pub const fn is_question(self) -> bool {
         matches!(self, Family::ContestResult | Family::TournamentWinner | Family::PolicyRateDecision)
+    }
+}
+
+impl std::fmt::Display for Family {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// A name [`Family::as_str`] does not write.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("unknown kind `{0}`")]
+pub struct UnknownFamily(pub String);
+
+impl std::str::FromStr for Family {
+    type Err = UnknownFamily;
+
+    fn from_str(text: &str) -> Result<Self, Self::Err> {
+        let wanted = text.trim();
+        Family::ALL.into_iter().find(|family| family.as_str() == wanted).ok_or_else(|| UnknownFamily(wanted.to_owned()))
+    }
+}
+
+impl serde::Serialize for Family {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Family {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        String::deserialize(deserializer)?.parse().map_err(serde::de::Error::custom)
     }
 }
 
