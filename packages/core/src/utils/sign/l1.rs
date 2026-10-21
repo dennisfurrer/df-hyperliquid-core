@@ -14,10 +14,27 @@ use crate::utils::sign::msgpack::Map;
 /// or `0x01` and the vault's twenty bytes.
 #[must_use]
 pub fn connection_id(msgpack: &[u8], nonce: u64, vault: Option<Address>) -> [u8; 32] {
+    connection_id_expiring(msgpack, nonce, vault, None)
+}
+
+/// [`connection_id`] for an action posted with `expiresAfter`: the expiry follows the vault
+/// marker as `0x00` and the milliseconds as a big-endian u64, as the venue's Python SDK hashes
+/// it. With no expiry it is [`connection_id`].
+#[must_use]
+pub fn connection_id_expiring(
+    msgpack: &[u8],
+    nonce: u64,
+    vault: Option<Address>,
+    expires_after: Option<u64>,
+) -> [u8; 32] {
     let sponge = Keccak256::new().chain(msgpack).chain(&nonce.to_be_bytes());
-    match vault {
+    let sponge = match vault {
         Some(vault) => sponge.chain(&[0x01]).chain(vault.bytes()),
         None => sponge.chain(&[0x00]),
+    };
+    match expires_after {
+        Some(expires_after) => sponge.chain(&[0x00]).chain(&expires_after.to_be_bytes()),
+        None => sponge,
     }
     .finalize()
 }

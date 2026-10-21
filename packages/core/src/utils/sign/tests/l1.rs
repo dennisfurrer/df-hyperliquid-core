@@ -178,3 +178,28 @@ fn the_phantom_agent_names_its_network_and_the_same_action_signs_apart_on_each()
     assert_ne!(action.digest(NONCE, None, Network::Mainnet), action.digest(NONCE, None, Network::Testnet));
     assert_eq!(action.connection_id(NONCE, None), action.connection_id(NONCE, None));
 }
+
+/// An expiry is hashed after the vault marker, `0x00` then its milliseconds, and changes the id;
+/// none is the plain id.
+#[test]
+fn an_expiry_follows_the_vault_marker() {
+    use crate::utils::sign::keccak::Keccak256;
+    let msgpack = [0x81, 0xa1, 0x61, 0x01];
+    let vault: Address = "0x1111111111111111111111111111111111111111".parse().unwrap();
+    for at in [None, Some(vault)] {
+        assert_eq!(connection_id_expiring(&msgpack, 7, at, None), connection_id(&msgpack, 7, at));
+    }
+    let by_hand = Keccak256::new()
+        .chain(&msgpack)
+        .chain(&7u64.to_be_bytes())
+        .chain(&[0x01])
+        .chain(vault.bytes())
+        .chain(&[0x00])
+        .chain(&5_000u64.to_be_bytes())
+        .finalize();
+    assert_eq!(connection_id_expiring(&msgpack, 7, Some(vault), Some(5_000)), by_hand);
+    assert_ne!(
+        connection_id_expiring(&msgpack, 7, None, Some(5_000)),
+        connection_id_expiring(&msgpack, 7, None, Some(6_000))
+    );
+}
