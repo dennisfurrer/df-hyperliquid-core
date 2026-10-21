@@ -36,6 +36,7 @@ fn a_ticket_s_leverage_is_held_to_the_market_s_ceiling_and_margin_mode() {
         leverage(&tsla(), MarginMode::Isolated, 11).unwrap_err().to_string(),
         "leverage is a whole number from 1 to 10, not 11"
     );
+    assert_eq!(leverage(&tsla(), MarginMode::Isolated, 10).map(|set| set.asset()), Ok(tsla().asset()));
 }
 
 /// The main dex's BTC and HPOS, and HIP-3's `xyz:TSLA` and `para:AVGO`, as the venue lists them.

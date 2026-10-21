@@ -26,7 +26,7 @@ fn isolated_margin_moves_millionths_on_the_position_s_side() {
         assert_eq!(margin(&market, position, mode, dec("12.5")), Err(refused));
     }
     let asset = tsla().asset();
-    assert_eq!(add_margin(asset, Side::Sell, dec("1")).map(|add| add.ntli()), Ok(1_000_000));
+    assert_eq!(add_margin(asset, Side::Sell, dec("1")).map(|add| (add.asset(), add.ntli())), Ok((asset, 1_000_000)));
     assert_eq!(remove_margin(asset, Side::Sell, dec("1")).map(|out| out.ntli()), Ok(-1_000_000));
     for moved in [add_margin(asset, Side::Sell, dec("-1")), remove_margin(asset, Side::Sell, Dec::ZERO)] {
         assert!(matches!(moved, Err(TradeError::Margin(BadUnits::NotPositive(_)))), "{moved:?}");

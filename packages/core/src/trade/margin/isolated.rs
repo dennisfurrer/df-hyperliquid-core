@@ -34,6 +34,11 @@ impl UpdateIsolatedMargin {
     }
 
     #[must_use]
+    pub const fn asset(&self) -> Asset {
+        self.asset
+    }
+
+    #[must_use]
     pub const fn ntli(&self) -> i64 {
         self.ntli
     }

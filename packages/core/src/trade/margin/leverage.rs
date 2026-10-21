@@ -31,6 +31,11 @@ impl UpdateLeverage {
     }
 
     #[must_use]
+    pub const fn asset(&self) -> Asset {
+        self.asset
+    }
+
+    #[must_use]
     pub const fn leverage(&self) -> u32 {
         self.leverage
     }

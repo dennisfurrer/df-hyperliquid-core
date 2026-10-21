@@ -3,12 +3,13 @@
 
 use std::collections::BTreeMap;
 
+use df_hyperliquid_core::account::Signature;
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::deploy::outcomes::{
     ActivateOutcomeDeployer, FeeScale, Fraction, Grant, Hint, Instance, Keywords, OutcomeDeploy, Permission, Venue,
 };
 use df_hyperliquid_core::markets::outcomes::{Outcome, OutcomeMeta, Question, SideSpec};
-use df_hyperliquid_core::utils::sign::{L1Action, Map, Value, connection_id};
+use df_hyperliquid_core::utils::sign::{L1Action, MultiSig};
 use df_hyperliquid_core::utils::{Json, hex};
 
 use super::{address, list, number, parse, text};
@@ -153,42 +154,29 @@ fn the_python_sdk_s_deployer_hashes_come_out_of_the_builders() {
     }
 
     let multi = python.get("multiSig").unwrap();
-    let (user, outer) = (text(multi, "multiSigUser"), text(multi, "outerSigner"));
+    let (user, outer) = (address(text(multi, "multiSigUser")), address(text(multi, "outerSigner")));
     for inner in list(multi, "inner") {
         let name = text(inner, "name");
-        let packed = Value::Array(vec![
-            Value::from(user.to_owned()),
-            Value::from(outer.to_owned()),
-            Value::Map(actions[name].action()),
-        ])
-        .to_msgpack();
-        assert_eq!(hex::encode_prefixed(&connection_id(&packed, nonce, None)), text(inner, "actionHash"), "{name}");
+        let nested = MultiSig::new(user, outer, &actions[name].action());
+        assert_eq!(
+            hex::encode_prefixed(&nested.payload_connection_id(nonce, None)),
+            text(inner, "actionHash"),
+            "{name}"
+        );
     }
     let envelope = multi.get("envelope").unwrap();
+    let word = |signature: &Json, key: &str| hex::decode_array::<32>(text(signature, key)).unwrap();
     let signatures = list(envelope, "signatures").iter().map(|signature| {
-        Value::Map(
-            Map::new()
-                .put("r", text(signature, "r").to_owned())
-                .put("s", text(signature, "s").to_owned())
-                .put("v", number(signature, "v")),
-        )
+        let v = u8::try_from(number(signature, "v")).unwrap();
+        Signature::from_parts(word(signature, "r"), word(signature, "s"), v)
     });
-    let wrapped = Map::new()
-        .put("signatureChainId", text(envelope, "signatureChainId").to_owned())
-        .put("signatures", Value::Array(signatures.collect()))
-        .put(
-            "payload",
-            Map::new()
-                .put("multiSigUser", user.to_owned())
-                .put("outerSigner", outer.to_owned())
-                .put("action", actions[text(envelope, "name")].action()),
-        );
+    let wrapped = MultiSig::new(user, outer, &actions[text(envelope, "name")].action()).signed(signatures.collect());
     assert_eq!(
         text(envelope, "signatureChainId"),
         Network::Testnet.signature_chain_id_hex(),
         "the envelope names testnet's chain"
     );
-    assert_eq!(hex::encode_prefixed(&connection_id(&wrapped.to_msgpack(), nonce, None)), text(envelope, "actionHash"));
+    assert_eq!(hex::encode_prefixed(&wrapped.action_hash(nonce, None, Network::Testnet)), text(envelope, "actionHash"));
 }
 
 #[test]

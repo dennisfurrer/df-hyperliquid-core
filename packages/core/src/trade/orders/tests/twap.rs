@@ -32,3 +32,12 @@ fn a_twap_runs_five_minutes_to_a_day_and_totals_at_least_a_hundred() {
     let unpriced = wire(twap(&btc(), &TwapIntent::new(Side::Sell, sized("0.123456"), 5)));
     assert!(unpriced.contains(r#""b":false,"s":"0.12345""#), "a size alone is cut to the grid: {unpriced}");
 }
+
+/// A TWAP and its cancel name the market they act on, as an order does.
+#[test]
+fn a_twap_and_its_cancel_name_their_asset() {
+    let asset = btc().asset();
+    let placed = twap(&btc(), &TwapIntent::new(Side::Buy, Amount::Size(dec("0.01")), 30));
+    assert_eq!(placed.map(|twap| twap.asset()), Ok(asset));
+    assert_eq!(TwapCancel::new(asset, 1234).asset(), asset);
+}

@@ -46,6 +46,11 @@ impl Twap {
         self.randomize = true;
         self
     }
+
+    #[must_use]
+    pub const fn asset(&self) -> Asset {
+        self.asset
+    }
 }
 
 impl L1Action for Twap {
@@ -74,6 +79,11 @@ impl TwapCancel {
     #[must_use]
     pub const fn new(asset: Asset, twap: u64) -> TwapCancel {
         TwapCancel { asset, twap }
+    }
+
+    #[must_use]
+    pub const fn asset(&self) -> Asset {
+        self.asset
     }
 }
 
