@@ -100,3 +100,42 @@ fn a_user_signed_action_follows_its_network() {
         assert_eq!(signature.s_hex(), text(expected, "s"), "{network}: s");
     }
 }
+
+/// The approval the hip4 terminal's builder popup signs: 880 tenths of a basis point as `0.88%`,
+/// as `@nktkas/hyperliquid` 0.33.2's `approveBuilderFee` makes it with `{maxFeeRate: "0.88%",
+/// builder}`, signed by the Python SDK's test key on each network.
+#[test]
+fn a_builder_approval_at_point_eight_eight_percent_is_the_terminal_s() {
+    use df_hyperliquid_core::account::ApproveBuilderFee;
+    use df_hyperliquid_core::trade::builder::fee::BuilderFee;
+    use df_hyperliquid_core::utils::sign::UserAction;
+
+    let key = LocalKey::from_hex("0x0123456789012345678901234567890123456789012345678901234567890123").unwrap();
+    let builder: Address = "0x6967d7AcD1EC5f210E9590666498e0cC5D13a843".parse().unwrap();
+    let approval = ApproveBuilderFee::new(builder, BuilderFee::from_tenths(880), 1_790_412_105_001);
+    assert_eq!(approval.max_fee_rate(), "0.88%");
+    for (network, wire, digest, r, s, v) in [
+        (
+            Network::Mainnet,
+            r#"{"type":"approveBuilderFee","signatureChainId":"0xa4b1","hyperliquidChain":"Mainnet","maxFeeRate":"0.88%","builder":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","nonce":1790412105001}"#,
+            "0xad59f180d28d38a190641cbd95ac679eb9e3d20068781a38a1e4aa3b0ed07c01",
+            "0x53482b31f09b90b7a956030466b1b119eb4fb4afe78403a8d3c4982e5d8f49b9",
+            "0x55bf1ab58c69d99d0551881194bc9a1b308c1ebf8c17a41066e32b20390f6027",
+            28,
+        ),
+        (
+            Network::Testnet,
+            r#"{"type":"approveBuilderFee","signatureChainId":"0x66eee","hyperliquidChain":"Testnet","maxFeeRate":"0.88%","builder":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","nonce":1790412105001}"#,
+            "0xa66ca231fbd79d79e3eba61c1c7c31ee92d07e88473075219809670556b4fc10",
+            "0x016069ea6a0dc2d8124a4ef55221f807a103afb78a0e735698744e6dbeb527c5",
+            "0x143a02f8e285d77e0abcd9ea7a76d0eeb1e561a317b07ba1d98f58261e2b8fd8",
+            28,
+        ),
+    ] {
+        let signed = approval.user_signed();
+        assert_eq!(signed.wire(network), wire, "{network:?}: the posted action");
+        assert_eq!(hex::encode_prefixed(&signed.digest(network)), digest, "{network:?}: the digest");
+        let signature = key.sign_digest(&signed.digest(network)).unwrap();
+        assert_eq!((signature.r_hex(), signature.s_hex(), signature.v()), (r.to_owned(), s.to_owned(), v));
+    }
+}
