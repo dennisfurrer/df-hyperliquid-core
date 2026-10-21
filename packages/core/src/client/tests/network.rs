@@ -85,3 +85,21 @@ fn a_network_reads_and_writes_its_name_and_mainnet_is_the_default() {
     assert_eq!(Network::ALL.map(|network| network.to_string()), ["mainnet", "testnet"]);
     assert_eq!(Network::default(), Network::Mainnet);
 }
+
+/// A network reads from its name in any case, spaces around it and `main` or `test` too; its app
+/// is the venue's web app on that network.
+#[test]
+fn a_network_reads_from_what_a_person_types() {
+    for (typed, network) in [
+        ("mainnet", Network::Mainnet),
+        (" Main ", Network::Mainnet),
+        ("TESTNET", Network::Testnet),
+        ("test", Network::Testnet),
+    ] {
+        assert_eq!(typed.parse::<Network>(), Ok(network), "{typed:?}");
+    }
+    assert_eq!(" devnet ".parse::<Network>(), Err(UnknownNetwork("devnet".to_owned())));
+    assert_eq!(Network::Mainnet.app_url(), "https://app.hyperliquid.xyz");
+    assert_eq!(Network::Testnet.app_url(), "https://app.hyperliquid-testnet.xyz");
+    assert!(Network::Mainnet.is_mainnet() && !Network::Testnet.is_mainnet());
+}

@@ -134,6 +134,20 @@ impl Network {
             Network::Testnet => "testnet",
         }
     }
+
+    /// The venue's own web app, for a link a person follows.
+    #[must_use]
+    pub const fn app_url(self) -> &'static str {
+        match self {
+            Network::Mainnet => "https://app.hyperliquid.xyz",
+            Network::Testnet => "https://app.hyperliquid-testnet.xyz",
+        }
+    }
+
+    #[must_use]
+    pub const fn is_mainnet(self) -> bool {
+        matches!(self, Network::Mainnet)
+    }
 }
 
 impl fmt::Display for Network {
@@ -146,10 +160,10 @@ impl FromStr for Network {
     type Err = UnknownNetwork;
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
-        match text.to_ascii_lowercase().as_str() {
-            "mainnet" => Ok(Network::Mainnet),
-            "testnet" => Ok(Network::Testnet),
-            _ => Err(UnknownNetwork(text.to_owned())),
+        match text.trim().to_ascii_lowercase().as_str() {
+            "mainnet" | "main" => Ok(Network::Mainnet),
+            "testnet" | "test" => Ok(Network::Testnet),
+            _ => Err(UnknownNetwork(text.trim().to_owned())),
         }
     }
 }

@@ -52,6 +52,13 @@ pub struct Client<H, S = ()> {
     nonces: Mutex<NonceClock>,
 }
 
+/// Its network and the vault it acts for; never its signer or its transport.
+impl<H: Http, S> std::fmt::Debug for Client<H, S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Client").field("network", &self.network()).field("vault", &self.vault).finish_non_exhaustive()
+    }
+}
+
 impl<H: Http> Client<H> {
     /// A client that reads and never signs.
     pub fn reader(http: H, network: Network, clock: Clock) -> Self {
