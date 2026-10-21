@@ -45,6 +45,7 @@ pub struct Web;
 
 impl Http for Web {
     async fn send(&self, request: Request) -> Result<Response, TransportError> {
+        request.refuse_if_offline()?;
         let global = js_sys::global();
         let fetch: Function =
             Reflect::get(&global, &JsValue::from_str("fetch")).map_err(unreachable)?.dyn_into().map_err(unreachable)?;

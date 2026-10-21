@@ -12,6 +12,7 @@ wasm:
 # Unit, conformance and mocked suites; the live suite is skipped here.
 test:
     cargo test --workspace
+    cargo test -p df-hyperliquid-core --features offline --lib -- offline what_is_signed
 
 # Against mainnet, read only: every read, websocket channel and HyperEVM read, each held
 # against its recording. Run by hand.

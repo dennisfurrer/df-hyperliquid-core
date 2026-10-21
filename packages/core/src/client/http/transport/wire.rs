@@ -53,6 +53,23 @@ impl Request {
     pub fn header(&self, name: &str) -> Option<&str> {
         find_header(&self.headers, name)
     }
+
+    /// Whether it carries a signature: a post to `/exchange`, or a raw HyperEVM transaction.
+    #[must_use]
+    pub fn is_signed(&self) -> bool {
+        const RAW: &[u8] = b"eth_sendRawTransaction";
+        self.method == Method::Post
+            && (self.url.trim_end_matches('/').ends_with("/exchange")
+                || self.body.windows(RAW.len()).any(|window| window == RAW))
+    }
+
+    /// [`TransportError::Offline`] for a signed request in an `offline` build; otherwise nothing.
+    pub fn refuse_if_offline(&self) -> Result<(), TransportError> {
+        match OFFLINE && self.is_signed() {
+            true => Err(TransportError::Offline(self.url.clone())),
+            false => Ok(()),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -104,7 +121,13 @@ pub enum TransportError {
     /// gate before it went out. Nothing was done; try again after the wait.
     #[error("rate limited; try again in {} ms", retry_after_ms.unwrap_or(0))]
     RateLimited { retry_after_ms: Option<u64> },
+    /// Not sent: this build has the `offline` feature, and the request carried a signature.
+    #[error("an offline build sends nothing signed: {0}")]
+    Offline(String),
 }
+
+/// Whether this build's transports refuse what is signed ([`TransportError::Offline`]).
+pub const OFFLINE: bool = cfg!(feature = "offline");
 
 #[cfg(test)]
 #[path = "tests/wire.rs"]

@@ -8,4 +8,4 @@ pub mod wire;
 
 pub use answer::{Accepted, ExchangeResponse, Status};
 pub use calls::{ApiError, EXCHANGE, INFO, Transport, exchange, info, info_request, user_request};
-pub use wire::{Http, Method, Request, Response, TransportError};
+pub use wire::{Http, Method, OFFLINE, Request, Response, TransportError};

@@ -26,3 +26,23 @@ fn requests_and_answers_carry_their_headers_whatever_their_case() {
         assert_eq!(answer.text(), "null");
     }
 }
+
+/// What carries a signature is a post to `/exchange` or a raw HyperEVM transaction, and only
+/// that is refused, and only by an `offline` build.
+#[test]
+fn what_is_signed_is_a_post_to_exchange_or_a_raw_transaction() {
+    let raw = r#"{"jsonrpc":"2.0","id":1,"method":"eth_sendRawTransaction","params":["0x02"]}"#;
+    let call = r#"{"jsonrpc":"2.0","id":1,"method":"eth_call","params":[]}"#;
+    for (request, signed) in [
+        (Request::post_json("https://api.hyperliquid.xyz/exchange", "{}".to_owned()), true),
+        (Request::post_json("https://api.hyperliquid.xyz/exchange/", "{}".to_owned()), true),
+        (Request::post_json("https://rpc.hyperliquid.xyz/evm", raw.to_owned()), true),
+        (Request::post_json("https://api.hyperliquid.xyz/info", "{}".to_owned()), false),
+        (Request::post_json("https://rpc.hyperliquid.xyz/evm", call.to_owned()), false),
+        (Request::get("https://api.hyperliquid.xyz/exchange"), false),
+    ] {
+        assert_eq!(request.is_signed(), signed, "{}", request.url);
+        let refused = matches!(request.refuse_if_offline(), Err(TransportError::Offline(_)));
+        assert_eq!(refused, OFFLINE && signed, "{}", request.url);
+    }
+}

@@ -32,3 +32,13 @@ fn every_post_goes_to_the_client_s_network_and_is_weighed_by_what_it_carries() {
         assert_eq!(kinds, [("userFills", 22), ("exchange", 2), ("l2Book", 2)], "only what is charged per item");
     }
 }
+
+/// A warm is one `exchangeStatus` read to `/info`, weighed 2 like any other, and nothing else.
+#[test]
+fn a_warm_is_one_light_read() {
+    let client = Client::reader(Wire::always("{}"), Network::Mainnet, clock);
+    block_on(client.warm());
+    let sent = client.http().bodies();
+    assert_eq!(sent, [("https://api.hyperliquid.xyz/info".to_owned(), r#"{"type":"exchangeStatus"}"#.to_owned())]);
+    assert_eq!(client.spent().minute, 2);
+}

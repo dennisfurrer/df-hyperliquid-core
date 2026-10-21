@@ -38,6 +38,10 @@ sign = ["dep:k256", "dep:zeroize", "dep:getrandom02"]
 native = ["dep:reqwest", "dep:tokio", "dep:tokio-tungstenite", "dep:futures-util"]
 # HTTP and websocket for the browser and Workers (fetch, WebSocket).
 web = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:js-sys", "dep:web-sys"]
+# The transports refuse whatever is signed: a post to `/exchange` and a raw HyperEVM transaction
+# come back as `TransportError::Offline` before anything goes out. For a dependent's test build,
+# as a dev-dependency feature, so no test can move money.
+offline = []
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

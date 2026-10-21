@@ -133,3 +133,94 @@ fn the_borrowed_permutation_is_the_one_this_build_would_have_written() {
     }
     assert_ne!(mine, [0u64; 25], "and the state actually moved");
 }
+
+fn sixty_four(seed: u64) -> [u8; 64] {
+    let mut bytes = [0u8; 64];
+    let mut x = seed ^ 0x9e37_79b9_7f4a_7c15;
+    for byte in &mut bytes {
+        x ^= x << 13;
+        x ^= x >> 7;
+        x ^= x << 17;
+        *byte = x.to_le_bytes()[0];
+    }
+    bytes
+}
+
+/// Two digests taken in one pass are the two taken one at a time, the same input twice
+/// included, and the zeros' digest is the published one.
+#[test]
+fn two_digests_taken_together_are_the_two_taken_apart() {
+    for seed in 0..20_000u64 {
+        let a = sixty_four(seed);
+        let b = sixty_four(seed.wrapping_mul(31).wrapping_add(7));
+        let (left, right) = keccak256_of_two(&a, &b);
+        assert_eq!(left, keccak256(&a), "left of pair {seed}");
+        assert_eq!(right, keccak256(&b), "right of pair {seed}");
+    }
+    let same = sixty_four(1);
+    assert_eq!(keccak256_of_two(&same, &same), (keccak256(&same), keccak256(&same)));
+    let (zeros, _) = keccak256_of_two(&[0u8; 64], &[1u8; 64]);
+    assert_eq!(hex::encode(&zeros), "ad3228b676f7d3cd4284a5443f17f1962b36e491b30a40b2405849e597ba5fb5");
+}
+
+/// What the ARMv8.2 instructions are worth over the permutation written out here.
+#[test]
+#[ignore = "a measurement, not an assertion; run with --ignored --nocapture"]
+fn how_fast_the_permutation_is_either_way() {
+    use std::time::Instant;
+
+    const MANY: u32 = 2_000_000;
+    let start = [0x0123_4567_89ab_cdefu64; 25];
+
+    let mut ours = start;
+    let began = Instant::now();
+    for _ in 0..MANY {
+        permute_portable(&mut ours);
+    }
+    let portable = began.elapsed();
+
+    let mut theirs = start;
+    let began = Instant::now();
+    for _ in 0..MANY {
+        permute(&mut theirs);
+    }
+    let dispatched = began.elapsed();
+
+    assert_eq!(ours, theirs, "the two permutations disagree");
+
+    let each = |s: std::time::Duration| s.as_nanos() / u128::from(MANY);
+    let ratio = each(portable) * 100 / each(dispatched).max(1);
+    println!("\n  this build's permutation : {:>4} ns", each(portable));
+    println!("  keccak crate, dispatched : {:>4} ns (hardware: {})", each(dispatched), hardware());
+    println!("  speedup                  : {}.{:02}x\n", ratio / 100, ratio % 100);
+}
+
+/// What the second lane is worth: a digest one at a time against two in one pass.
+#[test]
+#[ignore = "a measurement, not an assertion; run with --ignored --nocapture"]
+fn how_much_a_second_lane_is_worth() {
+    use std::time::Instant;
+
+    const MANY: u64 = 2_000_000;
+    let inputs: Vec<[u8; 64]> = (0..256).map(sixty_four).collect();
+    let mut sink = 0u8;
+
+    let began = Instant::now();
+    for i in 0..MANY {
+        sink ^= keccak256(&inputs[(i as usize) & 255])[0];
+    }
+    let one = began.elapsed();
+
+    let began = Instant::now();
+    for i in 0..MANY / 2 {
+        let (l, r) = keccak256_of_two(&inputs[(i as usize * 2) & 255], &inputs[(i as usize * 2 + 1) & 255]);
+        sink ^= l[0] ^ r[0];
+    }
+    let two = began.elapsed();
+
+    let per = |d: std::time::Duration| d.as_nanos() / u128::from(MANY);
+    let ratio = one.as_nanos() * 100 / two.as_nanos().max(1);
+    println!("\n  one at a time   : {:>4} ns a digest", per(one));
+    println!("  two at a time   : {:>4} ns a digest", per(two));
+    println!("  speedup         : {:>4}.{:02}x  (sink {sink})\n", ratio / 100, ratio % 100);
+}

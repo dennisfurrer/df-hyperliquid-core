@@ -112,3 +112,27 @@ fn the_clock_reads_unix_milliseconds() {
     assert!(now > 1_790_000_000_000, "after 2026-09: {now}");
     assert!(now < 4_102_444_800_000, "before 2100: {now}");
 }
+
+/// An `offline` build refuses what is signed before it connects, and still reads.
+#[cfg(feature = "offline")]
+#[tokio::test]
+async fn an_offline_build_sends_nothing_signed() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    listener.set_nonblocking(true).unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    let error = Native::new().send(Request::post_json(format!("{url}/exchange"), "{}".to_owned())).await.unwrap_err();
+    assert!(matches!(error, TransportError::Offline(_)), "{error:?}");
+    assert!(listener.accept().is_err(), "nothing connected");
+
+    let read = sent(|url| Request::post_json(format!("{url}/info"), r#"{"type":"meta"}"#.to_owned())).await;
+    assert!(read.starts_with("POST /info HTTP/1.1\r\n"), "{read}");
+}
+
+/// The warming task ends by itself once the last holder of the client lets go.
+#[tokio::test]
+async fn keeping_warm_ends_with_the_last_holder() {
+    let client = std::sync::Arc::new(crate::Client::reader(Native::new(), crate::Network::Mainnet, clock));
+    let warming = keep_warm(&client, KEEP_WARM);
+    drop(client);
+    tokio::time::timeout(Duration::from_secs(5), warming).await.unwrap().unwrap();
+}

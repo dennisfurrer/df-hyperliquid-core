@@ -14,14 +14,15 @@ use crate::account::SignError;
 #[cfg(feature = "sign")]
 use crate::account::Signer;
 use crate::client::http::Api;
+use crate::client::http::INFO;
 #[cfg(feature = "sign")]
 use crate::utils::sign::{Domain, L1Action, UserAction};
 use crate::utils::{Address, NonceClock};
 use std::sync::{Mutex, PoisonError};
 
 pub use http::{
-    Accepted, ApiError, ExchangeResponse, Http, Method, Request, Response, Spent, Status, Transport, TransportError,
-    exchange, info, info_request, user_request,
+    Accepted, ApiError, ExchangeResponse, Http, Method, OFFLINE, Request, Response, Spent, Status, Transport,
+    TransportError, exchange, info, info_request, user_request,
 };
 pub use network::{
     L1_CHAIN_ID, MAINNET_HYPE, MAINNET_USDC, Network, TESTNET_HYPE, TESTNET_USDC, Token, USDC_INDEX, UnknownNetwork,
@@ -97,6 +98,14 @@ impl<H: Http, S> Client<H, S> {
     /// What went out over the last minute, and whether the gate is closed.
     pub fn spent(&self) -> Spent {
         self.api.spent()
+    }
+
+    /// Opens, or refreshes, the connection actions travel on, with one of the venue's lightest
+    /// reads (`exchangeStatus`, weight 2), counted like any other. Nothing is signed and the
+    /// answer is dropped: a program warms before its first order so that order skips DNS and
+    /// the TLS handshake, and [`native::keep_warm`] repeats it between orders.
+    pub async fn warm(&self) {
+        let _ = self.api.post(INFO, info_request("exchangeStatus", &[])).await;
     }
 
     /// The next nonce: the clock, or one past the last if the clock has not
