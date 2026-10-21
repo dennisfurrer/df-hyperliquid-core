@@ -55,6 +55,10 @@ async fn event(feed: &mut Feed) -> Event {
     timeout(WAIT, feed.next()).await.unwrap().unwrap()
 }
 
+async fn delivered(feed: &mut Feed) -> (Event, Option<String>) {
+    timeout(WAIT, feed.next_with_text()).await.unwrap().unwrap()
+}
+
 #[tokio::test]
 async fn it_subscribes_on_open_and_hands_back_typed_frames() {
     let (listener, url) = listen().await;
@@ -72,6 +76,28 @@ async fn it_subscribes_on_open_and_hands_back_typed_frames() {
         },
         other => panic!("expected a frame, got {other:?}"),
     }
+}
+
+/// What a feed reads, it can also give as sent, for a program that reads some channels itself;
+/// an open or a close has no text.
+#[tokio::test]
+async fn each_frame_comes_with_the_text_it_arrived_as_when_asked() {
+    let (listener, url) = listen().await;
+    let mut feed = Feed::start_at(url, Session::new(Network::Mainnet));
+    let mut server = accept(&listener).await;
+    server.send(Message::text(EMPTY_BOOK)).await.unwrap();
+    server.send(Message::text("Websocket connection established.")).await.unwrap();
+    assert_eq!(delivered(&mut feed).await, (Event::Opened, None));
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Frame(frame) if matches!(*frame, Frame::Book(_))));
+    assert_eq!(text.as_deref(), Some(EMPTY_BOOK));
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Unreadable(_)));
+    assert_eq!(text.as_deref(), Some("Websocket connection established."), "what did not read too");
+    drop(server);
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Closed { .. }));
+    assert_eq!(text, None);
 }
 
 #[tokio::test]

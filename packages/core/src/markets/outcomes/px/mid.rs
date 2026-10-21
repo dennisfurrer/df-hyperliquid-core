@@ -81,15 +81,24 @@ impl Mid {
         if value.is_negative() {
             return Err(BadPx::NotANumber(text.to_owned()));
         }
+        Mid::exact(value).map_err(|why| why.naming(text))
+    }
+
+    /// A decimal of at most eight places, from 0 to one.
+    pub fn from_dec(value: Dec) -> Result<Mid, BadPx> {
+        Mid::exact(value).map_err(|why| why.naming(&value.to_string()))
+    }
+
+    fn exact(value: Dec) -> Result<Mid, BadPx> {
         if value.places() > OBSERVED_PLACES {
-            return Err(BadPx::TooFine(text.to_owned()));
+            return Err(BadPx::TooFine(String::new()));
         }
         value
             .units_at(OBSERVED_PLACES, Round::Down)
             .and_then(|units| u32::try_from(units).ok())
             .filter(|units| *units <= OBSERVED_PER_UNIT)
             .map(Mid)
-            .ok_or_else(|| BadPx::OutOfRange(text.to_owned()))
+            .ok_or(BadPx::OutOfRange(String::new()))
     }
 
     #[must_use]

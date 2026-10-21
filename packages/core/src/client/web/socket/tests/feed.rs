@@ -106,6 +106,10 @@ async fn event(feed: &mut Feed) -> Event {
     within(WAIT, feed.next()).await.expect("an event in time").expect("a running feed")
 }
 
+async fn delivered(feed: &mut Feed) -> (Event, Option<String>) {
+    within(WAIT, feed.next_with_text()).await.expect("an event in time").expect("a running feed")
+}
+
 #[wasm_bindgen_test]
 async fn it_subscribes_on_open_and_hands_back_typed_frames() {
     let server = listen().await;
@@ -122,6 +126,30 @@ async fn it_subscribes_on_open_and_hands_back_typed_frames() {
         },
         other => panic!("expected a frame, got {other:?}"),
     }
+    feed.close();
+    server.close();
+}
+
+/// What a feed reads, it can also give as sent, for a program that reads some channels itself;
+/// an open or a close has no text.
+#[wasm_bindgen_test]
+async fn each_frame_comes_with_the_text_it_arrived_as_when_asked() {
+    let server = listen().await;
+    let mut feed = Feed::start_at(server.url(), Session::new(Network::Mainnet));
+    let peer = accept(&server).await;
+    assert_eq!(delivered(&mut feed).await, (Event::Opened, None));
+    peer.send(&recorded("l2Book.empty"));
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Frame(frame) if matches!(*frame, Frame::Book(_))));
+    assert_eq!(text, Some(recorded("l2Book.empty")));
+    peer.send("not json");
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Unreadable(_)));
+    assert_eq!(text.as_deref(), Some("not json"), "what did not read too");
+    peer.close();
+    let (event, text) = delivered(&mut feed).await;
+    assert!(matches!(event, Event::Closed { .. }));
+    assert_eq!(text, None);
     feed.close();
     server.close();
 }

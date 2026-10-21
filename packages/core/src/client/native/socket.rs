@@ -1,7 +1,7 @@
 //! The websocket for native programs: a [`Feed`] carries one [`crate::live::Session`]
-//! over tokio-tungstenite and hands back [`crate::live::Event`]s. Subscriptions made while
-//! down are sent on the next open; a post made while down is refused, and one cut off by a
-//! drop is reported, never resent.
+//! over tokio-tungstenite and hands back [`crate::live::Event`]s, each frame's text beside it
+//! when asked. Subscriptions made while down are sent on the next open; a post made while down
+//! is refused, and one cut off by a drop is reported, never resent.
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -13,7 +13,10 @@ use tokio::{
     task::JoinHandle,
     time::{Instant, sleep_until},
 };
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use tokio_tungstenite::{
+    MaybeTlsStream, WebSocketStream, connect_async,
+    tungstenite::{Message, Utf8Bytes},
+};
 
 use crate::client::native::clock;
 
@@ -23,10 +26,13 @@ enum Command {
     Post(Post, oneshot::Sender<Result<u64, Refused>>),
 }
 
+/// An event, and for a frame the text it arrived as.
+type Delivered = (Event, Option<Utf8Bytes>);
+
 /// One websocket connection, kept open. Dropping the feed closes it.
 pub struct Feed {
     commands: mpsc::UnboundedSender<Command>,
-    events: mpsc::UnboundedReceiver<Event>,
+    events: mpsc::UnboundedReceiver<Delivered>,
     task: JoinHandle<()>,
 }
 
@@ -69,7 +75,14 @@ impl Feed {
 
     /// The next event; `None` once the feed has stopped.
     pub async fn next(&mut self) -> Option<Event> {
-        self.events.recv().await
+        self.events.recv().await.map(|(event, _)| event)
+    }
+
+    /// The next event, and for a frame, read or not, the text it arrived as: for a program that
+    /// still reads some channels its own way. `None` once the feed has stopped.
+    pub async fn next_with_text(&mut self) -> Option<(Event, Option<String>)> {
+        let (event, text) = self.events.recv().await?;
+        Some((event, text.map(|text| text.as_str().to_owned())))
     }
 
     /// Closes the socket and stops.
@@ -96,7 +109,7 @@ async fn run(
     url: String,
     mut session: Session,
     mut commands: mpsc::UnboundedReceiver<Command>,
-    events: mpsc::UnboundedSender<Event>,
+    events: mpsc::UnboundedSender<Delivered>,
 ) {
     loop {
         // While it dials, the session still answers: a subscription is kept for
@@ -123,7 +136,7 @@ async fn run(
         };
         let retry = session.closed(clock(), random());
         let until = Instant::now() + Duration::from_millis(retry.after_ms);
-        if events.send(Event::Closed { reason, retry }).is_err() {
+        if events.send((Event::Closed { reason, retry }, None)).is_err() {
             return;
         }
         // Until the next dial, subscriptions are kept for it and posts refused.
@@ -145,14 +158,14 @@ async fn open(
     socket: &mut Socket,
     session: &mut Session,
     commands: &mut mpsc::UnboundedReceiver<Command>,
-    events: &mpsc::UnboundedSender<Event>,
+    events: &mpsc::UnboundedSender<Delivered>,
 ) -> Outcome {
     for frame in session.opened(clock()) {
         if let Err(error) = socket.send(Message::text(frame)).await {
             return Outcome::Lost(error.to_string());
         }
     }
-    if events.send(Event::Opened).is_err() {
+    if events.send((Event::Opened, None)).is_err() {
         return Outcome::Stop;
     }
     loop {
@@ -164,7 +177,7 @@ async fn open(
                         Ok(frame) => Event::Frame(Box::new(frame)),
                         Err(bad) => Event::Unreadable(bad),
                     };
-                    if events.send(event).is_err() {
+                    if events.send((event, Some(text))).is_err() {
                         return Outcome::Stop;
                     }
                 }

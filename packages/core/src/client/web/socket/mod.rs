@@ -1,7 +1,7 @@
 //! The websocket in the browser and Workers: a [`Feed`] carries one [`crate::live::Session`]
-//! over the global `WebSocket` and hands back [`crate::live::Event`]s. Subscriptions made
-//! while down are sent on the next open; a post made while down is refused, and one cut off
-//! by a drop is reported, never resent.
+//! over the global `WebSocket` and hands back [`crate::live::Event`]s, each frame's text beside
+//! it when asked. Subscriptions made while down are sent on the next open; a post made while
+//! down is refused, and one cut off by a drop is reported, never resent.
 //!
 //! Everything runs on the one JS thread: the socket's events and the timer call into the
 //! feed as tasks of their own, and [`Feed::next`] waits for the events they leave.
@@ -97,14 +97,20 @@ impl Feed {
 
     /// The next event; `None` once the feed has stopped.
     pub async fn next(&mut self) -> Option<Event> {
+        self.next_with_text().await.map(|(event, _)| event)
+    }
+
+    /// The next event, and for a frame, read or not, the text it arrived as: for a program that
+    /// still reads some channels its own way. `None` once the feed has stopped.
+    pub async fn next_with_text(&mut self) -> Option<(Event, Option<String>)> {
         poll_fn(|cx| {
             let Ok(mut driver) = self.driver.try_borrow_mut() else {
                 // Never: the driver is only held inside a call, never across one.
                 cx.waker().wake_by_ref();
                 return Poll::Pending;
             };
-            if let Some(event) = driver.events.pop_front() {
-                return Poll::Ready(Some(event));
+            if let Some(delivered) = driver.events.pop_front() {
+                return Poll::Ready(Some(delivered));
             }
             if driver.stopped {
                 return Poll::Ready(None);
@@ -153,7 +159,8 @@ struct Driver {
     /// closed, none while dialling. A browser gives a number, Node an object.
     timer: Option<JsValue>,
     calls: Calls,
-    events: VecDeque<Event>,
+    /// Each event, and for a frame the text it arrived as.
+    events: VecDeque<(Event, Option<String>)>,
     waker: Option<Waker>,
     stopped: bool,
 }
@@ -180,7 +187,7 @@ impl Driver {
                 return self.lost(reason);
             }
         }
-        self.events.push_back(Event::Opened);
+        self.events.push_back((Event::Opened, None));
         self.arm_tick();
     }
 
@@ -191,7 +198,7 @@ impl Driver {
             Ok(frame) => Event::Frame(Box::new(frame)),
             Err(bad) => Event::Unreadable(bad),
         };
-        self.events.push_back(event);
+        self.events.push_back((event, Some(text)));
     }
 
     /// The timer fired: a tick while open, the next dial while closed.
@@ -231,7 +238,7 @@ impl Driver {
         self.hang_up();
         let retry = self.session.closed(clock(), random());
         let after = retry.after_ms;
-        self.events.push_back(Event::Closed { reason, retry });
+        self.events.push_back((Event::Closed { reason, retry }, None));
         self.arm(after);
     }
 

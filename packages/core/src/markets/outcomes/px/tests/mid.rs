@@ -47,3 +47,15 @@ fn every_order_price_is_a_mid_on_the_grid() {
     assert_eq!(Mid::parse("0.126535").unwrap().complement().to_wire(), "0.873465");
     assert_eq!((Mid::from_units(OBSERVED_PER_UNIT + 1), Mid::ZERO.is_zero()), (None, true));
 }
+
+/// A mid already read as a decimal, from a frame or an answer, meets the same rules as its text.
+#[test]
+fn a_decimal_is_the_mid_its_text_would_be() {
+    for text in ["0", "0.270145", "0.5", "0.00000001", "1", "0.27000000"] {
+        assert_eq!(Mid::from_dec(Dec::parse(text).unwrap()), Mid::parse(text), "{text}");
+    }
+    let refused = |text: &str| Mid::from_dec(Dec::parse(text).unwrap());
+    assert_eq!(refused("0.123456789"), Err(BadPx::TooFine("0.123456789".to_owned())));
+    assert_eq!(refused("1.00000001"), Err(BadPx::OutOfRange("1.00000001".to_owned())));
+    assert_eq!(refused("-0.5"), Err(BadPx::OutOfRange("-0.5".to_owned())), "below 0, as Px::from_dec has it");
+}
