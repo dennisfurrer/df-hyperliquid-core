@@ -1,8 +1,9 @@
 //! [`Action`], every action in the docs' table with its fields in their units,
-//! and its encoding: the payload, the `sendRawAction` calldata, the call and the
-//! transaction that sends it.
+//! and its encoding: the fields as ABI values, the payload, the `sendRawAction`
+//! calldata, the call and the transaction that sends it.
 
 use crate::client::Network;
+use crate::client::evm::abi::Token;
 use crate::client::evm::corewriter::options::{Abstraction, BorrowLendOp, FinalizeVariant, OutcomeOp, Tif};
 use crate::client::evm::corewriter::table::{
     CORE_WRITER, ENCODING_VERSION, ORDER_DECIMALS, SEND_RAW_ACTION, SPECS, Spec,
@@ -161,6 +162,61 @@ impl Action {
             Action::SetAbstraction { user, abstraction } => vec![address(*user), word(abstraction.code())],
             Action::Outcome { operation, question, outcome, wei } => {
                 vec![word(operation.code()), word(*question), word(*outcome), word(*wei)]
+            }
+        }
+    }
+
+    /// The fields as ABI values, in the docs' order and of the docs' types: what
+    /// [`Action::from_tokens`] reads back, and what `abi::encode` over
+    /// [`Spec::types`] writes as the payload after its header.
+    #[must_use]
+    pub fn tokens(&self) -> Vec<Token> {
+        match self {
+            Action::LimitOrder { asset, is_buy, limit_px, sz, reduce_only, tif, cloid } => vec![
+                Token::uint(*asset),
+                Token::Bool(*is_buy),
+                Token::uint(*limit_px),
+                Token::uint(*sz),
+                Token::Bool(*reduce_only),
+                Token::uint(tif.code()),
+                Token::uint(*cloid),
+            ],
+            Action::VaultTransfer { vault, is_deposit, usd } => {
+                vec![Token::Address(*vault), Token::Bool(*is_deposit), Token::uint(*usd)]
+            }
+            Action::TokenDelegate { validator, wei, is_undelegate } => {
+                vec![Token::Address(*validator), Token::uint(*wei), Token::Bool(*is_undelegate)]
+            }
+            Action::StakingDeposit { wei } | Action::StakingWithdraw { wei } => vec![Token::uint(*wei)],
+            Action::SpotSend { destination, token, wei } => {
+                vec![Token::Address(*destination), Token::uint(*token), Token::uint(*wei)]
+            }
+            Action::UsdClassTransfer { ntl, to_perp } => vec![Token::uint(*ntl), Token::Bool(*to_perp)],
+            Action::FinalizeEvmContract { token, variant, create_nonce } => {
+                vec![Token::uint(*token), Token::uint(variant.code()), Token::uint(*create_nonce)]
+            }
+            Action::AddApiWallet { wallet, name } => vec![Token::Address(*wallet), Token::String(name.clone())],
+            Action::CancelByOid { asset, oid } => vec![Token::uint(*asset), Token::uint(*oid)],
+            Action::CancelByCloid { asset, cloid } => vec![Token::uint(*asset), Token::uint(*cloid)],
+            Action::ApproveBuilderFee { max_fee_rate, builder } => {
+                vec![Token::uint(*max_fee_rate), Token::Address(*builder)]
+            }
+            Action::SendAsset { destination, sub_account, source_dex, destination_dex, token, wei } => vec![
+                Token::Address(*destination),
+                Token::Address(*sub_account),
+                Token::uint(*source_dex),
+                Token::uint(*destination_dex),
+                Token::uint(*token),
+                Token::uint(*wei),
+            ],
+            Action::BorrowLend { operation, token, wei } => {
+                vec![Token::uint(operation.code()), Token::uint(*token), Token::uint(*wei)]
+            }
+            Action::SetAbstraction { user, abstraction } => {
+                vec![Token::Address(*user), Token::uint(abstraction.code())]
+            }
+            Action::Outcome { operation, question, outcome, wei } => {
+                vec![Token::uint(operation.code()), Token::uint(*question), Token::uint(*outcome), Token::uint(*wei)]
             }
         }
     }

@@ -1,10 +1,11 @@
-//! An [`Action`] back out of a payload: the header checked, the fields read
-//! against the docs' types, and [`BadAction`] when the bytes are not one.
+//! An [`Action`] back out of a payload or out of its fields as ABI values: the
+//! header checked, the fields read against the docs' types, and [`BadAction`]
+//! when they are not one.
 
 use crate::client::evm::abi::{self, AbiError, Token};
 use crate::client::evm::corewriter::action::Action;
 use crate::client::evm::corewriter::options::{Abstraction, BorrowLendOp, FinalizeVariant, OutcomeOp, Tif};
-use crate::client::evm::corewriter::table::{ENCODING_VERSION, GAP, spec};
+use crate::client::evm::corewriter::table::{ENCODING_VERSION, GAP, Spec, spec};
 use crate::utils::Address;
 
 /// Why bytes are not a CoreWriter action this reads.
@@ -35,12 +36,18 @@ impl Action {
             return Err(BadAction::Version(header[0]));
         }
         let id = u32::from_be_bytes([0, header[1], header[2], header[3]]);
-        let spec = match (spec(id), id) {
-            (Some(spec), _) => spec,
-            (None, GAP) => return Err(BadAction::Gap),
-            (None, _) => return Err(BadAction::UnknownId(id)),
-        };
-        let tokens = abi::decode(&abi::params(spec.types)?, body)?;
+        let tokens = abi::decode(&abi::params(known(id)?.types)?, body)?;
+        Action::from_tokens(id, &tokens)
+    }
+
+    /// An action from its fields as ABI values, in the docs' order and of the docs' types:
+    /// what [`Action::tokens`] gives, or text read with [`Token::parse`]. A value of another
+    /// type or outside its width is refused, as is an id the table does not have.
+    pub fn from_tokens(id: u32, tokens: &[Token]) -> Result<Action, BadAction> {
+        let wants = known(id)?.fields.len();
+        if tokens.len() != wants {
+            return Err(BadAction::Abi(AbiError::Count { wants, got: tokens.len() }));
+        }
         let mut fields = Reader { items: tokens.iter() };
         let r = &mut fields;
         Ok(match id {
@@ -85,6 +92,15 @@ impl Action {
                 wei: r.u64()?,
             },
         })
+    }
+}
+
+/// The table's row for `id`, or why there is none.
+fn known(id: u32) -> Result<&'static Spec, BadAction> {
+    match (spec(id), id) {
+        (Some(spec), _) => Ok(spec),
+        (None, GAP) => Err(BadAction::Gap),
+        (None, _) => Err(BadAction::UnknownId(id)),
     }
 }
 

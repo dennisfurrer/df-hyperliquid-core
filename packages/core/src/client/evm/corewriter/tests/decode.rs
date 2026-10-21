@@ -43,3 +43,20 @@ fn what_the_table_does_not_have_is_called_out() {
     };
     assert_eq!(Action::decode(&odd.payload()), Ok(odd));
 }
+
+#[test]
+fn fields_that_are_not_the_tables_are_refused() {
+    let deposit = Action::StakingDeposit { wei: 5 }.tokens();
+    assert_eq!(Action::from_tokens(4, &deposit), Ok(Action::StakingDeposit { wei: 5 }));
+    assert_eq!(Action::from_tokens(14, &deposit), Err(BadAction::Gap));
+    assert_eq!(Action::from_tokens(99, &deposit), Err(BadAction::UnknownId(99)));
+    assert_eq!(Action::from_tokens(4, &[]), Err(BadAction::Abi(AbiError::Count { wants: 1, got: 0 })));
+    assert!(matches!(Action::from_tokens(4, &[Token::Bool(true)]), Err(BadAction::Abi(_))), "a bool for a uint64");
+    // 256 does not fit encodedTif's uint8.
+    let order =
+        Action::LimitOrder { asset: 0, is_buy: true, limit_px: 1, sz: 1, reduce_only: false, tif: Tif::Gtc, cloid: 0 };
+    let mut wide = order.tokens();
+    wide[5] = Token::uint(256u64);
+    assert!(matches!(Action::from_tokens(1, &wide), Err(BadAction::Abi(_))));
+    assert_eq!(Action::from_tokens(1, &order.tokens()), Ok(order));
+}

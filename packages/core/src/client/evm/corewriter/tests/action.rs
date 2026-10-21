@@ -2,6 +2,7 @@
 //! CoreWriter order on testnet that viem built and signed.
 
 use crate::client::Network;
+use crate::client::evm::abi;
 use crate::client::evm::corewriter::support::{action, hex};
 use crate::client::evm::fixtures;
 use crate::utils::Dec;
@@ -21,6 +22,19 @@ fn every_action_id_encodes_as_viem_encodes_it() {
         assert_eq!(hex(&built.payload()), fixtures::text(&case["payload"]), "{id}: payload");
         assert_eq!(hex(&built.calldata()), fixtures::text(&case["calldata"]), "{id}: calldata");
         assert_eq!(Action::decode(&built.payload()), Ok(built.clone()), "{id}: read back");
+    }
+}
+
+#[test]
+fn the_fields_as_abi_values_are_the_payload_and_read_back() {
+    let viem = fixtures::viem();
+    for case in viem["corewriter"].as_array().unwrap() {
+        let id = case["id"].as_u64().unwrap();
+        let built = action(id, case["values"].as_array().unwrap());
+        let tokens = built.tokens();
+        let types = abi::params(built.spec().types).unwrap();
+        assert_eq!(abi::encode(&types, &tokens).unwrap(), built.payload()[4..], "{id}: the payload after its header");
+        assert_eq!(Action::from_tokens(built.id(), &tokens), Ok(built.clone()), "{id}: read back");
     }
 }
 
