@@ -7,7 +7,7 @@ use crate::markets::outcomes::coin::PRICE_PLACES;
 use crate::markets::outcomes::px::Px;
 use crate::utils::MINIMUM_ORDER_VALUE;
 use crate::utils::{Dec, Round};
-use serde::{Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Why a figure is not a size.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -143,6 +143,13 @@ impl<'de> Deserialize<'de> for Qty {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let text = String::deserialize(deserializer)?;
         Qty::parse(&text).map_err(de::Error::custom)
+    }
+}
+
+/// As the wire writes it: a string, the way [`Qty::parse`] reads it.
+impl Serialize for Qty {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&self.to_wire())
     }
 }
 

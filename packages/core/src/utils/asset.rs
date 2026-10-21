@@ -45,6 +45,31 @@ impl OutcomeSide {
             OutcomeSide::No => OutcomeSide::Yes,
         }
     }
+
+    /// `yes` or `no`, as serde writes it.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            OutcomeSide::Yes => "yes",
+            OutcomeSide::No => "no",
+        }
+    }
+}
+
+impl serde::Serialize for OutcomeSide {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for OutcomeSide {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        match String::deserialize(deserializer)?.as_str() {
+            "yes" => Ok(OutcomeSide::Yes),
+            "no" => Ok(OutcomeSide::No),
+            other => Err(serde::de::Error::custom(format!("`{other}` is not an outcome side; expected yes or no"))),
+        }
+    }
 }
 
 /// What an asset id names.

@@ -36,6 +36,22 @@ impl Coin {
         self.side
     }
 
+    /// From `10 * outcome + side`; `None` when its last digit is neither side or the outcome is
+    /// too large.
+    #[must_use]
+    pub const fn from_encoding(encoding: u64) -> Option<Coin> {
+        let side = match encoding % 10 {
+            0 => OutcomeSide::Yes,
+            1 => OutcomeSide::No,
+            _ => return None,
+        };
+        let outcome = encoding / 10;
+        match outcome <= u32::MAX as u64 {
+            true => Some(Coin { outcome: outcome as u32, side }),
+            false => None,
+        }
+    }
+
     /// `10 * outcome + side`.
     #[must_use]
     pub const fn encoding(self) -> u64 {
@@ -75,13 +91,7 @@ impl Coin {
         if digits.is_empty() || !digits.bytes().all(|byte| byte.is_ascii_digit()) {
             return None;
         }
-        let encoding: u64 = digits.parse().ok()?;
-        let side = match encoding % 10 {
-            0 => OutcomeSide::Yes,
-            1 => OutcomeSide::No,
-            _ => return None,
-        };
-        Some(Coin { outcome: u32::try_from(encoding / 10).ok()?, side })
+        Coin::from_encoding(digits.parse().ok()?)
     }
 
     /// A market order: `FrontendMarket` at the edge of the range, 0.99999 to buy and 0.00001 to
@@ -139,6 +149,20 @@ impl Coin {
 impl fmt::Display for Coin {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "#{}", self.encoding())
+    }
+}
+
+/// As [`fmt::Display`] writes it, `#12100`; either spelling reads back.
+impl serde::Serialize for Coin {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Coin {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        text.parse().map_err(serde::de::Error::custom)
     }
 }
 

@@ -4,6 +4,7 @@ use std::{fmt, str::FromStr};
 
 use crate::markets::outcomes::px::qty::{BadQty, Qty};
 use crate::utils::Dec;
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Why a figure is not a holding.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -107,6 +108,20 @@ impl FromStr for SignedQty {
 
     fn from_str(text: &str) -> Result<Self, Self::Err> {
         SignedQty::parse(text)
+    }
+}
+
+/// As the wire writes it: a string, the way [`SignedQty::parse`] reads it.
+impl Serialize for SignedQty {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&self.to_wire())
+    }
+}
+
+impl<'de> Deserialize<'de> for SignedQty {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let text = String::deserialize(deserializer)?;
+        SignedQty::parse(&text).map_err(de::Error::custom)
     }
 }
 

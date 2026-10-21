@@ -107,3 +107,22 @@ fn reference_prices_agree_where_its_tick_is_the_venue_s() {
     }
     assert_eq!((agreed, finer), (18, 5));
 }
+
+/// Each writes the string it reads, and a tick count past one clamps to one.
+#[test]
+fn prices_and_sizes_write_the_strings_they_read() {
+    use crate::markets::outcomes::px::{Mid, Qty, SignedQty};
+    for text in ["0", "0.00001", "0.5", "0.99999", "1"] {
+        let price = px(text);
+        assert_eq!(serde_json::to_string(&price).unwrap(), format!("\"{text}\""));
+        assert_eq!(serde_json::from_str::<Px>(&serde_json::to_string(&price).unwrap()).unwrap(), price);
+    }
+    let mid = Mid::parse("0.123456785").unwrap_or(Mid::ZERO);
+    assert_eq!(serde_json::from_str::<Mid>(&serde_json::to_string(&mid).unwrap()).unwrap(), mid);
+    assert_eq!(serde_json::to_string(&Qty::new(42)).unwrap(), r#""42""#);
+    for holding in [SignedQty::new(-7), SignedQty::ZERO, SignedQty::new(12)] {
+        assert_eq!(serde_json::from_str::<SignedQty>(&serde_json::to_string(&holding).unwrap()).unwrap(), holding);
+    }
+    assert_eq!(Px::saturating_from_ticks(12_345), Px::from_ticks(12_345).unwrap());
+    assert_eq!((Px::saturating_from_ticks(100_000), Px::saturating_from_ticks(250_000)), (Px::ONE, Px::ONE));
+}

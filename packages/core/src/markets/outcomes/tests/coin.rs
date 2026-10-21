@@ -173,3 +173,22 @@ fn a_market_order_within_a_slippage_is_bounded_toward_its_reference() {
         );
     }
 }
+
+/// A coin writes `#<encoding>` and a side `yes` or `no`, and each reads back; an encoding whose
+/// last digit is neither side is refused.
+#[test]
+fn coins_and_sides_write_what_they_read() {
+    use crate::utils::OutcomeSide;
+    let coin = Coin::new(1210, OutcomeSide::No);
+    assert_eq!(Coin::from_encoding(12_101), Some(coin));
+    assert_eq!((Coin::from_encoding(12_102), Coin::from_encoding(u64::MAX)), (None, None));
+    assert_eq!(serde_json::to_string(&coin).unwrap(), r##""#12101""##);
+    assert_eq!(serde_json::from_str::<Coin>(r#""+12101""#).unwrap(), coin);
+    assert!(serde_json::from_str::<Coin>(r##""#12102""##).is_err());
+    for side in [OutcomeSide::Yes, OutcomeSide::No] {
+        let text = serde_json::to_string(&side).unwrap();
+        assert_eq!(text, format!("\"{}\"", side.as_str()));
+        assert_eq!(serde_json::from_str::<OutcomeSide>(&text).unwrap(), side);
+    }
+    assert!(serde_json::from_str::<OutcomeSide>(r#""maybe""#).is_err());
+}

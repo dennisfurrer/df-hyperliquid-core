@@ -15,7 +15,7 @@ use std::{fmt, str::FromStr};
 
 use crate::markets::outcomes::coin::PRICE_PLACES;
 use crate::utils::{Dec, Round};
-use serde::{Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Ticks in one unit of the quote token: a tick is 0.00001.
 pub const TICKS_PER_UNIT: u32 = 100_000;
@@ -50,6 +50,15 @@ impl Px {
         match ticks <= TICKS_PER_UNIT {
             true => Some(Px(ticks)),
             false => None,
+        }
+    }
+
+    /// One past one, clamped to one.
+    #[must_use]
+    pub const fn saturating_from_ticks(ticks: u32) -> Px {
+        match ticks <= TICKS_PER_UNIT {
+            true => Px(ticks),
+            false => Px::ONE,
         }
     }
 
@@ -194,6 +203,13 @@ impl<'de> Deserialize<'de> for Px {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let text = String::deserialize(deserializer)?;
         Px::parse(&text).map_err(de::Error::custom)
+    }
+}
+
+/// As the wire writes it: a string, the way [`Px::parse`] reads it.
+impl Serialize for Px {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&self.to_wire())
     }
 }
 

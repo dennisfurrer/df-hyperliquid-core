@@ -5,7 +5,7 @@ use std::{fmt, str::FromStr};
 
 use crate::markets::outcomes::px::{BadPx, Px, TICKS_PER_UNIT};
 use crate::utils::{Dec, Round};
-use serde::{Deserialize, Deserializer, de};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Places a reported mid keeps.
 pub const OBSERVED_PLACES: u32 = 8;
@@ -121,6 +121,13 @@ impl<'de> Deserialize<'de> for Mid {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let text = String::deserialize(deserializer)?;
         Mid::parse(&text).map_err(de::Error::custom)
+    }
+}
+
+/// As the wire writes it: a string, the way [`Mid::parse`] reads it.
+impl Serialize for Mid {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(&self.to_wire())
     }
 }
 
