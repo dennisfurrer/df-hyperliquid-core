@@ -15,6 +15,7 @@ pub fn all_mids_request(dex: Dex<'_>) -> String {
     info_request("allMids", dex.field().as_slice())
 }
 
+/// Every coin's mid on `dex`.
 pub async fn all_mids(transport: &impl Transport, dex: Dex<'_>) -> Result<Mids, ApiError> {
     info(transport, all_mids_request(dex)).await
 }
@@ -32,11 +33,13 @@ impl Mids {
         self.0.iter().find(|(name, _)| name == coin).map(|(_, mid)| *mid)
     }
 
+    /// How many coins have a mid.
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Whether no coin has a mid.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()

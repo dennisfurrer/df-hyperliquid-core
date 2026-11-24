@@ -37,19 +37,33 @@ pub async fn candle_snapshot(
 /// A candle's width; every interval the venue accepts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Interval {
+    /// `1m`: one minute.
     OneMinute,
+    /// `3m`: three minutes.
     ThreeMinutes,
+    /// `5m`: five minutes.
     FiveMinutes,
+    /// `15m`: fifteen minutes.
     FifteenMinutes,
+    /// `30m`: thirty minutes.
     ThirtyMinutes,
+    /// `1h`: one hour.
     OneHour,
+    /// `2h`: two hours.
     TwoHours,
+    /// `4h`: four hours.
     FourHours,
+    /// `8h`: eight hours.
     EightHours,
+    /// `12h`: twelve hours.
     TwelveHours,
+    /// `1d`: one day.
     OneDay,
+    /// `3d`: three days.
     ThreeDays,
+    /// `1w`: one week.
     OneWeek,
+    /// `1M`: one month.
     OneMonth,
 }
 
@@ -124,6 +138,7 @@ impl Interval {
     }
 }
 
+/// A text that is none of the venue's interval spellings; holds the text.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("`{0}` is not an interval; the venue takes 1m 3m 5m 15m 30m 1h 2h 4h 8h 12h 1d 3d 1w 1M")]
 pub struct UnknownInterval(pub String);
@@ -158,16 +173,22 @@ pub struct Candle {
     /// The last millisecond inside it, not the next one's open.
     #[serde(rename = "T")]
     pub close_time: u64,
+    /// The coin (`s`).
     #[serde(rename = "s")]
     pub coin: String,
+    /// The candle's width (`i`).
     #[serde(rename = "i")]
     pub interval: Interval,
+    /// The first trade price (`o`).
     #[serde(rename = "o")]
     pub open: Dec,
+    /// The last trade price (`c`).
     #[serde(rename = "c")]
     pub close: Dec,
+    /// The highest trade price (`h`).
     #[serde(rename = "h")]
     pub high: Dec,
+    /// The lowest trade price (`l`).
     #[serde(rename = "l")]
     pub low: Dec,
     /// In the base asset.

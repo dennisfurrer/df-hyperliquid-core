@@ -10,10 +10,14 @@ use crate::utils::dec::{Dec, Round};
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PerpCtx {
+    /// The mark price (`markPx`).
     pub mark_px: Dec,
+    /// The mid price (`midPx`); `None` on a market with no book.
     #[serde(default)]
     pub mid_px: Option<Dec>,
+    /// The oracle price (`oraclePx`).
     pub oracle_px: Dec,
+    /// The mark price a day ago (`prevDayPx`).
     pub prev_day_px: Dec,
     /// Hourly, as a fraction of the position's value.
     pub funding: Dec,
@@ -24,8 +28,11 @@ pub struct PerpCtx {
     /// Base volume over the last day.
     #[serde(default)]
     pub day_base_vlm: Option<Dec>,
+    /// The premium over the oracle price that funding is computed from, as a fraction; `None` on a
+    /// market with no book.
     #[serde(default)]
     pub premium: Option<Dec>,
+    /// The impact bid and ask prices (`impactPxs`); `None` on a market with no book.
     #[serde(default)]
     pub impact_pxs: Option<Vec<Dec>>,
 }
@@ -59,16 +66,21 @@ impl PerpCtx {
 pub struct SpotCtx {
     /// The book name: `PURR/USDC`, `@107` or `#14730`.
     pub coin: String,
+    /// The mark price (`markPx`).
     pub mark_px: Dec,
+    /// The mid price (`midPx`); `None` on a market with no book.
     #[serde(default)]
     pub mid_px: Option<Dec>,
+    /// The mark price a day ago (`prevDayPx`).
     pub prev_day_px: Dec,
     /// Quote volume over the last day.
     pub day_ntl_vlm: Dec,
     /// Base volume over the last day.
     #[serde(default)]
     pub day_base_vlm: Option<Dec>,
+    /// The circulating supply (`circulatingSupply`), in the base token; an outcome side's open interest.
     pub circulating_supply: Dec,
+    /// The total supply (`totalSupply`), in the base token.
     #[serde(default)]
     pub total_supply: Option<Dec>,
 }

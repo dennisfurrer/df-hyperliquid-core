@@ -31,21 +31,35 @@ pub async fn dexes(transport: &impl Transport) -> Result<Dexes, ApiError> {
 /// Why `perpDexs` and `allPerpMetas` do not line up.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Misaligned {
+    /// The two reads list a different number of dexes.
     #[error("{dexes} dexes and {metas} metas, which should line up one for one")]
-    Count { dexes: usize, metas: usize },
+    Count {
+        /// How many dexes `perpDexs` lists.
+        dexes: usize,
+        /// How many metas `allPerpMetas` lists.
+        metas: usize,
+    },
+    /// A coin in a dex's meta that is not named after the dex.
     #[error("{coin} is listed under dex {dex}")]
-    Coin { coin: String, dex: String },
+    Coin {
+        /// The coin as the meta lists it.
+        coin: String,
+        /// The dex whose meta lists it.
+        dex: String,
+    },
 }
 
 /// Every perp dex with its meta.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Dexes {
+    /// Every dex as `perpDexs` lists it.
     pub list: PerpDexs,
     /// One per dex, in `perpDexs` order, the main dex's first.
     pub metas: Vec<Meta>,
 }
 
 impl Dexes {
+    /// Lines `list` up with `metas`, refusing a count mismatch or a coin not named after its dex.
     pub fn new(list: PerpDexs, metas: Vec<Meta>) -> Result<Dexes, Misaligned> {
         if list.0.len() != metas.len() {
             return Err(Misaligned::Count { dexes: list.0.len(), metas: metas.len() });

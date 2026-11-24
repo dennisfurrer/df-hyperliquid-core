@@ -18,10 +18,12 @@ pub fn spot_meta_and_asset_ctxs_request() -> String {
     info_request("spotMetaAndAssetCtxs", &[])
 }
 
+/// Every spot token and pair.
 pub async fn spot_meta(transport: &impl Transport) -> Result<SpotMeta, ApiError> {
     info(transport, spot_meta_request()).await
 }
 
+/// Every spot token and pair, with what each pair is doing now.
 pub async fn spot_meta_and_asset_ctxs(transport: &impl Transport) -> Result<SpotMetaAndAssetCtxs, ApiError> {
     info(transport, spot_meta_and_asset_ctxs_request()).await
 }
@@ -30,7 +32,9 @@ pub async fn spot_meta_and_asset_ctxs(transport: &impl Transport) -> Result<Spot
 /// (HYPE is 150 on mainnet and 1105 on testnet).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct SpotMeta {
+    /// Every token.
     pub tokens: Vec<SpotToken>,
+    /// Every pair.
     pub universe: Vec<SpotPair>,
 }
 
@@ -38,6 +42,7 @@ pub struct SpotMeta {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotToken {
+    /// The token's name.
     pub name: String,
     /// What a balance's `token` and `borrowLend` name it by.
     pub index: u32,
@@ -47,11 +52,14 @@ pub struct SpotToken {
     pub sz_decimals: u32,
     /// The decimals the venue counts the token in.
     pub wei_decimals: u32,
+    /// Whether the token is canonical (`isCanonical`): one of the venue's original tokens, such as USDC
+    /// and PURR.
     #[serde(default)]
     pub is_canonical: bool,
     /// The linked ERC-20 on HyperEVM, if any.
     #[serde(default)]
     pub evm_contract: Option<EvmContract>,
+    /// The token's full name (`fullName`); `None` where none was set.
     #[serde(default)]
     pub full_name: Option<String>,
     /// The deployer's share of the fees its pairs make, 0 to 1.
@@ -73,6 +81,7 @@ impl SpotToken {
 /// A token's ERC-20 on HyperEVM. The venue spells this key in snake case.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct EvmContract {
+    /// The ERC-20's address on HyperEVM.
     pub address: Address,
     /// The EVM token's decimals less `weiDecimals`, from -2 to 18.
     #[serde(rename = "evm_extra_wei_decimals")]
@@ -89,21 +98,25 @@ pub struct SpotPair {
     pub tokens: [u32; 2],
     /// The pair's own index: its asset id is `10000 + index`.
     pub index: u32,
+    /// Whether the pair is canonical (`isCanonical`): named `BASE/QUOTE` rather than `@index`.
     #[serde(default)]
     pub is_canonical: bool,
 }
 
 impl SpotPair {
+    /// The base token's index.
     #[must_use]
     pub const fn base(&self) -> u32 {
         self.tokens[0]
     }
 
+    /// The quote token's index.
     #[must_use]
     pub const fn quote(&self) -> u32 {
         self.tokens[1]
     }
 
+    /// The pair's asset id, `10000 + index`; `None` past the asset id range.
     #[must_use]
     pub const fn asset(&self) -> Option<Asset> {
         Asset::spot(self.index)
@@ -113,12 +126,16 @@ impl SpotPair {
 /// A pair with both its tokens: what an order on it needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SpotMarket<'a> {
+    /// The pair.
     pub pair: &'a SpotPair,
+    /// The base token.
     pub base: &'a SpotToken,
+    /// The quote token.
     pub quote: &'a SpotToken,
 }
 
 impl SpotMarket<'_> {
+    /// The pair's asset id, `10000 + index`; `None` past the asset id range.
     #[must_use]
     pub const fn asset(&self) -> Option<Asset> {
         self.pair.asset()
@@ -227,7 +244,9 @@ pub use crate::markets::context::SpotCtx;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "(SpotMeta, Vec<SpotCtx>)")]
 pub struct SpotMetaAndAssetCtxs {
+    /// Every token and pair.
     pub meta: SpotMeta,
+    /// Every context, keyed by `coin`: the pairs' and the outcome sides'.
     pub ctxs: Vec<SpotCtx>,
 }
 

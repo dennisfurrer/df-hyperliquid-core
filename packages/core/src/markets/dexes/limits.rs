@@ -33,6 +33,7 @@ pub async fn perp_dex_status(transport: &impl Transport, dex: Dex<'_>) -> Result
     info(transport, perp_dex_status_request(dex)).await
 }
 
+/// What a HIP-3 dex may hold, as `perpDexLimits` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DexLimits {
@@ -55,6 +56,7 @@ impl DexLimits {
     }
 }
 
+/// What a HIP-3 dex holds, as `perpDexStatus` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DexStatus {

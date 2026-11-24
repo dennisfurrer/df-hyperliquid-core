@@ -15,6 +15,7 @@ pub fn recent_trades_request(coin: &str) -> String {
     info_request("recentTrades", &[("coin", Json::String(coin.to_owned()))])
 }
 
+/// The coin's most recent trades.
 pub async fn recent_trades(transport: &impl Transport, coin: &str) -> Result<Vec<Trade>, ApiError> {
     info(transport, recent_trades_request(coin)).await
 }
@@ -23,10 +24,13 @@ pub async fn recent_trades(transport: &impl Transport, coin: &str) -> Result<Vec
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "Raw")]
 pub struct Trade {
+    /// The coin traded.
     pub coin: String,
     /// The aggressor's side.
     pub side: Side,
+    /// The trade price.
     pub px: Dec,
+    /// The size traded, in the base asset.
     pub sz: Dec,
     /// Milliseconds.
     pub time: u64,
@@ -34,7 +38,9 @@ pub struct Trade {
     pub hash: String,
     /// A hash of the two order ids; unique only together with `time` and `coin`.
     pub tid: u64,
+    /// The buying account, first in `users`.
     pub buyer: Address,
+    /// The selling account, second in `users`.
     pub seller: Address,
 }
 

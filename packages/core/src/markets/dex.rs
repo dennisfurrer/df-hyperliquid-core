@@ -4,6 +4,7 @@
 
 use crate::utils::Json;
 
+/// A perp dex: the main one, or a HIP-3 dex by name.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum Dex<'a> {
     /// The main dex, the first in `perpDexs`.

@@ -52,6 +52,7 @@ pub async fn perps_at_open_interest_cap(transport: &impl Transport, dex: Dex<'_>
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Meta {
+    /// Every perp, in asset id order, delisted ones included.
     pub universe: Vec<PerpAsset>,
     /// The tiered margin tables by id; a flat one is never listed ([`Meta::margin_table`]).
     #[serde(default)]
@@ -67,10 +68,14 @@ pub struct Meta {
 pub struct PerpAsset {
     /// What the order book, fills and positions call it: `BTC`, or `xyz:TSLA` on a HIP-3 dex.
     pub name: String,
+    /// Size decimals (`szDecimals`): how many decimal places an order size may have.
     pub sz_decimals: u32,
+    /// The highest leverage allowed (`maxLeverage`).
     pub max_leverage: u32,
+    /// The margin table the perp uses (`marginTableId`); `None` when the venue leaves it out.
     #[serde(default)]
     pub margin_table_id: Option<u32>,
+    /// Whether the perp is isolated margin only (`onlyIsolated`).
     #[serde(default)]
     pub only_isolated: bool,
     /// Delisted perps keep their place, so the ids after them hold.
@@ -88,6 +93,7 @@ pub struct PerpAsset {
 }
 
 impl PerpAsset {
+    /// The price and size grid orders on this perp must sit on.
     #[must_use]
     pub const fn grid(&self) -> Grid {
         Grid::perp(self.sz_decimals)
@@ -152,7 +158,9 @@ pub use crate::markets::context::PerpCtx;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "(Meta, Vec<PerpCtx>)")]
 pub struct MetaAndAssetCtxs {
+    /// The dex's perps.
     pub meta: Meta,
+    /// One context per perp, in the order of `meta.universe`.
     pub ctxs: Vec<PerpCtx>,
 }
 

@@ -11,6 +11,7 @@ pub fn perp_dexs_request() -> String {
     info_request("perpDexs", &[])
 }
 
+/// Every perp dex, the main dex first as `None`.
 pub async fn perp_dexs(transport: &impl Transport) -> Result<PerpDexs, ApiError> {
     info(transport, perp_dexs_request()).await
 }
@@ -33,6 +34,7 @@ impl PerpDexs {
         self.dexes().find(|(_, dex)| dex.name == name).map(|(at, _)| at)
     }
 
+    /// A HIP-3 dex by its name; `None` for a name not listed.
     #[must_use]
     pub fn get(&self, name: &str) -> Option<&PerpDex> {
         self.dexes().find(|(_, dex)| dex.name == name).map(|(_, dex)| dex)
@@ -51,11 +53,15 @@ impl PerpDexs {
 pub struct PerpDex {
     /// 2 to 4 lower case letters, the `dex:` of its coins.
     pub name: String,
+    /// The dex's full name (`fullName`).
     pub full_name: String,
+    /// The address that deployed the dex.
     #[serde(default)]
     pub deployer: Option<Address>,
+    /// The address that updates the dex's oracle (`oracleUpdater`).
     #[serde(default)]
     pub oracle_updater: Option<Address>,
+    /// The address the deployer's fee share goes to (`feeRecipient`).
     #[serde(default)]
     pub fee_recipient: Option<Address>,
     /// Each deploy action the deployer lets others send, and who.
@@ -76,6 +82,7 @@ pub struct PerpDex {
 }
 
 impl PerpDex {
+    /// The open interest cap `coin` streams toward, in the quote, where one is listed.
     #[must_use]
     pub fn streaming_oi_cap(&self, coin: &str) -> Option<Dec> {
         lookup(&self.asset_to_streaming_oi_cap, coin)
@@ -87,6 +94,7 @@ impl PerpDex {
         lookup(&self.asset_to_funding_multiplier, coin)
     }
 
+    /// A coin's funding interest rate where the deployer set one.
     #[must_use]
     pub fn funding_interest_rate(&self, coin: &str) -> Option<Dec> {
         lookup(&self.asset_to_funding_interest_rate, coin)

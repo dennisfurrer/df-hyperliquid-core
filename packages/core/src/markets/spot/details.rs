@@ -16,20 +16,29 @@ pub async fn token_details(transport: &impl Transport, token_id: &str) -> Result
     info(transport, token_details_request(token_id)).await
 }
 
+/// One token, as `tokenDetails` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenDetails {
+    /// The token's name.
     pub name: String,
+    /// The most that can ever exist (`maxSupply`).
     pub max_supply: Dec,
+    /// What exists now (`totalSupply`).
     pub total_supply: Dec,
+    /// What exists less the non-circulating balances (`circulatingSupply`).
     pub circulating_supply: Dec,
+    /// Size decimals (`szDecimals`): how many decimal places an order size may have.
     pub sz_decimals: u32,
+    /// Wei decimals (`weiDecimals`): how many decimal places a balance is kept to.
     pub wei_decimals: u32,
     /// Prices on its pair with USDC; left out without one.
     #[serde(default)]
     pub mid_px: Option<Dec>,
+    /// The mark price on its pair with USDC (`markPx`); left out without one.
     #[serde(default)]
     pub mark_px: Option<Dec>,
+    /// The mark price a day ago (`prevDayPx`); left out without a pair with USDC.
     #[serde(default)]
     pub prev_day_px: Option<Dec>,
     /// `null` once a deployment has finished with none left to read.
@@ -49,6 +58,7 @@ pub struct TokenDetails {
     /// Balances not counted as circulating.
     #[serde(default)]
     pub non_circulating_user_balances: Vec<(Address, Dec)>,
+    /// Supply not yet issued (`futureEmissions`).
     pub future_emissions: Dec,
 }
 
@@ -56,10 +66,12 @@ pub struct TokenDetails {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Genesis {
+    /// What each address was given at genesis (`userBalances`).
     pub user_balances: Vec<(Address, Dec)>,
     /// Shares handed to the holders of other tokens, by token index.
     #[serde(default)]
     pub existing_token_balances: Vec<(u32, Dec)>,
+    /// Addresses blacklisted at genesis (`blacklistUsers`).
     #[serde(default)]
     pub blacklist_users: Vec<Address>,
 }

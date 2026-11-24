@@ -99,6 +99,7 @@ pub fn merge_rates(start_ms: u64, end_ms: u64, windows: Vec<Vec<FundingRate>>) -
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FundingRate {
+    /// The perp: `BTC`, or `xyz:XYZ100` on a HIP-3 dex.
     pub coin: String,
     /// The fraction of a position's value paid for the hour; positive, longs pay.
     pub funding_rate: Dec,
@@ -177,9 +178,11 @@ pub struct UserFunding {
     pub time: u64,
     /// All zeros on every funding row.
     pub hash: String,
+    /// What the settlement did to the account.
     pub delta: FundingDelta,
 }
 
+/// One funding settlement on one position.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FundingDelta {
@@ -192,7 +195,9 @@ pub struct FundingDelta {
     pub usdc: Dec,
     /// The position settled, signed.
     pub szi: Dec,
+    /// The rate settled at (`fundingRate`), as a fraction of the position's value for the hour.
     pub funding_rate: Dec,
+    /// How many samples the rate was averaged from (`nSamples`); `None` when the venue leaves it out.
     #[serde(default)]
     pub n_samples: Option<u32>,
 }
@@ -203,6 +208,7 @@ pub fn predicted_fundings_request() -> String {
     info_request("predictedFundings", &[])
 }
 
+/// Each main-dex perp's next funding on each venue.
 pub async fn predicted_fundings(transport: &impl Transport) -> Result<PredictedFundings, ApiError> {
     info(transport, predicted_fundings_request()).await
 }
@@ -241,6 +247,7 @@ impl PredictedFundings {
     }
 }
 
+/// One venue's next funding for one perp.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PredictedFunding {

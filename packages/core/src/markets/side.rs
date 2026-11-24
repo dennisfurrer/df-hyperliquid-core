@@ -12,11 +12,14 @@ use crate::utils::dec::Round;
 /// it rests on. A bid sorts before an ask.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Side {
+    /// `B`: a buy or a bid.
     Buy,
+    /// `A`: a sell or an ask.
     Sell,
 }
 
 impl Side {
+    /// Both sides, buy first.
     pub const ALL: [Side; 2] = [Side::Buy, Side::Sell];
 
     /// `B` or `A`, exactly as the venue writes it.
@@ -38,11 +41,13 @@ impl Side {
         }
     }
 
+    /// Whether the side is [`Side::Buy`].
     #[must_use]
     pub const fn is_buy(self) -> bool {
         matches!(self, Side::Buy)
     }
 
+    /// The opposite side.
     #[must_use]
     pub const fn other(self) -> Side {
         match self {

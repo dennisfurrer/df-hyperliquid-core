@@ -16,6 +16,7 @@ pub struct Precision {
 }
 
 impl Precision {
+    /// Full precision: no `nSigFigs`, no `mantissa`.
     pub const FULL: Precision = Precision { figures: None, step: None };
 
     /// `nSigFigs`: 2, 3, 4 or 5.
@@ -49,6 +50,7 @@ pub fn l2_book_request(coin: &str, precision: Precision) -> String {
     info_request("l2Book", &fields)
 }
 
+/// The book of `coin` at `precision`.
 pub async fn l2_book(transport: &impl Transport, coin: &str, precision: Precision) -> Result<Book, ApiError> {
     info(transport, l2_book_request(coin, precision)).await
 }
@@ -56,7 +58,9 @@ pub async fn l2_book(transport: &impl Transport, coin: &str, precision: Precisio
 /// One price level: `n` orders resting at `px` for `sz` in all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct Level {
+    /// The price.
     pub px: Dec,
+    /// The size resting at the price, in the base asset.
     pub sz: Dec,
     /// Number of orders at this price, not an amount.
     pub n: u32,
@@ -67,6 +71,7 @@ pub struct Level {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "Raw")]
 pub struct Book {
+    /// The coin, as asked for.
     pub coin: String,
     /// Milliseconds.
     pub time: u64,
