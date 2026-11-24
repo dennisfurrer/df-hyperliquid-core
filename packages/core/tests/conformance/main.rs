@@ -9,6 +9,7 @@ mod base;
 mod deploy;
 mod hip4;
 mod lend;
+mod parity;
 mod stake;
 mod trade;
 mod transfer;
