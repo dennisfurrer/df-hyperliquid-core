@@ -38,3 +38,17 @@ fn a_refusal_is_a_typed_node_error() {
         Err(RpcError::Unreadable { .. })
     ));
 }
+
+/// `net_version` answers a decimal string, `eth_syncing` false or an object, and a count of a block
+/// the node does not know is `null`.
+#[test]
+fn a_network_id_a_sync_state_and_a_missing_count_read() {
+    let answer = |result: &str| format!(r#"{{"jsonrpc":"2.0","id":1,"result":{result}}}"#);
+    assert_eq!(eth::net_version().answer(&answer(r#""999""#)), Ok(999));
+    assert!(matches!(eth::net_version().answer(&answer(r#""0x3e7""#)), Err(RpcError::Unreadable { .. })));
+    assert_eq!(eth::syncing().answer(&answer("false")), Ok(false));
+    assert_eq!(eth::syncing().answer(&answer(r#"{"startingBlock":"0x0","currentBlock":"0x1"}"#)), Ok(true));
+    assert!(matches!(eth::syncing().answer(&answer("1")), Err(RpcError::Unreadable { method: "eth_syncing", .. })));
+    assert_eq!(eth::block_transaction_count(BlockTag::Latest).answer(&answer(r#""0x14""#)), Ok(Some(20)));
+    assert_eq!(eth::block_transaction_count(BlockTag::Latest).answer(&answer("null")), Ok(None));
+}

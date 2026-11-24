@@ -2,7 +2,7 @@
 //! the envelope its answer comes in, and how its `result` is read.
 
 use crate::client::evm::rpc::{BlockTag, NodeError, RpcError};
-use crate::client::evm::u256::U256;
+use crate::client::evm::u256::{B256, U256};
 use crate::utils::{Address, Json, hex};
 use serde::{Deserialize, Deserializer, de::DeserializeOwned};
 use serde_json::value::RawValue;
@@ -83,6 +83,29 @@ pub(super) fn small(text: &str) -> Result<u64, String> {
     value.to_u64().ok_or_else(|| format!("{value} does not fit 64 bits"))
 }
 
+/// A quantity that fits a `u64`, or `null`.
+pub(super) fn small_or_null(text: &str) -> Result<Option<u64>, String> {
+    match json::<Option<U256>>(text)? {
+        Some(value) => value.to_u64().map(Some).ok_or_else(|| format!("{value} does not fit 64 bits")),
+        None => Ok(None),
+    }
+}
+
+/// A decimal string, as `net_version` answers: `"999"`.
+pub(super) fn decimal(text: &str) -> Result<u64, String> {
+    let said: String = json(text)?;
+    said.parse().map_err(|_| format!("`{said}` is not a decimal number"))
+}
+
+/// `false`, or an object with the sync's progress, read as `true`.
+pub(super) fn sync_state(text: &str) -> Result<bool, String> {
+    match json::<serde_json::Value>(text)? {
+        serde_json::Value::Bool(syncing) => Ok(syncing),
+        serde_json::Value::Object(_) => Ok(true),
+        other => Err(format!("`{other}` is neither false nor a sync's progress")),
+    }
+}
+
 pub(super) fn data(text: &str) -> Result<Vec<u8>, String> {
     let said: String = json(text)?;
     let digits = said.strip_prefix("0x").ok_or_else(|| format!("`{said}` is not 0x and hex"))?;
@@ -95,6 +118,14 @@ pub(super) fn quantity(value: U256) -> Json {
 
 pub(super) fn tag(block: BlockTag) -> Json {
     Json::String(block.to_string())
+}
+
+pub(super) fn hash(hash: B256) -> Json {
+    Json::String(hash.to_hex())
+}
+
+pub(super) fn index(index: u64) -> Json {
+    quantity(U256::from_u64(index))
 }
 
 pub(super) fn address(address: Address) -> Json {

@@ -122,4 +122,72 @@ impl<H: Http> Rpc<H> {
     pub async fn using_big_blocks(&self, owner: Address) -> Result<bool, RpcError> {
         self.run(eth::using_big_blocks(owner)).await
     }
+
+    /// [`eth::net_version`].
+    pub async fn net_version(&self) -> Result<u64, RpcError> {
+        self.run(eth::net_version()).await
+    }
+
+    /// [`eth::client_version`].
+    pub async fn client_version(&self) -> Result<String, RpcError> {
+        self.run(eth::client_version()).await
+    }
+
+    /// [`eth::syncing`].
+    pub async fn syncing(&self) -> Result<bool, RpcError> {
+        self.run(eth::syncing()).await
+    }
+
+    /// [`eth::block_by_hash`].
+    pub async fn block_by_hash(&self, block: B256, full: bool) -> Result<Option<Block>, RpcError> {
+        self.run(eth::block_by_hash(block, full)).await
+    }
+
+    /// [`eth::block_receipts`].
+    pub async fn block_receipts(&self, block: BlockTag) -> Result<Option<Vec<Receipt>>, RpcError> {
+        self.run(eth::block_receipts(block)).await
+    }
+
+    /// [`eth::block_receipts_by_hash`].
+    pub async fn block_receipts_by_hash(&self, block: B256) -> Result<Option<Vec<Receipt>>, RpcError> {
+        self.run(eth::block_receipts_by_hash(block)).await
+    }
+
+    /// [`eth::block_transaction_count`].
+    pub async fn block_transaction_count(&self, block: BlockTag) -> Result<Option<u64>, RpcError> {
+        self.run(eth::block_transaction_count(block)).await
+    }
+
+    /// [`eth::block_transaction_count_by_hash`].
+    pub async fn block_transaction_count_by_hash(&self, block: B256) -> Result<Option<u64>, RpcError> {
+        self.run(eth::block_transaction_count_by_hash(block)).await
+    }
+
+    /// [`eth::transaction_by_block_and_index`].
+    pub async fn transaction_by_block_and_index(
+        &self,
+        block: BlockTag,
+        position: u64,
+    ) -> Result<Option<Transaction>, RpcError> {
+        self.run(eth::transaction_by_block_and_index(block, position)).await
+    }
+
+    /// [`eth::transaction_by_block_hash_and_index`].
+    pub async fn transaction_by_block_hash_and_index(
+        &self,
+        block: B256,
+        position: u64,
+    ) -> Result<Option<Transaction>, RpcError> {
+        self.run(eth::transaction_by_block_hash_and_index(block, position)).await
+    }
+
+    /// [`eth::system_transactions`].
+    pub async fn system_transactions(&self, block: BlockTag) -> Result<Option<Vec<Transaction>>, RpcError> {
+        self.run(eth::system_transactions(block)).await
+    }
+
+    /// [`eth::system_transactions_by_hash`].
+    pub async fn system_transactions_by_hash(&self, block: B256) -> Result<Option<Vec<Transaction>>, RpcError> {
+        self.run(eth::system_transactions_by_hash(block)).await
+    }
 }

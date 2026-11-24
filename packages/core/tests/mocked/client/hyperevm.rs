@@ -1,7 +1,8 @@
 //! HyperEVM through an [`Rpc`] against the fake node, which answers as mainnet did
 //! (`vectors/hyperevm_mainnet.json`, each call's method, params and answer verbatim): every typed
 //! read goes out as the node took it, a CoreWriter send that landed reads back whole, a CoreWriter
-//! order is built, signed and sent, and an HTTP failure stays apart from the node's refusals.
+//! order is built, signed and sent, and an HTTP failure stays apart from the node's refusals. The
+//! block-level reads replay `vectors/hyperevm_blocks_mainnet.json` the same way.
 
 use df_hyperliquid_core::Network;
 use df_hyperliquid_core::client::TransportError;
@@ -250,4 +251,97 @@ async fn an_http_failure_stays_apart_from_the_node_s_refusal_and_nothing_is_retr
     assert!(matches!(lost, Err(RpcError::Transport(TransportError::Unreachable(_)))), "{lost:?}");
     assert_eq!(rpc.block_number().await, Ok(0x2dc_995b));
     assert_eq!(rpc.http().calls().len(), 5, "each sent once");
+}
+
+/// Block 52021440 (`0x31ac8c0`) on mainnet: one transaction and one system transaction.
+const BLOCK: &str = "0xf0175bbe952c972292208b8877d3cbe7a2c0cf8399a9ea7eb3c8829e37817b7f";
+const HEIGHT: u64 = 0x031a_c8c0;
+
+/// The `nth` recorded block-level call of `method`: its params, and its answer as the node wrote
+/// it.
+fn block_read(method: &str, nth: usize) -> (Value, String) {
+    let file: Value = serde_json::from_str(&vector("hyperevm_blocks_mainnet.json")).unwrap();
+    let calls = file["calls"].as_array().unwrap();
+    let call = calls.iter().filter(|call| call["method"] == method).nth(nth);
+    let call = call.unwrap_or_else(|| panic!("no {method} #{nth}"));
+    (call["params"].clone(), call["answer"].as_str().unwrap().to_owned())
+}
+
+/// A node that answers each of `reads`, `(method, nth)`, as recorded; every call must go out as
+/// the recorded one did, in this order.
+fn block_node(reads: &[(&str, usize)]) -> Rpc<Venue> {
+    let venue =
+        reads.iter().fold(Venue::mainnet(), |venue, &(method, nth)| venue.rpc(method, &block_read(method, nth).1));
+    Rpc::hyperevm(venue, Network::Mainnet)
+}
+
+fn went_out_as_the_block_reads(rpc: &Rpc<Venue>, expected: &[(&str, usize)]) {
+    let calls = rpc.http().calls();
+    assert_eq!(calls.len(), expected.len());
+    for (call, &(method, nth)) in calls.iter().zip(expected) {
+        let params = block_read(method, nth).0;
+        assert_eq!(call, &json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}), "{method}");
+    }
+}
+
+#[tokio::test]
+async fn a_block_s_transactions_receipts_and_system_transactions_read_by_number_and_by_hash() {
+    let reads = [
+        ("net_version", 0),
+        ("web3_clientVersion", 0),
+        ("eth_syncing", 0),
+        ("eth_getBlockByHash", 0),
+        ("eth_getBlockReceipts", 0),
+        ("eth_getBlockTransactionCountByHash", 0),
+        ("eth_getBlockTransactionCountByNumber", 0),
+        ("eth_getTransactionByBlockHashAndIndex", 0),
+        ("eth_getTransactionByBlockNumberAndIndex", 0),
+        ("eth_getSystemTxsByBlockHash", 0),
+        ("eth_getSystemTxsByBlockNumber", 0),
+    ];
+    let rpc = block_node(&reads);
+    let hash = BLOCK.parse::<B256>().unwrap();
+
+    assert_eq!(rpc.net_version().await, Ok(999));
+    assert_eq!(rpc.client_version().await.as_deref(), Ok("hyperliquid evm Mainnet"));
+    assert_eq!(rpc.syncing().await, Ok(false));
+    let block = rpc.block_by_hash(hash, false).await.unwrap().unwrap();
+    let receipts = rpc.block_receipts(Number(HEIGHT)).await.unwrap().unwrap();
+    let by_hash = rpc.block_transaction_count_by_hash(hash).await.unwrap();
+    let by_number = rpc.block_transaction_count(Number(HEIGHT)).await.unwrap();
+    let first = rpc.transaction_by_block_hash_and_index(hash, 0).await.unwrap().unwrap();
+    let same = rpc.transaction_by_block_and_index(Number(HEIGHT), 0).await.unwrap().unwrap();
+    let system = rpc.system_transactions_by_hash(hash).await.unwrap().unwrap();
+    let same_system = rpc.system_transactions(Number(HEIGHT)).await.unwrap().unwrap();
+
+    went_out_as_the_block_reads(&rpc, &reads);
+    assert_eq!((block.number, block.hash), (HEIGHT, hash));
+    let BlockTransactions::Hashes(hashes) = &block.transactions else { panic!("{block:?}") };
+    assert_eq!(hashes.as_slice(), [first.hash], "the block lists its one transaction, not the system one");
+    assert_eq!((by_hash, by_number), (Some(1), Some(1)));
+    let [receipt] = receipts.as_slice() else { panic!("{receipts:?}") };
+    assert_eq!((receipt.transaction_hash, receipt.succeeded(), receipt.logs.len()), (first.hash, false, 0));
+    assert_eq!(first, same);
+    assert_eq!((first.kind, first.block_number, first.transaction_index), (2, Some(HEIGHT), Some(0)));
+    assert_eq!(system, same_system);
+    let [system] = system.as_slice() else { panic!("{system:?}") };
+    assert_eq!((system.kind, system.gas_price, system.from), (0, Some(U256::ZERO), address(USDC_SYSTEM)));
+    assert_eq!((system.to, system.r, system.signature()), (Some(address(USDC)), Some(U256::ZERO), None));
+}
+
+/// The whole block carries its transaction's record; a hash the node does not know and an index
+/// past the last read as nothing, not as a refusal.
+#[tokio::test]
+async fn a_whole_block_reads_its_records_and_what_is_not_there_reads_as_none() {
+    let rpc = block_node(&[("eth_getBlockByHash", 1)]);
+    let block = rpc.block_by_hash(BLOCK.parse::<B256>().unwrap(), true).await.unwrap().unwrap();
+    let BlockTransactions::Full(records) = &block.transactions else { panic!("{block:?}") };
+    assert_eq!((records.len(), records[0].nonce), (1, 0x43_e06e));
+    went_out_as_the_block_reads(&rpc, &[("eth_getBlockByHash", 1)]);
+
+    let rpc = block_node(&[("eth_getBlockByHash", 2), ("eth_getTransactionByBlockNumberAndIndex", 1)]);
+    let unknown = format!("0x{}", "11".repeat(32)).parse::<B256>().unwrap();
+    assert_eq!(rpc.block_by_hash(unknown, false).await, Ok(None));
+    assert_eq!(rpc.transaction_by_block_and_index(Number(HEIGHT), 5).await, Ok(None));
+    went_out_as_the_block_reads(&rpc, &[("eth_getBlockByHash", 2), ("eth_getTransactionByBlockNumberAndIndex", 1)]);
 }

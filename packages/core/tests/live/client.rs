@@ -1,7 +1,8 @@
 //! HyperEVM mainnet, read only: the chain, its fees and a balance through an [`Rpc`], and every
 //! read precompile through the crate's typed reads. Each answer must read into its type, and its
 //! JSON-RPC envelope must have the shape of the recording the mocked suite replays
-//! (`vectors/hyperevm_mainnet.json`). No transaction is ever sent.
+//! (`vectors/hyperevm_mainnet.json`, and `vectors/hyperevm_blocks_mainnet.json` for the block-level
+//! reads). No transaction is ever sent.
 
 use std::cell::RefCell;
 
@@ -12,7 +13,7 @@ use df_hyperliquid_core::client::evm::precompiles::{
     position, position2, spot_balance, spot_info, spot_price, spot_px, token_info, token_supply, user_vault_equity,
     withdrawable,
 };
-use df_hyperliquid_core::client::evm::rpc::BlockTag::Latest;
+use df_hyperliquid_core::client::evm::rpc::BlockTag::{Latest, Number};
 use df_hyperliquid_core::client::evm::{ReadError, Rpc, RpcError, U256};
 use df_hyperliquid_core::client::native::Native;
 use df_hyperliquid_core::client::{Http, Request, Response, TransportError, USDC_INDEX};
@@ -62,12 +63,17 @@ fn a(text: &str) -> Address {
 /// named `recorded`, and fails naming every key path the node has added since.
 fn same_shape(rpc: &Rpc<Kept>, recorded: &str) {
     let live: Value = serde_json::from_str(rpc.http().answers.borrow().last().expect("nothing was sent")).unwrap();
-    let file: Value = serde_json::from_str(&vector("hyperevm_mainnet.json")).unwrap();
-    let found = ["calls", "precompiles"]
+    let files: Vec<Value> = ["hyperevm_mainnet.json", "hyperevm_blocks_mainnet.json"]
         .iter()
-        .flat_map(|list| file[*list].as_array().unwrap())
+        .map(|file| serde_json::from_str(&vector(file)).unwrap())
+        .collect();
+    let found = files
+        .iter()
+        .flat_map(|file| ["calls", "precompiles"].map(|list| &file[list]))
+        .filter_map(Value::as_array)
+        .flatten()
         .find(|call| call["method"] == recorded || call["name"] == recorded)
-        .unwrap_or_else(|| panic!("hyperevm_mainnet.json has no {recorded}"));
+        .unwrap_or_else(|| panic!("no recorded {recorded}"));
     let said: Value = serde_json::from_str(found["answer"].as_str().unwrap()).unwrap();
     let added = added(&said, &live);
     assert!(added.is_empty(), "the node now answers {recorded} with fields it did not have: {added:#?}");
@@ -83,6 +89,48 @@ async fn hyperevm_is_chain_999_and_its_blocks_move_on() {
     same_shape(&rpc, "eth_blockNumber");
     assert!(rpc.read(&l1_block_number()).await.unwrap() > 1_176_514_427, "and HyperCore's");
     same_shape(&rpc, "l1BlockNumber");
+}
+
+/// A block read by its number and by its hash agrees: its transactions, receipts and system
+/// transactions. The block is one with a transaction, a few back from the head.
+#[tokio::test]
+#[ignore = "mainnet"]
+async fn a_block_s_transactions_receipts_and_system_transactions_read_by_number_and_by_hash() {
+    let rpc = node();
+    assert_eq!(rpc.net_version().await, Ok(Network::Mainnet.evm_chain_id()));
+    same_shape(&rpc, "net_version");
+    assert!(rpc.client_version().await.unwrap().starts_with("hyperliquid evm"));
+    assert_eq!(rpc.syncing().await, Ok(false));
+    let head = rpc.block_number().await.unwrap();
+    let (number, count) = {
+        let mut at = head - 5;
+        loop {
+            let count = rpc.block_transaction_count(Number(at)).await.unwrap().unwrap();
+            if count > 0 {
+                break (at, count);
+            }
+            at -= 1;
+        }
+    };
+    same_shape(&rpc, "eth_getBlockTransactionCountByNumber");
+    let block = rpc.block(Number(number), false).await.unwrap().unwrap();
+    let by_hash = rpc.block_by_hash(block.hash, false).await.unwrap().unwrap();
+    same_shape(&rpc, "eth_getBlockByHash");
+    assert_eq!(by_hash, block);
+    assert_eq!(rpc.block_transaction_count_by_hash(block.hash).await, Ok(Some(count)));
+    let receipts = rpc.block_receipts(Number(number)).await.unwrap().unwrap();
+    same_shape(&rpc, "eth_getBlockReceipts");
+    assert_eq!(u64::try_from(receipts.len()), Ok(count));
+    assert_eq!(rpc.block_receipts_by_hash(block.hash).await, Ok(Some(receipts.clone())));
+    let first = rpc.transaction_by_block_and_index(Number(number), 0).await.unwrap().unwrap();
+    same_shape(&rpc, "eth_getTransactionByBlockNumberAndIndex");
+    assert_eq!(first.hash, receipts[0].transaction_hash);
+    let by_hash = rpc.transaction_by_block_hash_and_index(block.hash, 0).await.unwrap().unwrap();
+    assert_eq!(by_hash.hash, first.hash);
+    assert_eq!(rpc.transaction_by_block_and_index(Number(number), count).await, Ok(None), "past the last");
+    let system = rpc.system_transactions(Number(number)).await.unwrap().unwrap();
+    assert_eq!(rpc.system_transactions_by_hash(block.hash).await, Ok(Some(system.clone())));
+    assert!(system.iter().all(|tx| tx.kind == 0 && tx.gas_price == Some(U256::ZERO)), "{system:?}");
 }
 
 #[tokio::test]
