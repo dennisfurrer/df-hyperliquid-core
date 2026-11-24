@@ -23,18 +23,20 @@ pub use holdings::{
     combined, payer, spot_state, spot_state_request, standing,
 };
 pub use keys::{
-    ActionKind, Agent, AgentName, ApproveAgent, ApproveBuilderFee, BUILDER_MINIMUM, BadAgentName, BadExpiry, Key,
-    MAX_AGENT_VALIDITY_MS, NotReady, Readiness, Refused, Reused, Role, SignError, Signature, Signer, Signers, Why,
-    approved_builders, approved_builders_request, builder_readiness, extra_agents, extra_agents_request, fresh_agent,
-    max_builder_fee, max_builder_fee_request, may_sign, readiness, role, role_request, split_valid_until,
+    ActionKind, Agent, AgentName, ApproveAgent, ApproveBuilderFee, BUILDER_MINIMUM, BadAgentName, BadExpiry,
+    BadSigners, ConvertToMultiSigUser, Key, MAX_AGENT_VALIDITY_MS, NotReady, Readiness, Refused, Reused, Role,
+    SignError, Signature, Signer, Signers, Why, approved_builders, approved_builders_request, builder_readiness,
+    extra_agents, extra_agents_request, fresh_agent, max_builder_fee, max_builder_fee_request, may_sign, readiness,
+    role, role_request, split_valid_until,
 };
 #[cfg(feature = "sign")]
 pub use keys::{LocalKey, recover, verify};
 pub use settings::{
-    Abstraction, AbstractionMode, AccountRef, AgentSetAbstraction, BadCode, CreateSubAccount, LONGEST_CODE, RateLimit,
-    Referral, ReferralState, ReferredBy, ReferrerData, ReferrerState, SetReferrer, SubAccount, SubAccountSpotTransfer,
-    SubAccountTransfer, SubRefusal, TokenRewards, UserSetAbstraction, abstraction, abstraction_request, rate_limit,
-    rate_limit_request, referral, referral_request, sub_accounts, sub_accounts_request,
+    Abstraction, AbstractionMode, AccountRef, AgentSetAbstraction, BadCode, BadWeight, ClaimRewards, CreateSubAccount,
+    LONGEST_CODE, RateLimit, Referral, ReferralState, ReferredBy, ReferrerData, ReferrerState, ReserveRequestWeight,
+    SetReferrer, SubAccount, SubAccountSpotTransfer, SubAccountTransfer, SubRefusal, TokenRewards, UserSetAbstraction,
+    abstraction, abstraction_request, rate_limit, rate_limit_request, referral, referral_request, sub_accounts,
+    sub_accounts_request,
 };
 
 #[cfg(test)]

@@ -138,3 +138,29 @@ async fn an_account_trades_under_a_code_it_does_not_own_and_knows_what_it_may_se
     assert_eq!((limit.cap, limit.remaining(), limit.is_throttled()), (INITIAL_REQUESTS, INITIAL_REQUESTS, false));
     assert_eq!(open_order_cap(limit.volume), OPEN_ORDERS);
 }
+
+/// Referral rewards claimed, and a thousand requests reserved for the account and for another: L1
+/// actions that recover to the account's key.
+#[tokio::test]
+async fn referral_rewards_are_claimed_and_requests_reserved_for_the_account_and_another() {
+    use df_hyperliquid_core::account::{ClaimRewards, ReserveRequestWeight};
+
+    let venue = Venue::mainnet().signed_by(key().address()).exchange("default").exchange("default").exchange("default");
+    let client = Client::new(venue, Network::Mainnet, clock, key());
+    let reserve = ReserveRequestWeight::new(1_000).unwrap();
+    assert_eq!(reserve.cost(), Some(dec("0.5")), "half a USDC for a thousand");
+
+    client.send(&ClaimRewards).await.unwrap();
+    client.send(&reserve).await.unwrap();
+    client.send(&reserve.for_user(address(SUB))).await.unwrap();
+
+    let sent: Vec<String> = client.http().actions().iter().map(|sent| sent.action.compact()).collect();
+    assert_eq!(
+        sent,
+        [
+            r#"{"type":"claimRewards"}"#.to_owned(),
+            r#"{"type":"reserveRequestWeight","weight":1000}"#.to_owned(),
+            format!(r#"{{"type":"reserveRequestWeight","weight":1000,"destination":"{SUB}"}}"#),
+        ]
+    );
+}

@@ -140,3 +140,24 @@ async fn every_builder_an_account_has_approved_is_read_by_its_address() {
     assert_eq!(approved, [address(BUILDER), address("0xab5dbc057628bc18523c4cdfc0e1e2ebdbecb704")]);
     assert_eq!(none, []);
 }
+
+/// The account made a two-of-two multi-sig account, user-signed for mainnet's chain; the signers
+/// go sorted and lowercase.
+#[tokio::test]
+async fn the_account_is_made_a_multi_sig_account() {
+    use df_hyperliquid_core::account::ConvertToMultiSigUser;
+
+    let client = Client::new(Venue::mainnet().exchange("default"), Network::Mainnet, clock, key());
+    let nonce = client.next_nonce();
+    let convert = ConvertToMultiSigUser::new(&[address(KNOWN), address(BUILDER)], 2, nonce).unwrap();
+    client.send_user(&convert).await.unwrap();
+
+    let [sent] = client.http().actions().try_into().unwrap();
+    let signers = format!(r#"{{\"authorizedUsers\":[\"{BUILDER}\",\"{KNOWN}\"],\"threshold\":2}}"#);
+    assert_eq!(
+        sent.action.compact(),
+        format!(
+            r#"{{"type":"convertToMultiSigUser","signatureChainId":"0xa4b1","hyperliquidChain":"Mainnet","signers":"{signers}","nonce":{nonce}}}"#
+        )
+    );
+}

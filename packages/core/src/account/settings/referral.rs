@@ -1,6 +1,8 @@
-//! Referrals: `setReferrer`, the L1 action that gives an account a referrer,
-//! and the `referral` read. The venue keeps the first code an account sets.
+//! Referrals: `setReferrer`, the L1 action that gives an account a referrer, `claimRewards`, which
+//! pays out what its referrals have earned it, and the `referral` read. The venue keeps the first
+//! code an account sets.
 
+use crate::account::{ActionKind, Signers};
 use crate::client::{ApiError, Transport, info, user_request};
 use crate::utils::sign::{L1Action, Map};
 use crate::utils::{Address, Dec};
@@ -31,6 +33,22 @@ impl SetReferrer {
 impl L1Action for SetReferrer {
     fn action(&self) -> Map {
         Map::new().put("type", "setReferrer").put("code", self.code.clone())
+    }
+}
+
+/// `claimRewards`: `{type}` alone. Pays the account its unclaimed referral rewards
+/// ([`TokenRewards::unclaimed_rewards`]). An agent may sign it for its master.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ClaimRewards;
+
+impl ClaimRewards {
+    /// L1: an agent may sign it for its master.
+    pub const KEY: Signers = ActionKind::ClaimRewards.signers();
+}
+
+impl L1Action for ClaimRewards {
+    fn action(&self) -> Map {
+        Map::new().put("type", "claimRewards")
     }
 }
 

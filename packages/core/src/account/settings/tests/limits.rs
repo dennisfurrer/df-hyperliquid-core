@@ -66,3 +66,16 @@ fn open_orders_grow_with_volume_to_five_thousand() {
         assert_eq!(open_order_cap(dec(volume)), cap, "{volume}");
     }
 }
+
+/// A reservation is 1 to the SDK's bound, at half a thousandth of a USDC a request, and names its
+/// destination only when set.
+#[test]
+fn a_reservation_is_held_to_its_bound_and_priced_per_request() {
+    assert_eq!(ReserveRequestWeight::new(0), Err(BadWeight(0)));
+    assert_eq!(ReserveRequestWeight::new(MOST_RESERVED_WEIGHT + 1), Err(BadWeight(MOST_RESERVED_WEIGHT + 1)));
+    let most = ReserveRequestWeight::new(MOST_RESERVED_WEIGHT).unwrap();
+    assert_eq!(most.cost(), Some(dec("922337203685.4775")));
+    let one = ReserveRequestWeight::new(1).unwrap();
+    assert_eq!((one.cost(), one.destination()), (Some(dec("0.0005")), None));
+    assert_eq!(one.wire(), r#"{"type":"reserveRequestWeight","weight":1}"#);
+}
