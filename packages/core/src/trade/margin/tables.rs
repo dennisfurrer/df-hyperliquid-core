@@ -10,6 +10,7 @@ use serde::Deserialize;
 /// A table id under this is a flat table at that leverage.
 pub const FLAT_TABLES_BELOW: u32 = 50;
 
+/// A margin table, as a meta's `marginTables` lists it: the most leverage by position notional.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarginTable {
@@ -25,6 +26,7 @@ pub struct MarginTable {
 pub struct MarginTier {
     /// In the dex's collateral.
     pub lower_bound: Dec,
+    /// `maxLeverage`: the most leverage from `lower_bound` on.
     pub max_leverage: u32,
 }
 
@@ -75,14 +77,35 @@ impl MarginTable {
     }
 }
 
+/// Why a leverage is not one the perp allows.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum LeverageError {
+    /// Over the perp's `maxLeverage`.
     #[error("{name} allows at most {max}x, not {asked}x")]
-    TooHigh { name: String, max: u32, asked: u32 },
+    TooHigh {
+        /// The perp's name.
+        name: String,
+        /// Its `maxLeverage`.
+        max: u32,
+        /// The leverage asked for.
+        asked: u32,
+    },
+    /// Over what the margin tier a position of this notional reaches allows.
     #[error("{name} allows at most {max}x at a notional of {notional}, not {asked}x")]
-    OverTier { name: String, notional: Dec, max: u32, asked: u32 },
+    OverTier {
+        /// The perp's name.
+        name: String,
+        /// The position's notional, unsigned, in the dex's collateral.
+        notional: Dec,
+        /// The most leverage the tier allows.
+        max: u32,
+        /// The leverage asked for.
+        asked: u32,
+    },
+    /// The perp is isolated only, and cross was asked for; the perp's name.
     #[error("{0} is isolated only")]
     NoCross(String),
+    /// A check on the action itself failed: a leverage of 0.
     #[error(transparent)]
     Trade(#[from] TradeError),
 }

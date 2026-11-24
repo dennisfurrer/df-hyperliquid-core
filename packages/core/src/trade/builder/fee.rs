@@ -22,13 +22,16 @@ pub const SPOT_BUILDER_CAP: BuilderFee = BuilderFee(1_000);
 pub const OUTCOME_BUILDER_CAP: BuilderFee = SPOT_BUILDER_CAP;
 
 impl BuilderFee {
+    /// No fee.
     pub const ZERO: BuilderFee = BuilderFee(0);
 
+    /// A fee of `tenths` tenths of a basis point.
     #[must_use]
     pub const fn from_tenths(tenths: u64) -> BuilderFee {
         BuilderFee(tenths)
     }
 
+    /// The fee in tenths of a basis point, as an order's `f` writes it.
     #[must_use]
     pub const fn tenths(self) -> u64 {
         self.0
@@ -80,16 +83,19 @@ impl Builder {
         Builder { address, fee }
     }
 
+    /// `b`: the builder's address.
     #[must_use]
     pub const fn address(&self) -> Address {
         self.address
     }
 
+    /// `f`: what the builder takes, in tenths of a basis point.
     #[must_use]
     pub const fn fee(&self) -> BuilderFee {
         self.fee
     }
 
+    /// `{b, f}`, as an `order` action carries it.
     #[must_use]
     pub fn wire(&self) -> Map {
         Map::new().put("b", self.address.to_hex()).put("f", self.fee.tenths())
@@ -100,8 +106,11 @@ impl Builder {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("the builder fee of {} is over the {} {} order allows ({})", .fee.tenths(), .cap.tenths(), .kind.one(), .cap)]
 pub struct OverCap {
+    /// The fee asked for.
     pub fee: BuilderFee,
+    /// The most the market kind allows.
     pub cap: BuilderFee,
+    /// The market kind whose cap applies: the strictest among the orders.
     pub kind: AssetKind,
 }
 

@@ -30,16 +30,19 @@ impl UpdateLeverage {
         }
     }
 
+    /// The perp's asset id.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
     }
 
+    /// The leverage, at least 1.
     #[must_use]
     pub const fn leverage(&self) -> u32 {
         self.leverage
     }
 
+    /// Cross or isolated, written as `isCross`.
     #[must_use]
     pub const fn mode(&self) -> MarginMode {
         self.mode

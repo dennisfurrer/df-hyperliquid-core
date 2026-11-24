@@ -27,6 +27,8 @@ pub struct SplitOutcome {
 }
 
 impl SplitOutcome {
+    /// `amount_of_quote` of the quote token on `outcome`; refused when not positive or finer than
+    /// [`MAX_AMOUNT_PLACES`] places.
     pub fn new(outcome: u32, amount_of_quote: Dec) -> Result<SplitOutcome, OutcomeError> {
         Ok(SplitOutcome { outcome, amount: amount(amount_of_quote)? })
     }
@@ -48,6 +50,8 @@ pub struct MergeOutcome {
 }
 
 impl MergeOutcome {
+    /// `amount_of_quote` of each side of `outcome`; refused when not positive or finer than
+    /// [`MAX_AMOUNT_PLACES`] places.
     pub fn new(outcome: u32, amount_of_quote: Dec) -> Result<MergeOutcome, OutcomeError> {
         Ok(MergeOutcome { outcome, amount: Some(amount(amount_of_quote)?) })
     }

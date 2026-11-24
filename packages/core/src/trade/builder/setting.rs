@@ -41,11 +41,13 @@ impl BuilderSetting {
         BuilderSetting { address, rule: FeeRule::Flat(fee) }
     }
 
+    /// The builder orders are routed through.
     #[must_use]
     pub const fn address(&self) -> Address {
         self.address
     }
 
+    /// What each order pays the builder.
     #[must_use]
     pub const fn rule(&self) -> FeeRule {
         self.rule
@@ -149,7 +151,12 @@ pub enum Approval {
     /// `approveBuilderFee` at `rate` first, signed by the account: it has
     /// approved `approved`, under the order's fee. `rate` is the most any
     /// market pays, so one approval covers them all.
-    ApproveFirst { approved: BuilderFee, rate: BuilderFee },
+    ApproveFirst {
+        /// What the account has approved so far.
+        approved: BuilderFee,
+        /// The rate to approve.
+        rate: BuilderFee,
+    },
 }
 
 impl Approval {
@@ -167,16 +174,31 @@ impl Approval {
 /// rather than guessed at.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ApprovalRefused {
+    /// What the account has approved is not read yet.
     #[error("the builder fee this account has approved is not read yet; try again in a moment")]
     NotRead,
+    /// The read of what the account has approved failed; why.
     #[error("the builder fee this account has approved would not read, so it is not guessed at: {0}")]
     Unreadable(String),
+    /// The order needs `approveBuilderFee` first, and an agent key signs: only the account's own
+    /// key may sign that approval.
     #[error(
         "the account's main key has to approve the builder fee up to {rate} once (approved now: {approved}); an agent key cannot sign approveBuilderFee"
     )]
-    AgentCannotApprove { approved: BuilderFee, rate: BuilderFee },
+    AgentCannotApprove {
+        /// What the account has approved so far.
+        approved: BuilderFee,
+        /// The rate the account's own key has to approve.
+        rate: BuilderFee,
+    },
+    /// The order names another builder than the setting's.
     #[error("the order names the builder {named}, and what the account approved was read for {set}")]
-    OtherBuilder { named: Address, set: Address },
+    OtherBuilder {
+        /// The builder the order names.
+        named: Address,
+        /// The builder the setting names.
+        set: Address,
+    },
 }
 
 #[cfg(test)]

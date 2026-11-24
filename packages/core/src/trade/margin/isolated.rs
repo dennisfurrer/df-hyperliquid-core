@@ -33,11 +33,13 @@ impl UpdateIsolatedMargin {
         }
     }
 
+    /// The perp's asset id.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
     }
 
+    /// `ntli`: the USDC amount in millionths (six places), positive to add margin and negative to remove it.
     #[must_use]
     pub const fn ntli(&self) -> i64 {
         self.ntli
