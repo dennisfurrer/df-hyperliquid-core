@@ -49,11 +49,10 @@ df-hyperliquid-core
 ```
 
 ```mermaid
-flowchart TB
+graph TB
     app["<b>your app</b>"]
 
     subgraph sdk ["df-hyperliquid-core"]
-        direction TB
         domains["<b>markets, account, trade</b><br/><b>transfer, earn, deploy</b><br/>reads and actions"]
         live["<b>live</b><br/>subscriptions, store"]
         client["<b>client</b><br/>sign, send, rate limits"]
@@ -61,7 +60,6 @@ flowchart TB
     end
 
     subgraph hl ["Hyperliquid"]
-        direction LR
         rest["<b>/info</b><br/><b>/exchange</b>"]
         ws["<b>websocket</b>"]
         evm["<b>HyperEVM</b>"]
