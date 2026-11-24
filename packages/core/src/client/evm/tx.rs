@@ -33,7 +33,9 @@ const BASE_FEE_TIMES: u64 = 2;
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccessItem {
+    /// The contract.
     pub address: Address,
+    /// The storage slots in it (`storageKeys`).
     pub storage_keys: Vec<B256>,
 }
 
@@ -42,15 +44,23 @@ pub struct AccessItem {
 /// code of a creation.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Eip1559 {
+    /// The chain the signature is for, such as 999 for HyperEVM mainnet (`chainId`).
     pub chain_id: u64,
+    /// The sender's next nonce.
     pub nonce: u64,
+    /// The tip cap in wei per unit of gas (`maxPriorityFeePerGas`).
     pub max_priority_fee: U256,
+    /// The fee cap in wei per unit of gas, tip included (`maxFeePerGas`).
     pub max_fee: U256,
+    /// The gas limit.
     pub gas: u64,
     /// `None` creates a contract from `data`.
     pub to: Option<Address>,
+    /// Wei of the chain's coin sent with it.
     pub value: U256,
+    /// The calldata, or the init code of a creation.
     pub data: Vec<u8>,
+    /// Contracts and storage slots declared up front; usually empty.
     pub access_list: Vec<AccessItem>,
 }
 
@@ -87,6 +97,7 @@ impl Eip1559 {
         typed(&self.fields())
     }
 
+    /// `keccak256` of [`Eip1559::unsigned`]: the digest the sender signs.
     #[must_use]
     pub fn signing_hash(&self) -> B256 {
         B256(keccak256(&self.unsigned()))
@@ -165,7 +176,9 @@ pub fn create_address(from: Address, nonce: u64) -> Address {
 pub struct Call {
     /// `None` creates a contract from `data`.
     pub to: Option<Address>,
+    /// Wei of the chain's coin sent with it.
     pub value: U256,
+    /// The calldata, or the init code of a creation.
     pub data: Vec<u8>,
 }
 
@@ -190,7 +203,9 @@ impl Call {
 /// The two fees a type 2 transaction names, in wei per unit of gas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Fees {
+    /// The tip cap in wei per unit of gas (`maxPriorityFeePerGas`).
     pub max_priority_fee: U256,
+    /// The fee cap in wei per unit of gas, tip included (`maxFeePerGas`).
     pub max_fee: U256,
 }
 

@@ -7,26 +7,34 @@ use crate::utils::Address;
 /// A value of some [`Kind`](crate::client::evm::abi::Kind).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
+    /// A value of a `uintN`.
     Uint(U256),
     /// Two's complement in 256 bits: -1 is all ones, whatever the width.
     Int(U256),
+    /// An `address`.
     Address(Address),
+    /// A `bool`.
     Bool(bool),
+    /// A `string`.
     String(String),
+    /// The bytes of a `bytes`.
     Bytes(Vec<u8>),
     /// The `n` bytes of a `bytesN`.
     Fixed(Vec<u8>),
     /// `T[]` and `T[n]`.
     Array(Vec<Token>),
+    /// The fields of a tuple, in order.
     Tuple(Vec<Token>),
 }
 
 impl Token {
+    /// A `uintN` value from anything that converts into a [`U256`].
     #[must_use]
     pub fn uint(value: impl Into<U256>) -> Token {
         Token::Uint(value.into())
     }
 
+    /// An `intN` value, stored in two's complement.
     #[must_use]
     pub fn int(value: i128) -> Token {
         let magnitude = U256::from_u128(value.unsigned_abs());
@@ -36,11 +44,13 @@ impl Token {
         })
     }
 
+    /// An `address` value.
     #[must_use]
     pub fn address(address: Address) -> Token {
         Token::Address(address)
     }
 
+    /// The value of a `Uint`, or `None` for any other token.
     #[must_use]
     pub fn as_u256(&self) -> Option<U256> {
         match self {
@@ -49,26 +59,31 @@ impl Token {
         }
     }
 
+    /// The value of a `Uint`, while it fits a `u128`.
     #[must_use]
     pub fn as_u128(&self) -> Option<u128> {
         self.as_u256().and_then(U256::to_u128)
     }
 
+    /// The value of a `Uint`, while it fits a `u64`.
     #[must_use]
     pub fn as_u64(&self) -> Option<u64> {
         self.as_u256().and_then(U256::to_u64)
     }
 
+    /// The value of a `Uint`, while it fits a `u32`.
     #[must_use]
     pub fn as_u32(&self) -> Option<u32> {
         self.as_u64().and_then(|value| u32::try_from(value).ok())
     }
 
+    /// The value of a `Uint`, while it fits a `u16`.
     #[must_use]
     pub fn as_u16(&self) -> Option<u16> {
         self.as_u64().and_then(|value| u16::try_from(value).ok())
     }
 
+    /// The value of a `Uint`, while it fits a `u8`.
     #[must_use]
     pub fn as_u8(&self) -> Option<u8> {
         self.as_u64().and_then(|value| u8::try_from(value).ok())
@@ -90,16 +105,19 @@ impl Token {
         }
     }
 
+    /// The value of an `Int`, while it fits an `i64`.
     #[must_use]
     pub fn as_i64(&self) -> Option<i64> {
         self.as_i128().and_then(|value| i64::try_from(value).ok())
     }
 
+    /// The value of an `Int`, while it fits an `i8`.
     #[must_use]
     pub fn as_i8(&self) -> Option<i8> {
         self.as_i128().and_then(|value| i8::try_from(value).ok())
     }
 
+    /// The value of an `Address`, or `None` for any other token.
     #[must_use]
     pub fn as_address(&self) -> Option<Address> {
         match self {
@@ -108,6 +126,7 @@ impl Token {
         }
     }
 
+    /// The value of a `Bool`, or `None` for any other token.
     #[must_use]
     pub fn as_bool(&self) -> Option<bool> {
         match self {
@@ -116,6 +135,7 @@ impl Token {
         }
     }
 
+    /// The text of a `String`, or `None` for any other token.
     #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match self {

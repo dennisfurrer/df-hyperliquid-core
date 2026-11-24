@@ -12,6 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 pub struct B256(pub [u8; 32]);
 
 impl B256 {
+    /// Thirty-two zero bytes.
     pub const ZERO: B256 = B256([0u8; 32]);
 
     /// An address as a word: twelve zero bytes, then its twenty.
@@ -34,6 +35,7 @@ impl B256 {
         Some(Address::from_bytes(bytes))
     }
 
+    /// `0x` and 64 lowercase hex digits, leading zeros kept.
     #[must_use]
     pub fn to_hex(&self) -> String {
         hex::encode_prefixed(&self.0)

@@ -6,12 +6,17 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum BlockTag {
     #[default]
+    /// The newest block (`latest`).
     Latest,
     /// Counting what waits in the pool: the next nonce to use.
     Pending,
+    /// The first block (`earliest`).
     Earliest,
+    /// The newest block the node treats as safe from reorganisation (`safe`).
     Safe,
+    /// The newest finalized block (`finalized`).
     Finalized,
+    /// The block with this number, written as a `0x` hex quantity.
     Number(u64),
 }
 

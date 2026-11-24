@@ -7,12 +7,16 @@ use crate::client::evm::u256::U256;
 use crate::utils::hex;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
+/// Why text does not read as a [`U256`]. Each variant holds the text as given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadQuantity {
+    /// Not `0x` and hex digits.
     #[error("`{0}` is not a hex quantity; expected 0x and hex digits")]
     NotHex(String),
+    /// Empty, or not only the digits 0 to 9.
     #[error("`{0}` is not a whole decimal number")]
     NotDecimal(String),
+    /// More than 256 bits.
     #[error("`{0}` does not fit in 256 bits")]
     TooLarge(String),
 }

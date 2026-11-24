@@ -16,6 +16,7 @@ pub struct Query<T> {
 }
 
 impl<T> Query<T> {
+    /// The JSON-RPC method name, such as `eth_call`.
     #[must_use]
     pub const fn method(&self) -> &'static str {
         self.method

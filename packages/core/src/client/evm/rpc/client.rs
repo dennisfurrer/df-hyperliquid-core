@@ -25,11 +25,13 @@ impl<H: Http> Rpc<H> {
         Rpc::new(http, network.evm_rpc_url())
     }
 
+    /// The node's URL.
     #[must_use]
     pub fn url(&self) -> &str {
         &self.url
     }
 
+    /// The transport queries are sent over.
     #[must_use]
     pub const fn http(&self) -> &H {
         &self.http
@@ -49,38 +51,47 @@ impl<H: Http> Rpc<H> {
         }
     }
 
+    /// Runs [`eth::chain_id`]: the chain id.
     pub async fn chain_id(&self) -> Result<u64, RpcError> {
         self.run(eth::chain_id()).await
     }
 
+    /// Runs [`eth::block_number`]: the newest block's number.
     pub async fn block_number(&self) -> Result<u64, RpcError> {
         self.run(eth::block_number()).await
     }
 
+    /// Runs [`eth::balance`]: wei of the chain's coin `owner` holds at `block`.
     pub async fn balance(&self, owner: Address, block: BlockTag) -> Result<U256, RpcError> {
         self.run(eth::balance(owner, block)).await
     }
 
+    /// Runs [`eth::transaction_count`]: the next nonce of `owner` at `block`.
     pub async fn transaction_count(&self, owner: Address, block: BlockTag) -> Result<u64, RpcError> {
         self.run(eth::transaction_count(owner, block)).await
     }
 
+    /// Runs [`eth::gas_price`]: on HyperEVM, the next small block's base fee, in wei.
     pub async fn gas_price(&self) -> Result<U256, RpcError> {
         self.run(eth::gas_price()).await
     }
 
+    /// Runs [`eth::max_priority_fee`]: the suggested tip in wei; on HyperEVM, zero for now.
     pub async fn max_priority_fee(&self) -> Result<U256, RpcError> {
         self.run(eth::max_priority_fee()).await
     }
 
+    /// Runs [`eth::fee_history`]: base fees and tips over `blocks` blocks up to `newest`.
     pub async fn fee_history(&self, blocks: u64, newest: BlockTag, percentiles: &[u8]) -> Result<FeeHistory, RpcError> {
         self.run(eth::fee_history(blocks, newest, percentiles)).await
     }
 
+    /// Runs [`eth::estimate_gas`]: the gas the call or creation would use.
     pub async fn estimate_gas(&self, call: &CallRequest) -> Result<u64, RpcError> {
         self.run(eth::estimate_gas(call)).await
     }
 
+    /// Runs [`eth::call`]: the bytes the call returns at `block`, without sending a transaction.
     pub async fn call(&self, call: &CallRequest, block: BlockTag) -> Result<Vec<u8>, RpcError> {
         self.run(eth::call(call, block)).await
     }
@@ -91,34 +102,42 @@ impl<H: Http> Rpc<H> {
         self.run(eth::send_raw_transaction(raw)).await
     }
 
+    /// Runs [`eth::receipt`]: `None` until the transaction is mined.
     pub async fn receipt(&self, hash: B256) -> Result<Option<Receipt>, RpcError> {
         self.run(eth::receipt(hash)).await
     }
 
+    /// Runs [`eth::transaction`]: `None` for a hash the node does not know.
     pub async fn transaction(&self, hash: B256) -> Result<Option<Transaction>, RpcError> {
         self.run(eth::transaction(hash)).await
     }
 
+    /// Runs [`eth::block`], with whole transactions when `full`.
     pub async fn block(&self, block: BlockTag, full: bool) -> Result<Option<Block>, RpcError> {
         self.run(eth::block(block, full)).await
     }
 
+    /// Runs [`eth::code`]: the code at `at`, empty for an account that is not a contract.
     pub async fn code(&self, at: Address, block: BlockTag) -> Result<Vec<u8>, RpcError> {
         self.run(eth::code(at, block)).await
     }
 
+    /// Runs [`eth::storage_at`]: the word in storage `slot` of `at`.
     pub async fn storage_at(&self, at: Address, slot: U256, block: BlockTag) -> Result<B256, RpcError> {
         self.run(eth::storage_at(at, slot, block)).await
     }
 
+    /// Runs [`eth::logs`]: every log the filter matches.
     pub async fn logs(&self, filter: &LogFilter) -> Result<Vec<Log>, RpcError> {
         self.run(eth::logs(filter)).await
     }
 
+    /// Runs [`eth::big_block_gas_price`]: on HyperEVM, the next big block's base fee, in wei.
     pub async fn big_block_gas_price(&self) -> Result<U256, RpcError> {
         self.run(eth::big_block_gas_price()).await
     }
 
+    /// Runs [`eth::using_big_blocks`]: whether `owner`'s transactions go to HyperEVM's big blocks.
     pub async fn using_big_blocks(&self, owner: Address) -> Result<bool, RpcError> {
         self.run(eth::using_big_blocks(owner)).await
     }

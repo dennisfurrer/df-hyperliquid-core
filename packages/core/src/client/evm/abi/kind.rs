@@ -5,13 +5,20 @@ use std::fmt;
 
 use crate::client::evm::abi::{AbiError, LONGEST, WORD};
 
+/// A Solidity ABI type.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kind {
+    /// `uintN`, with N the width in bits: 8 to 256 in steps of 8. `uint` reads as `uint256`.
     Uint(u16),
+    /// `intN`, with N the width in bits: 8 to 256 in steps of 8. `int` reads as `int256`.
     Int(u16),
+    /// `address`, 20 bytes.
     Address,
+    /// `bool`.
     Bool,
+    /// `string`, UTF-8 of any length.
     String,
+    /// `bytes`, of any length.
     Bytes,
     /// `bytes1` to `bytes32`.
     Fixed(usize),
@@ -19,14 +26,18 @@ pub enum Kind {
     Array(Box<Kind>),
     /// `T[n]`.
     Sized(Box<Kind>, usize),
+    /// A tuple, written `(T1, T2)`.
     Tuple(Vec<Param>),
 }
 
 /// One parameter: its type, and the name and `indexed` mark it was declared with.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Param {
+    /// The name it was declared with, or `None` when it has none.
     pub name: Option<String>,
+    /// Its type.
     pub kind: Kind,
+    /// Whether it was declared `indexed`, as an event parameter can be.
     pub indexed: bool,
 }
 

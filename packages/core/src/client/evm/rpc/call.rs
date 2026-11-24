@@ -9,10 +9,15 @@ use crate::utils::{Address, Json, hex};
 /// or runs a contract creation from `data`.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct CallRequest {
+    /// The sender; `None` lets the node pick.
     pub from: Option<Address>,
+    /// The contract called; `None` for a creation.
     pub to: Option<Address>,
+    /// The gas limit; `None` lets the node pick.
     pub gas: Option<u64>,
+    /// Wei of the chain's coin sent with it; `None` sends none.
     pub value: Option<U256>,
+    /// The calldata, or the init code of a creation; left out when empty.
     pub data: Vec<u8>,
 }
 

@@ -11,12 +11,16 @@ use crate::utils::sign::keccak256;
 /// amount) returns (bool)`, with or without `function` and its modifiers.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Function {
+    /// The function name, such as `transfer`.
     pub name: String,
+    /// The parameters the call takes, in order.
     pub inputs: Vec<Param>,
+    /// The values it returns, in order; empty when there is no `returns` clause.
     pub outputs: Vec<Param>,
 }
 
 impl Function {
+    /// Reads a signature such as `function transfer(address to, uint256 amount) returns (bool)`.
     pub fn parse(text: &str) -> Result<Function, AbiError> {
         let bad = || AbiError::Signature(text.trim().to_owned());
         let (name, inside, rest) = signature_parts(text, "function").ok_or_else(bad)?;

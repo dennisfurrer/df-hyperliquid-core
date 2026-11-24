@@ -9,11 +9,15 @@ use crate::utils::{Address, Json};
 /// topics at one place match any of them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct LogFilter {
+    /// The first block to search (`fromBlock`); `None` lets the node pick, usually `latest`.
     pub from_block: Option<BlockTag>,
+    /// The last block to search (`toBlock`); `None` lets the node pick, usually `latest`.
     pub to_block: Option<BlockTag>,
     /// In place of the two blocks: the one block with this hash.
     pub block_hash: Option<B256>,
+    /// The contracts whose logs match; empty matches any contract.
     pub address: Vec<Address>,
+    /// The topics to match, by position; positions past the end match anything.
     pub topics: Vec<Option<Vec<B256>>>,
 }
 

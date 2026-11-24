@@ -10,16 +10,29 @@ pub const NATIVE_DECIMALS: u32 = 18;
 /// Why an amount does not convert between wei and a [`Dec`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadAmount {
+    /// The value is negative.
     #[error("{0} is not a positive amount")]
     NotPositive(Dec),
+    /// The value has more decimal places than the token counts.
     #[error("{value} has more than {decimals} decimal places")]
-    TooFine { value: Dec, decimals: u32 },
+    TooFine {
+        /// The value given.
+        value: Dec,
+        /// The token's decimals.
+        decimals: u32,
+    },
+    /// The amount does not fit the integer it is counted in: 127 bits for a [`Dec`], 256 bits for wei.
     #[error("the amount is larger than this conversion can count")]
     TooLarge,
     /// A token counted in more than eighteen places, and an amount that needs
     /// them: a [`Dec`] keeps eighteen.
     #[error("{amount} at {decimals} decimals needs more places than a Dec keeps")]
-    Unkept { amount: U256, decimals: u32 },
+    Unkept {
+        /// The amount in the token's smallest unit.
+        amount: U256,
+        /// The token's decimals.
+        decimals: u32,
+    },
 }
 
 /// The places a [`Dec`] keeps.

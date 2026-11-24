@@ -7,20 +7,26 @@
 pub struct U256([u64; 4]);
 
 impl U256 {
+    /// Zero.
     pub const ZERO: U256 = U256([0; 4]);
+    /// One.
     pub const ONE: U256 = U256([0, 0, 0, 1]);
+    /// `2^256 - 1`, every bit set.
     pub const MAX: U256 = U256([u64::MAX; 4]);
 
+    /// A `u64` widened.
     #[must_use]
     pub const fn from_u64(value: u64) -> U256 {
         U256([0, 0, 0, value])
     }
 
+    /// A `u128` widened.
     #[must_use]
     pub const fn from_u128(value: u128) -> U256 {
         U256([0, 0, (value >> 64) as u64, value as u64])
     }
 
+    /// Thirty-two big-endian bytes, as an ABI word or a storage slot holds the value.
     #[must_use]
     pub fn from_be_bytes(bytes: [u8; 32]) -> U256 {
         let mut limbs = [0u64; 4];
@@ -32,6 +38,7 @@ impl U256 {
         U256(limbs)
     }
 
+    /// The value as thirty-two big-endian bytes.
     #[must_use]
     pub fn to_be_bytes(self) -> [u8; 32] {
         let mut bytes = [0u8; 32];
@@ -58,11 +65,13 @@ impl U256 {
         bytes[first..].to_vec()
     }
 
+    /// Whether the value is zero.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.0[0] == 0 && self.0[1] == 0 && self.0[2] == 0 && self.0[3] == 0
     }
 
+    /// The value as a `u64`; `None` when it does not fit.
     #[must_use]
     pub const fn to_u64(self) -> Option<u64> {
         match self.0[0] == 0 && self.0[1] == 0 && self.0[2] == 0 {
@@ -71,6 +80,7 @@ impl U256 {
         }
     }
 
+    /// The value as a `u128`; `None` when it does not fit.
     #[must_use]
     pub const fn to_u128(self) -> Option<u128> {
         match self.0[0] == 0 && self.0[1] == 0 {
@@ -92,6 +102,7 @@ impl U256 {
         0
     }
 
+    /// `self + other`; `None` on overflow.
     #[must_use]
     pub fn checked_add(self, other: U256) -> Option<U256> {
         let mut out = [0u64; 4];
@@ -105,6 +116,7 @@ impl U256 {
         (!carry).then_some(U256(out))
     }
 
+    /// `self - other`; `None` when `other` is larger.
     #[must_use]
     pub fn checked_sub(self, other: U256) -> Option<U256> {
         let mut out = [0u64; 4];
@@ -118,6 +130,7 @@ impl U256 {
         (!borrow).then_some(U256(out))
     }
 
+    /// `self * other`; `None` on overflow.
     #[must_use]
     pub fn checked_mul(self, other: U256) -> Option<U256> {
         // Little-endian limbs for the schoolbook product; anything past four is overflow.
@@ -139,11 +152,13 @@ impl U256 {
         Some(U256([product[3], product[2], product[1], product[0]]))
     }
 
+    /// `self + other`, or [`U256::MAX`] on overflow.
     #[must_use]
     pub fn saturating_add(self, other: U256) -> U256 {
         self.checked_add(other).unwrap_or(U256::MAX)
     }
 
+    /// `self * other`, or [`U256::MAX`] on overflow.
     #[must_use]
     pub fn saturating_mul(self, other: U256) -> U256 {
         self.checked_mul(other).unwrap_or(U256::MAX)

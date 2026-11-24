@@ -11,7 +11,9 @@ use crate::utils::hex;
 /// A JSON-RPC error object, as the node wrote it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NodeError {
+    /// The error code; [`NodeError::kind`] says what it means.
     pub code: i64,
+    /// The node's message.
     pub message: String,
     /// `data`: a string's text, or the JSON as written. A revert's data is hex.
     pub data: Option<String>,
@@ -34,10 +36,12 @@ pub enum ErrorKind {
     Reverted,
     /// -32000 to -32099: the node's own, a timeout or a precompile's refusal among them.
     Server,
+    /// Any other code.
     Other,
 }
 
 impl NodeError {
+    /// What the code says. A -32000 to -32099 error whose message starts `execution reverted` counts as a revert.
     #[must_use]
     pub fn kind(&self) -> ErrorKind {
         match self.code {
@@ -107,15 +111,28 @@ pub fn read_revert(data: &[u8]) -> Revert {
     }
 }
 
+/// Why a JSON-RPC query failed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum RpcError {
     /// No answer, a rate limit, or an HTTP status with no JSON-RPC error in it.
     #[error(transparent)]
     Transport(#[from] TransportError),
+    /// The node answered with a JSON-RPC error object.
     #[error("{method}: the node refused: {error}")]
-    Node { method: &'static str, error: NodeError },
+    Node {
+        /// The JSON-RPC method, such as `eth_call`.
+        method: &'static str,
+        /// The error object the node wrote.
+        error: NodeError,
+    },
+    /// The node answered, but its result did not read as the expected type.
     #[error("{method}: the node's answer could not be read: {detail}")]
-    Unreadable { method: &'static str, detail: String },
+    Unreadable {
+        /// The JSON-RPC method, such as `eth_call`.
+        method: &'static str,
+        /// What could not be read, and why.
+        detail: String,
+    },
 }
 
 #[cfg(test)]
