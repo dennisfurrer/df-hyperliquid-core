@@ -60,3 +60,19 @@ all-features = true
 [[example]]
 name = "market_order"
 required-features = ["native"]
+
+[[example]]
+name = "signed_order"
+required-features = ["native", "sign"]
+
+[[example]]
+name = "subscribe"
+required-features = ["native"]
+
+[[example]]
+name = "outcome_trade"
+required-features = ["native", "sign"]
+
+[[example]]
+name = "web_book"
+required-features = ["web"]
