@@ -8,11 +8,14 @@
 /// The rate of Keccak-`f[1600]` at 256-bit capacity: 136 bytes per permute.
 const RATE: usize = 136;
 
+/// The Keccak-256 hash of `data` in one call.
 #[must_use]
 pub fn keccak256(data: &[u8]) -> [u8; 32] {
     Keccak256::new().chain(data).finalize()
 }
 
+/// A Keccak-256 hasher fed in pieces: [`Keccak256::update`] or [`Keccak256::chain`], then
+/// [`Keccak256::finalize`].
 #[derive(Clone)]
 pub struct Keccak256 {
     state: [u64; 25],
@@ -21,11 +24,13 @@ pub struct Keccak256 {
 }
 
 impl Keccak256 {
+    /// A hasher that has taken no input.
     #[must_use]
     pub const fn new() -> Self {
         Keccak256 { state: [0u64; 25], block: [0u8; RATE], filled: 0 }
     }
 
+    /// Feeds `data` after what came before.
     pub fn update(&mut self, data: &[u8]) {
         let mut rest = data;
         while !rest.is_empty() {
@@ -40,12 +45,14 @@ impl Keccak256 {
         }
     }
 
+    /// [`Keccak256::update`], returning the hasher so calls can be chained.
     #[must_use]
     pub fn chain(mut self, data: &[u8]) -> Self {
         self.update(data);
         self
     }
 
+    /// Pads the input and gives the 32-byte hash.
     #[must_use]
     pub fn finalize(mut self) -> [u8; 32] {
         self.block[self.filled..].fill(0);

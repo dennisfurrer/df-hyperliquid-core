@@ -8,14 +8,22 @@ use crate::utils::sign::eip712::word::{address_word, uint256, word, word_decimal
 use crate::utils::sign::keccak::{Keccak256, keccak256};
 use crate::utils::sign::msgpack::Value;
 
+/// A typed struct field's value, tagged with its Solidity type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Field<'a> {
+    /// `string`, hashed as the keccak of its UTF-8 bytes.
     String(&'a str),
+    /// `address`.
     Address(Address),
+    /// `uint64`.
     Uint64(u64),
+    /// `bytes32`, carried as `0x` and lowercase hex.
     Bytes32([u8; 32]),
+    /// `bool`.
     Bool(bool),
+    /// `uint32`.
     Uint32(u32),
+    /// `uint128`, carried as a decimal string.
     Uint128(u128),
     /// The big-endian word; [`uint256`] makes one from a smaller number.
     Uint256([u8; 32]),
@@ -26,6 +34,7 @@ pub enum Field<'a> {
 }
 
 impl Field<'_> {
+    /// The type's name in the struct's type string, such as `uint64` or `uint256[]`.
     #[must_use]
     pub const fn solidity_type(&self) -> &'static str {
         match self {

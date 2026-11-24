@@ -19,8 +19,11 @@ use crate::utils::{Address, hex};
 /// Why typed data could not be hashed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadTypedData {
+    /// The text is not JSON.
     #[error("not JSON: {0}")]
     Json(#[from] BadJson),
+    /// The JSON is not typed data this can hash, such as a missing `types` or an
+    /// unknown type; says what is wrong.
     #[error("{0}")]
     Shape(String),
 }
@@ -33,11 +36,13 @@ fn shape(what: impl Into<String>) -> BadTypedData {
 /// message's fields as text, and the digest a signature over it signs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedData {
+    /// `primaryType`: the name of the message's struct type.
     pub primary: String,
     /// The domain's fields, in the order the data gives them.
     pub domain: Vec<(String, String)>,
     /// The message's fields, in the order its type lists them.
     pub message: Vec<(String, String)>,
+    /// `keccak256(0x1901 || domain separator || hashStruct(message))`: what a key signs.
     pub digest: [u8; 32],
 }
 

@@ -17,7 +17,9 @@ use crate::utils::sign::user_signed::{NonceKey, UserSigned};
 /// with each signature collected for it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MultiSig {
+    /// `multiSigUser`: the multi-sig account the action is for.
     pub user: Address,
+    /// `outerSigner`: the signer that posts the action and signs the outer `SendMultiSig`.
     pub outer_signer: Address,
     /// The action as the account would send it alone, `type` and all.
     pub action: Map,
@@ -107,6 +109,7 @@ impl MultiSig {
         self.send(nonce, vault, network).typed(network)
     }
 
+    /// What the outer signer's key signs: [`MultiSig::typed`] under the network's user-signed domain.
     #[must_use]
     pub fn digest(&self, nonce: u64, vault: Option<Address>, network: Network) -> [u8; 32] {
         self.send(nonce, vault, network).digest(network)

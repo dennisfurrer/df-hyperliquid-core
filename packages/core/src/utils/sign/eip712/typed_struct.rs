@@ -6,6 +6,7 @@ use crate::utils::sign::eip712::domain::Domain;
 use crate::utils::sign::eip712::field::Field;
 use crate::utils::sign::keccak::{Keccak256, keccak256};
 
+/// An EIP-712 struct with no nested struct types: a primary type name and its fields in order.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypedStruct<'a> {
     primary_type: &'a str,
@@ -13,6 +14,7 @@ pub struct TypedStruct<'a> {
 }
 
 impl<'a> TypedStruct<'a> {
+    /// A struct named `primary_type`, such as `HyperliquidTransaction:UsdSend`, with no fields yet.
     #[must_use]
     pub const fn new(primary_type: &'a str) -> Self {
         TypedStruct { primary_type, fields: Vec::new() }
@@ -25,16 +27,19 @@ impl<'a> TypedStruct<'a> {
         self
     }
 
+    /// The struct's type name.
     #[must_use]
     pub const fn primary_type(&self) -> &'a str {
         self.primary_type
     }
 
+    /// Each field's name and value, in the order they were added.
     #[must_use]
     pub fn fields(&self) -> &[(&'a str, Field<'a>)] {
         &self.fields
     }
 
+    /// The type string, such as `Agent(string source,bytes32 connectionId)`.
     #[must_use]
     pub fn type_signature(&self) -> String {
         let mut text = String::with_capacity(self.primary_type.len() + 32);
@@ -52,11 +57,13 @@ impl<'a> TypedStruct<'a> {
         text
     }
 
+    /// keccak256 of [`TypedStruct::type_signature`].
     #[must_use]
     pub fn type_hash(&self) -> [u8; 32] {
         keccak256(self.type_signature().as_bytes())
     }
 
+    /// The struct hash: keccak256 of the type hash followed by each field's word.
     #[must_use]
     pub fn hash(&self) -> [u8; 32] {
         let mut sponge = Keccak256::new().chain(&self.type_hash());

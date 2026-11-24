@@ -7,24 +7,33 @@ use serde::ser::{Serialize, SerializeMap, SerializeSeq, Serializer};
 
 use crate::utils::json::Json;
 
+/// A msgpack value, the parts of the format an action uses. No floats.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Value {
+    /// `nil`; JSON `null`.
     Nil,
+    /// `true` or `false`.
     Bool(bool),
+    /// A non-negative integer, in the smallest unsigned encoding that holds it.
     Uint(u64),
     /// A negative integer. Non-negative values still encode as unsigned.
     Int(i64),
+    /// A UTF-8 string.
     Str(Cow<'static, str>),
+    /// An array, items in order.
     Array(Vec<Value>),
+    /// A map, keys in insertion order.
     Map(Map),
 }
 
 impl Value {
+    /// An array of anything that converts into a value.
     #[must_use]
     pub fn array<V: Into<Value>>(items: impl IntoIterator<Item = V>) -> Value {
         Value::Array(items.into_iter().map(Into::into).collect())
     }
 
+    /// The msgpack bytes; the same as [`encode`].
     #[must_use]
     pub fn to_msgpack(&self) -> Vec<u8> {
         encode(self)
@@ -51,17 +60,20 @@ impl Value {
 pub struct Map(Vec<(Cow<'static, str>, Value)>);
 
 impl Map {
+    /// A map with no keys.
     #[must_use]
     pub const fn new() -> Self {
         Map(Vec::new())
     }
 
+    /// Appends `key` and `value` at the end. A key already present is not replaced; both are kept.
     #[must_use]
     pub fn put(mut self, key: impl Into<Cow<'static, str>>, value: impl Into<Value>) -> Self {
         self.0.push((key.into(), value.into()));
         self
     }
 
+    /// [`Map::put`] when `value` is `Some`; leaves the key out when it is `None`.
     #[must_use]
     pub fn put_some(self, key: impl Into<Cow<'static, str>>, value: Option<impl Into<Value>>) -> Self {
         match value {
@@ -70,11 +82,13 @@ impl Map {
         }
     }
 
+    /// How many key/value pairs it holds.
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Whether it holds no pairs.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -85,15 +99,18 @@ impl Map {
         self.0.into_iter()
     }
 
+    /// The keys in wire order.
     pub fn keys(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|(key, _)| key.as_ref())
     }
 
+    /// The value under `key`, the first if the key repeats.
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&Value> {
         self.0.iter().find(|(stored, _)| stored == key).map(|(_, value)| value)
     }
 
+    /// The map as msgpack bytes, keys in wire order.
     #[must_use]
     pub fn to_msgpack(&self) -> Vec<u8> {
         let mut out = Vec::new();
@@ -101,6 +118,7 @@ impl Map {
         out
     }
 
+    /// The map as a JSON object, keys in the same order.
     #[must_use]
     pub fn to_json(&self) -> Json {
         Json::Object(self.0.iter().map(|(key, value)| (key.to_string(), value.to_json())).collect())
@@ -161,6 +179,7 @@ impl From<Vec<Value>> for Value {
     }
 }
 
+/// `value` as msgpack bytes.
 #[must_use]
 pub fn encode(value: &Value) -> Vec<u8> {
     let mut out = Vec::new();
@@ -168,6 +187,7 @@ pub fn encode(value: &Value) -> Vec<u8> {
     out
 }
 
+/// Appends `value` as msgpack bytes to `out`.
 pub fn write(value: &Value, out: &mut Vec<u8>) {
     match value {
         Value::Nil => out.push(0xc0),

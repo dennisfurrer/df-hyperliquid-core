@@ -7,13 +7,19 @@ use crate::utils::json::Json;
 use crate::utils::sign::eip712::word::{address_word, word};
 use crate::utils::sign::keccak::{Keccak256, keccak256};
 
+/// The EIP-712 type string of a domain, hashed as the first word of [`Domain::separator`].
 pub const DOMAIN_TYPE: &str = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)";
 
+/// An EIP-712 domain with the four fields of [`DOMAIN_TYPE`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Domain {
+    /// `name`: `Exchange` or `HyperliquidSignTransaction`.
     pub name: &'static str,
+    /// `version`: `1` for both.
     pub version: &'static str,
+    /// `chainId`.
     pub chain_id: u64,
+    /// `verifyingContract`: the zero address for both.
     pub verifying_contract: Address,
 }
 
@@ -36,6 +42,7 @@ impl Domain {
         }
     }
 
+    /// The domain separator: keccak256 of the type hash and the four encoded fields.
     #[must_use]
     pub fn separator(&self) -> [u8; 32] {
         Keccak256::new()

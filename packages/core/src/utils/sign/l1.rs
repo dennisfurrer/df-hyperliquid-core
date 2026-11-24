@@ -60,6 +60,7 @@ pub trait L1Action {
     /// The action's keys and values in wire order, which is the hashed order.
     fn action(&self) -> Map;
 
+    /// The action as msgpack bytes, the first part of the connection id's hash.
     #[must_use]
     fn msgpack(&self) -> Vec<u8> {
         self.action().to_msgpack()
@@ -71,16 +72,19 @@ pub trait L1Action {
         self.action().to_json().compact()
     }
 
+    /// [`connection_id`] of this action at `nonce`, for `vault` when it acts for one.
     #[must_use]
     fn connection_id(&self, nonce: u64, vault: Option<Address>) -> [u8; 32] {
         connection_id(&self.msgpack(), nonce, vault)
     }
 
+    /// The phantom agent struct the key signs for this action.
     #[must_use]
     fn typed(&self, nonce: u64, vault: Option<Address>, network: Network) -> TypedStruct<'static> {
         phantom_agent(self.connection_id(nonce, vault), network)
     }
 
+    /// What the key signs for this action: the phantom agent's digest under [`Domain::EXCHANGE`].
     #[must_use]
     fn digest(&self, nonce: u64, vault: Option<Address>, network: Network) -> [u8; 32] {
         self.typed(nonce, vault, network).digest(&Domain::EXCHANGE)
@@ -92,6 +96,8 @@ pub trait L1Action {
         self.typed(nonce, vault, network).wallet_json(&Domain::EXCHANGE)
     }
 
+    /// The `/exchange` body: `action`, `nonce`, `signature` and `vaultAddress`, `null` when
+    /// there is no vault.
     #[must_use]
     fn body(&self, nonce: u64, signature: &Signature, vault: Option<Address>) -> String {
         body::l1(&self.action(), nonce, signature, vault)

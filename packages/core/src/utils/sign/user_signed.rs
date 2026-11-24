@@ -16,11 +16,14 @@ use crate::utils::sign::msgpack::Map;
 /// `withdraw3`) say `time`; the number is the same.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NonceKey {
+    /// `nonce`, used by the newer actions.
     Nonce,
+    /// `time`, used by `usdSend`, `spotSend` and `withdraw3`.
     Time,
 }
 
 impl NonceKey {
+    /// The key as written: `nonce` or `time`.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -55,11 +58,13 @@ impl<'a> UserSigned<'a> {
         self
     }
 
+    /// The posted `type`, such as `withdraw3`.
     #[must_use]
     pub const fn kind(&self) -> &'static str {
         self.kind
     }
 
+    /// The nonce, in milliseconds, as given to [`UserSigned::new`].
     #[must_use]
     pub const fn nonce(&self) -> u64 {
         self.nonce
@@ -95,6 +100,7 @@ impl<'a> UserSigned<'a> {
         data.field(self.nonce_key.as_str(), Field::Uint64(self.nonce))
     }
 
+    /// What the key signs: [`UserSigned::typed`] under the network's user-signed domain.
     #[must_use]
     pub fn digest(&self, network: Network) -> [u8; 32] {
         self.typed(network).digest(&Domain::user_signed(network))
@@ -117,38 +123,46 @@ impl<'a> UserSigned<'a> {
 /// An action defined by its [`UserSigned`] form, from which come the posted
 /// JSON, typed data, digest, wallet JSON and body.
 pub trait UserAction {
+    /// The action's type, EIP-712 name, fields and nonce.
     fn user_signed(&self) -> UserSigned<'_>;
 
+    /// [`UserSigned::nonce`].
     #[must_use]
     fn nonce(&self) -> u64 {
         self.user_signed().nonce()
     }
 
+    /// [`UserSigned::action`]: the action as posted on `network`.
     #[must_use]
     fn action(&self, network: Network) -> Map {
         self.user_signed().action(network)
     }
 
+    /// [`UserSigned::wire`]: the action as posted, as JSON.
     #[must_use]
     fn wire(&self, network: Network) -> String {
         self.user_signed().wire(network)
     }
 
+    /// [`UserSigned::typed`]: the struct the key signs.
     #[must_use]
     fn typed(&self, network: Network) -> TypedStruct<'_> {
         self.user_signed().typed(network)
     }
 
+    /// [`UserSigned::digest`]: what the key signs.
     #[must_use]
     fn digest(&self, network: Network) -> [u8; 32] {
         self.user_signed().digest(network)
     }
 
+    /// [`UserSigned::wallet_json`]: the typed data for a browser wallet.
     #[must_use]
     fn wallet_json(&self, network: Network) -> String {
         self.user_signed().wallet_json(network)
     }
 
+    /// [`UserSigned::body`]: the `/exchange` body, with no `vaultAddress`.
     #[must_use]
     fn body(&self, signature: &Signature, network: Network) -> String {
         self.user_signed().body(signature, network)
