@@ -144,19 +144,42 @@ packages/core
 | `just live` | the live suite against mainnet, each answer held against its recording |
 | `just cover` | line coverage of everything but the live suite |
 
-## Reference implementations
+## Used in production
 
-- [metalliq.xyz](https://metalliq.xyz)
-- [tui.hip4.dev](https://tui.hip4.dev)
+| Project | What it is |
+|---|---|
+| [tui.hip4.dev](https://tui.hip4.dev) | The Hyperliquid terminal: every account, market and protocol call, in one Rust binary |
+| [Atlas](https://at.market) | Macro trading and global intelligence platform |
+| [metalliq.xyz](https://metalliq.xyz) | Papertrade and cardboard side by side, hedged with a HIP-3 perp on Hyperliquid |
+
+### Crates built on df-hyperliquid-core
+
+| Crate | What it is |
+|---|---|
+| [df-papertrade-core](https://crates.io/crates/df-papertrade-core) | Rust SDK for papertrade.xyz |
+| [df-elysium-core](https://crates.io/crates/df-elysium-core) | Rust SDK for Elysium and its HyperEVM bridge |
+| [hip4-vanity](https://crates.io/crates/hip4-vanity) | Searches for an address that scores well against a set of criteria |
+
+All dependents are listed on [crates.io](https://crates.io/crates/df-hyperliquid-core/reverse_dependencies).
+
+### Built with df-hyperliquid-core?
+
+Add the badge to your README and open an issue to be listed here:
+
+[![Built with df-hyperliquid-core](https://img.shields.io/badge/built%20with-df--hyperliquid--core-0b1220)](https://dfurrer.com/products/df-hyperliquid-core)
+
+```markdown
+[![Built with df-hyperliquid-core](https://img.shields.io/badge/built%20with-df--hyperliquid--core-0b1220)](https://dfurrer.com/products/df-hyperliquid-core)
+```
 
 ## License
 
-Licensed under either of
+Versions 0.0.11-beta and later are licensed under either of
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
 - MIT license ([LICENSE-MIT](LICENSE-MIT))
 
-at your option.
+at your option. Versions up to 0.0.10-beta were published under BUSL-1.1.
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
