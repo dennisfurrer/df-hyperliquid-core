@@ -50,3 +50,12 @@ fn a_sum_is_exact_and_none_past_what_a_dec_holds() {
     assert_eq!(Dec::checked_sum([huge, Dec::ONE]), None);
     assert_eq!(Dec::checked_sum([huge, Dec::ONE, Dec::ONE.negate()]), None, "an overflow on the way is not undone");
 }
+
+#[test]
+fn a_dec_never_holds_the_one_value_whose_sign_cannot_flip() {
+    assert_eq!(Dec::new(i128::MIN, 0), None, "new refuses it");
+    let lowest = Dec::new(i128::MIN + 1, 0).unwrap_or(Dec::ZERO);
+    assert_eq!(lowest.checked_sub(Dec::ONE), None, "a difference that would reach it is refused");
+    assert_eq!(lowest.negate().negate(), lowest, "every value that is kept flips both ways");
+    assert!(Dec::parse("-170141183460469231731687303715884105728").is_err(), "parse refuses it");
+}

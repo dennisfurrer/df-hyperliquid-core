@@ -9,7 +9,7 @@ impl Dec {
     #[must_use]
     pub fn checked_add(self, other: Dec) -> Option<Dec> {
         let (a, b, scale) = self.aligned(other)?;
-        Some(Dec { units: a.checked_add(b)?, scale }.normal())
+        Some(Dec { units: kept(a.checked_add(b)?)?, scale }.normal())
     }
 
     /// `self - other`, exact. `None` when the difference passes what a `Dec` holds.
@@ -29,7 +29,7 @@ impl Dec {
     #[must_use]
     pub fn checked_mul(self, other: Dec) -> Option<Dec> {
         let (a, b) = (self.normal(), other.normal());
-        let units = a.units.checked_mul(b.units)?;
+        let units = kept(a.units.checked_mul(b.units)?)?;
         let scale = a.scale + b.scale;
         if scale <= MAX_SCALE {
             return Some(Dec { units, scale }.normal());
@@ -71,6 +71,11 @@ impl Dec {
         let units = if negative { -units } else { units };
         Some(Dec { units, scale: places }.normal())
     }
+}
+
+/// `units`, or `None` for `i128::MIN`: a `Dec` never holds it, so its sign can always be flipped.
+fn kept(units: i128) -> Option<i128> {
+    (units != i128::MIN).then_some(units)
 }
 
 #[cfg(test)]

@@ -29,10 +29,11 @@ impl Dec {
     /// 1.
     pub const ONE: Dec = Dec { units: 1, scale: 0 };
 
-    /// `units / 10^scale`. A scale past [`MAX_SCALE`] is refused.
+    /// `units / 10^scale`. A scale past [`MAX_SCALE`] is refused, and so is
+    /// `i128::MIN`, which has no positive counterpart.
     #[must_use]
     pub const fn new(units: i128, scale: u32) -> Option<Dec> {
-        if scale > MAX_SCALE {
+        if scale > MAX_SCALE || units == i128::MIN {
             return None;
         }
         Some(Dec { units, scale })
@@ -100,16 +101,19 @@ impl Dec {
         self.normal().scale
     }
 
-    /// The value without its sign, at the same scale.
+    /// The value without its sign, at the same scale. Every constructor and
+    /// operation keeps `units` above `i128::MIN`, so this never overflows; the
+    /// saturating call only guards a value built with [`Dec::lit`] from `i128::MIN`.
     #[must_use]
     pub const fn abs(self) -> Dec {
-        Dec { units: self.units.abs(), scale: self.scale }
+        Dec { units: self.units.saturating_abs(), scale: self.scale }
     }
 
-    /// The value with its sign flipped, at the same scale.
+    /// The value with its sign flipped, at the same scale. See [`Dec::abs`] for
+    /// why this never overflows.
     #[must_use]
     pub const fn negate(self) -> Dec {
-        Dec { units: -self.units, scale: self.scale }
+        Dec { units: self.units.saturating_neg(), scale: self.scale }
     }
 
     fn aligned(self, other: Dec) -> Option<(i128, i128, u32)> {
