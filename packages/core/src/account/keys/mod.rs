@@ -12,8 +12,8 @@ pub use agents::{
     extra_agents, extra_agents_request, fresh_agent, role, role_request, split_valid_until,
 };
 pub use builder::{
-    ApproveBuilderFee, BUILDER_MINIMUM, BUILDER_MODE, NotReady, Readiness, builder_readiness, max_builder_fee,
-    max_builder_fee_request, readiness,
+    ApproveBuilderFee, BUILDER_MINIMUM, BUILDER_MODE, NotReady, Readiness, approved_builders,
+    approved_builders_request, builder_readiness, max_builder_fee, max_builder_fee_request, readiness,
 };
 #[cfg(feature = "sign")]
 pub use signer::{LocalKey, address_of_public_key, recover, verify};

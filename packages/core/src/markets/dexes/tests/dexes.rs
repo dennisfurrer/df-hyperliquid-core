@@ -1,9 +1,11 @@
 //! Live answers from 2026-09-26 and 27, stored as sent: `perpDexs`, `allPerpMetas` (all 11 dexes,
 //! 528 perps), `perpDexLimits` and `perpDexStatus` for `xyz`, and `metaAndAssetCtxs` for `para`, all
-//! mainnet; and `perpCategories` from 2026-10-21, whole. Reads through a client are in
+//! mainnet; `perpCategories` from 2026-10-21, whole; and `perpConciseAnnotations` and two
+//! `perpAnnotation` reads from 2026-11-24, whole. Reads through a client are in
 //! `tests/mocked/markets`.
 
 use crate::markets::dex::split_coin;
+use crate::markets::dexes::annotations::{ConciseAnnotation, PerpAnnotation};
 use crate::markets::dexes::dex::PerpDexs;
 use crate::markets::dexes::limits::{DexLimits, DexStatus};
 use crate::markets::dexes::listing::{Dexes, Misaligned};
@@ -20,6 +22,11 @@ const PARA: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/meta_and_asset_ctxs_para_mainnet.json"));
 const CATEGORIES: &str =
     include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_categories_mainnet.json"));
+const CONCISE: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_concise_annotations_mainnet.json"));
+const XYZ100: &str =
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_annotation_xyz100_mainnet.json"));
+const BTC: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/hip3/perp_annotation_btc_mainnet.json"));
 
 fn dec(text: &str) -> Dec {
     Dec::parse(text).unwrap()
@@ -159,4 +166,37 @@ fn each_hip3_perp_s_category_is_read_by_its_coin_as_written() {
     let of = |coin: &str| categories.iter().find(|(listed, _)| listed == coin).map(|(_, category)| category.as_str());
     assert_eq!((of("xyz:TSLA"), of("xyz:EUR"), of("km:EUR")), (Some("stocks"), Some("fx"), Some("FX")));
     assert_eq!((of("para:AAOI"), of("BTC")), (Some("stock"), None));
+}
+
+/// Every concise annotation names a HIP-3 perp once. A display name and keywords are optional, so
+/// some annotations are a category alone.
+#[test]
+fn each_hip3_perp_s_concise_annotation_is_read_by_its_coin() {
+    let annotations: Vec<(String, ConciseAnnotation)> = serde_json::from_str(CONCISE).unwrap();
+    assert_eq!(annotations.len(), 239);
+    for (coin, _) in &annotations {
+        assert!(split_coin(coin).is_some(), "{coin} is on the main dex");
+        assert_eq!(annotations.iter().filter(|(other, _)| other == coin).count(), 1, "{coin}");
+    }
+    let of = |coin: &str| annotations.iter().find(|(listed, _)| listed == coin).map(|(_, annotation)| annotation);
+    let aapl = of("io:AAPL").unwrap();
+    assert_eq!((aapl.category.as_str(), aapl.display_name.as_deref()), ("stocks", Some("AAPL")));
+    assert_eq!(aapl.keywords, ["apple", "aapl"]);
+    let btc = of("flx:BTC").unwrap();
+    assert_eq!((btc.category.as_str(), btc.display_name.as_deref(), btc.keywords.len()), ("crypto", None, 0));
+    assert!(
+        annotations.iter().any(|(_, annotation)| annotation.display_name.is_none() && !annotation.keywords.is_empty())
+    );
+}
+
+/// One perp's annotation carries its description; a main dex perp has none and reads as `None`.
+#[test]
+fn a_perp_s_annotation_reads_with_its_description_and_a_main_dex_perp_has_none() {
+    let xyz100: Option<PerpAnnotation> = serde_json::from_str(XYZ100).unwrap();
+    let xyz100 = xyz100.unwrap();
+    assert_eq!((xyz100.category.as_str(), xyz100.display_name.as_deref()), ("indices", Some("XYZ100")));
+    assert!(xyz100.description.starts_with("XYZ100 tracks a modified market-capitalization-weighted index"));
+    assert_eq!(xyz100.keywords, ["nasdaq", "qqq"]);
+    let btc: Option<PerpAnnotation> = serde_json::from_str(BTC).unwrap();
+    assert_eq!(btc, None);
 }

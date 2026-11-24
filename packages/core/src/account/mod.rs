@@ -25,8 +25,8 @@ pub use holdings::{
 pub use keys::{
     ActionKind, Agent, AgentName, ApproveAgent, ApproveBuilderFee, BUILDER_MINIMUM, BadAgentName, BadExpiry, Key,
     MAX_AGENT_VALIDITY_MS, NotReady, Readiness, Refused, Reused, Role, SignError, Signature, Signer, Signers, Why,
-    builder_readiness, extra_agents, extra_agents_request, fresh_agent, max_builder_fee, max_builder_fee_request,
-    may_sign, readiness, role, role_request, split_valid_until,
+    approved_builders, approved_builders_request, builder_readiness, extra_agents, extra_agents_request, fresh_agent,
+    max_builder_fee, max_builder_fee_request, may_sign, readiness, role, role_request, split_valid_until,
 };
 #[cfg(feature = "sign")]
 pub use keys::{LocalKey, recover, verify};

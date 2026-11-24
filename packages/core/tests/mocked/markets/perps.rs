@@ -151,3 +151,34 @@ async fn a_dex_list_out_of_line_with_its_metas_is_unreadable() {
     assert_eq!(bodies(&client), [r#"{"type":"perpDexs"}"#, r#"{"type":"allPerpMetas"}"#]);
     assert_eq!(refused, ApiError::Unreadable { path: "/info", detail: "flx:TSLA is listed under dex xyz".to_owned() });
 }
+
+/// Every HIP-3 perp's concise annotation, then one perp's whole annotation, and a main dex perp's,
+/// which has none (2026-11-24).
+#[tokio::test]
+async fn a_hip3_perp_s_annotation_is_read_and_a_main_dex_perp_has_none() {
+    let venue = Venue::mainnet()
+        .info("perpConciseAnnotations", "hip3/perp_concise_annotations_mainnet.json")
+        .info_where("perpAnnotation", &[("coin", "xyz:XYZ100")], &fixture("hip3/perp_annotation_xyz100_mainnet.json"))
+        .info("perpAnnotation", "hip3/perp_annotation_btc_mainnet.json");
+    let client = Client::reader(venue, Network::Mainnet, clock);
+
+    let concise = dexes::perp_concise_annotations(&client).await.unwrap();
+    let xyz100 = dexes::perp_annotation(&client, "xyz:XYZ100").await.unwrap().unwrap();
+    let btc = dexes::perp_annotation(&client, "BTC").await.unwrap();
+
+    assert_eq!(
+        bodies(&client),
+        [
+            r#"{"type":"perpConciseAnnotations"}"#,
+            r#"{"type":"perpAnnotation","coin":"xyz:XYZ100"}"#,
+            r#"{"type":"perpAnnotation","coin":"BTC"}"#,
+        ]
+    );
+    let (_, listed) = concise.iter().find(|(coin, _)| coin == "xyz:XYZ100").unwrap();
+    assert_eq!(
+        (listed.category.as_str(), listed.display_name.as_deref(), &listed.keywords),
+        (xyz100.category.as_str(), xyz100.display_name.as_deref(), &xyz100.keywords),
+        "the concise annotation is the whole one without its description"
+    );
+    assert_eq!(btc, None);
+}

@@ -2,7 +2,7 @@
 //! agents, an approved builder fee, and whether the builder can be paid.
 
 use df_hyperliquid_core::account::{
-    Role, builder_readiness, clearinghouse_state, extra_agents, max_builder_fee, role, spot_state,
+    Role, approved_builders, builder_readiness, clearinghouse_state, extra_agents, max_builder_fee, role, spot_state,
 };
 use df_hyperliquid_core::markets::Dex;
 
@@ -51,4 +51,14 @@ async fn a_builder_s_approval_and_whether_it_can_be_paid_read() {
     same_shape(&client, "account/spot_builder.json");
     builder_readiness(&client, builder).await.unwrap();
     same_shape(&client, "account/mode_builder_mainnet.json");
+}
+
+#[tokio::test]
+#[ignore = "mainnet"]
+async fn the_builders_an_account_has_approved_read() {
+    let client = reader();
+    let builder = address(BUILDER);
+    assert!(approved_builders(&client, builder).await.unwrap().contains(&builder));
+    same_shape(&client, "account/approved_builders_mainnet.json");
+    assert_eq!(approved_builders(&client, address(FRESH)).await.unwrap(), []);
 }

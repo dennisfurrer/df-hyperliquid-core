@@ -80,6 +80,18 @@ async fn every_hip3_dex_lines_up_with_its_meta() {
 
 #[tokio::test]
 #[ignore = "mainnet"]
+async fn hip3_perps_read_their_annotations_and_a_main_dex_perp_has_none() {
+    let client = reader();
+    let concise = dexes::perp_concise_annotations(&client).await.unwrap();
+    assert!(concise.iter().all(|(coin, _)| markets::split_coin(coin).is_some()), "HIP-3 perps only");
+    same_shape(&client, "hip3/perp_concise_annotations_mainnet.json");
+    assert!(dexes::perp_annotation(&client, "xyz:XYZ100").await.unwrap().is_some());
+    same_shape(&client, "hip3/perp_annotation_xyz100_mainnet.json");
+    assert_eq!(dexes::perp_annotation(&client, "BTC").await.unwrap(), None);
+}
+
+#[tokio::test]
+#[ignore = "mainnet"]
 async fn a_hip3_dex_reads_its_meta_contexts_limits_status_mids_and_book() {
     let client = reader();
     let xyz = Dex::Hip3("xyz");

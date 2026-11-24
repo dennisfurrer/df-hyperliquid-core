@@ -1,11 +1,12 @@
 //! Builder fees from the account's side: `approveBuilderFee`, what an account has approved a
-//! builder to charge (`maxBuilderFee`), and whether a builder can be paid at all. An order whose
+//! builder to charge (`maxBuilderFee`), every builder it has approved (`approvedBuilders`), and
+//! whether a builder can be paid at all. An order whose
 //! builder fee is over the approval is refused by the venue; what an order needs approved first is
 //! [`crate::trade::BuilderSetting::approval`].
 
 use crate::account::holdings::perps::{ClearinghouseState, clearinghouse_state};
 use crate::account::settings::mode::{Abstraction, abstraction};
-use crate::client::{ApiError, Transport, info, info_request};
+use crate::client::{ApiError, Transport, info, info_request, user_request};
 use crate::markets::Dex;
 use crate::trade::builder::fee::BuilderFee;
 use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
@@ -73,6 +74,18 @@ pub async fn max_builder_fee(
     builder: Address,
 ) -> Result<BuilderFee, ApiError> {
     info(transport, max_builder_fee_request(user, builder)).await
+}
+
+/// `{"type":"approvedBuilders","user":..}`.
+#[must_use]
+pub fn approved_builders_request(user: Address) -> String {
+    user_request("approvedBuilders", user)
+}
+
+/// Every builder `user` has approved a fee for; empty for an account that has approved none.
+/// [`max_builder_fee`] reads what one of them may charge.
+pub async fn approved_builders(transport: &impl Transport, user: Address) -> Result<Vec<Address>, ApiError> {
+    info(transport, approved_builders_request(user)).await
 }
 
 /// Whether a builder can be paid now.

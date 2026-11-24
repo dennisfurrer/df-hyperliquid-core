@@ -5,7 +5,8 @@
 
 use df_hyperliquid_core::account::{
     AbstractionMode, ActionKind, AgentName, AgentSetAbstraction, ApproveAgent, ApproveBuilderFee, Key, LocalKey,
-    NotReady, Readiness, Reused, Role, builder_readiness, extra_agents, fresh_agent, max_builder_fee, may_sign, role,
+    NotReady, Readiness, Reused, Role, approved_builders, builder_readiness, extra_agents, fresh_agent,
+    max_builder_fee, may_sign, role,
 };
 use df_hyperliquid_core::client::ApiError;
 use df_hyperliquid_core::trade::BuilderFee;
@@ -114,4 +115,28 @@ async fn a_builder_fee_is_approved_and_the_builder_checked_fit_to_be_paid() {
     );
     assert_eq!(approve.max_fee(), Some(BuilderFee::from_tenths(100)), "0.1% is 100 tenths of a basis point");
     assert_eq!(ready, Readiness::NotReady(vec![NotReady::TooLittle { value: dec("0.003569") }]), "standard, but poor");
+}
+
+/// The builder account has approved itself and one other builder (2026-11-24); a fresh account has
+/// approved none.
+#[tokio::test]
+async fn every_builder_an_account_has_approved_is_read_by_its_address() {
+    let fresh = address("0x13765b62653adb4e912c9b1cbdc789efa883c106");
+    let venue = Venue::mainnet()
+        .info_where("approvedBuilders", &[("user", BUILDER)], &fixture("account/approved_builders_mainnet.json"))
+        .info("approvedBuilders", "account/approved_builders_none_mainnet.json");
+    let client = Client::reader(venue, Network::Mainnet, clock);
+
+    let approved = approved_builders(&client, address(BUILDER)).await.unwrap();
+    let none = approved_builders(&client, fresh).await.unwrap();
+
+    assert_eq!(
+        bodies(client.http()),
+        [
+            format!(r#"{{"type":"approvedBuilders","user":"{BUILDER}"}}"#),
+            format!(r#"{{"type":"approvedBuilders","user":"{}"}}"#, fresh.to_hex()),
+        ]
+    );
+    assert_eq!(approved, [address(BUILDER), address("0xab5dbc057628bc18523c4cdfc0e1e2ebdbecb704")]);
+    assert_eq!(none, []);
 }
