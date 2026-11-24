@@ -23,7 +23,9 @@ pub enum Balance {
 /// How the figure moves once the action lands: by exactly the amount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Change {
+    /// Rises by exactly this much HYPE.
     Up(Dec),
+    /// Falls by exactly this much HYPE.
     Down(Dec),
 }
 
@@ -35,7 +37,9 @@ pub enum Change {
 /// deposit, the delegation for a delegate, the queue for a withdrawal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Effect {
+    /// The balance that changes.
     pub balance: Balance,
+    /// How it changes.
     pub change: Change,
 }
 
@@ -53,11 +57,15 @@ impl Effect {
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan<A> {
+    /// The network the action is signed for.
     pub network: Network,
+    /// The action signed.
     pub action: A,
     /// What it is signed with; the action carries it too.
     pub nonce: u64,
+    /// Which keys may sign it.
     pub key: Signers,
+    /// The balance that should change, to check once it lands.
     pub effect: Effect,
     /// When what it moved is free again, milliseconds: a delegation's lock
     /// ends, or a withdrawal reaches spot.
@@ -67,14 +75,27 @@ pub struct Plan<A> {
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
+    /// An amount over what the staking balance or the delegation holds.
     #[error("{amount} HYPE is more than the {held} there is")]
-    MoreThan { amount: Dec, held: Dec },
+    MoreThan {
+        /// The HYPE asked for.
+        amount: Dec,
+        /// The HYPE there is.
+        held: Dec,
+    },
+    /// Nothing is delegated to the validator; holds its address.
     #[error("nothing is delegated to {0}")]
     NoDelegation(Address),
+    /// The delegation is still locked.
     #[error("that delegation is locked until {until} ms")]
-    Locked { until: u64 },
+    Locked {
+        /// When the lock ends, milliseconds.
+        until: u64,
+    },
+    /// The unstaking queue already holds [`MAX_PENDING_WITHDRAWALS`] withdrawals.
     #[error("{MAX_PENDING_WITHDRAWALS} withdrawals already wait in the queue, the most there may be")]
     QueueFull,
+    /// The amount has more than eight decimal places.
     #[error(transparent)]
     Units(#[from] BadUnits),
 }
@@ -82,7 +103,9 @@ pub enum Refused {
 /// Everything outside the amounts that a plan is made from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ctx {
+    /// The network the action is signed for.
     pub network: Network,
+    /// The nonce to sign with, in milliseconds.
     pub nonce: u64,
     /// Now, milliseconds: a lock or a queue is measured from it.
     pub now_ms: u64,

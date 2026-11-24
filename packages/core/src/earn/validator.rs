@@ -19,7 +19,9 @@ fn node_ip(ip: IpAddr) -> Map {
 pub struct ValidatorProfile {
     /// The validator node's IP address.
     pub node_ip: IpAddr,
+    /// The validator's name.
     pub name: String,
+    /// The validator's description.
     pub description: String,
     /// Whether the validator refuses delegations.
     pub delegations_disabled: bool,
@@ -47,12 +49,19 @@ impl ValidatorProfile {
 /// leaves that field as it is; `unjailed` is always sent.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProfileChange {
+    /// The new node IP address (`node_ip`, sent as `{"Ip":..}`).
     pub node_ip: Option<IpAddr>,
+    /// The new name.
     pub name: Option<String>,
+    /// The new description.
     pub description: Option<String>,
+    /// Whether the validator is unjailed after the change.
     pub unjailed: bool,
+    /// Whether the validator refuses delegations (`disable_delegations`).
     pub disable_delegations: Option<bool>,
+    /// The new commission (`commission_bps`), as the integer the venue takes.
     pub commission_bps: Option<u64>,
+    /// The new address that signs for the validator node.
     pub signer: Option<Address>,
 }
 
@@ -81,7 +90,14 @@ pub enum CValidatorAction {
     /// `register`: a new validator with its profile, whether it starts
     /// unjailed, and its initial self-stake in HYPE wei (8 decimals, as
     /// [`hype_wei`](crate::earn::staking::hype_wei) converts).
-    Register { profile: ValidatorProfile, unjailed: bool, initial_wei: u64 },
+    Register {
+        /// The new validator's profile.
+        profile: ValidatorProfile,
+        /// Whether the validator starts unjailed.
+        unjailed: bool,
+        /// The initial self-stake (`initial_wei`), in HYPE wei: 8 decimals.
+        initial_wei: u64,
+    },
     /// `changeProfile`.
     ChangeProfile(ProfileChange),
     /// `unregister`: the key is sent, with null.

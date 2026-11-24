@@ -20,14 +20,18 @@ pub enum Balance {
 /// moves it too, so a read back shows the direction, by about the amount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Change {
+    /// Rises by about this much USDC.
     Rises(Dec),
+    /// Falls by about this much USDC.
     Falls(Dec),
 }
 
 /// The equity an action changes, and what reading it back should show.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Effect {
+    /// The equity that changes.
     pub balance: Balance,
+    /// How it changes.
     pub change: Change,
 }
 
@@ -45,10 +49,15 @@ impl Effect {
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan<A> {
+    /// The network the action is signed for.
     pub network: Network,
+    /// The action signed.
     pub action: A,
+    /// The nonce it is signed with, in milliseconds.
     pub nonce: u64,
+    /// Which keys may sign it.
     pub key: Signers,
+    /// The equity that should change, to check once it lands.
     pub effect: Effect,
     /// When a deposit may first be withdrawn, milliseconds.
     pub free_at: Option<u64>,
@@ -57,12 +66,24 @@ pub struct Plan<A> {
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
+    /// The vault is closed or takes no deposits; holds its address.
     #[error("{0} takes no deposits")]
     NoDeposits(Address),
+    /// The deposit is still in its lockup.
     #[error("locked until {until} ms")]
-    Locked { until: u64 },
+    Locked {
+        /// When the lockup ends, milliseconds.
+        until: u64,
+    },
+    /// An amount over the equity held.
     #[error("{amount} USDC is more than the {held} there is")]
-    MoreThan { amount: Dec, held: Dec },
+    MoreThan {
+        /// The USDC asked for.
+        amount: Dec,
+        /// The USDC equity there is.
+        held: Dec,
+    },
+    /// The amount has more than six decimal places.
     #[error(transparent)]
     Units(#[from] BadUnits),
 }
@@ -70,7 +91,9 @@ pub enum Refused {
 /// Everything outside the amounts that a plan is made from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ctx {
+    /// The network the action is signed for.
     pub network: Network,
+    /// The nonce to sign with, in milliseconds.
     pub nonce: u64,
     /// Now, milliseconds: a lockup is measured from it.
     pub now_ms: u64,

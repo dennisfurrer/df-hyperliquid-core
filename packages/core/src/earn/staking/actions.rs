@@ -23,10 +23,13 @@ impl CDeposit {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::CDeposit.signers();
 
+    /// `hype` from spot into the staking balance, signed at `nonce`, refused rather than rounded past
+    /// eight places.
     pub fn new(hype: Dec, nonce: u64) -> Result<CDeposit, BadUnits> {
         Ok(CDeposit { wei: hype_wei(hype)?, nonce })
     }
 
+    /// The amount as the action carries it, in hundred-millionths of HYPE.
     #[must_use]
     pub const fn wei(&self) -> u64 {
         self.wei
@@ -81,10 +84,13 @@ impl CWithdraw {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::CWithdraw.signers();
 
+    /// `hype` from the staking balance toward spot, signed at `nonce`, refused rather than rounded past
+    /// eight places.
     pub fn new(hype: Dec, nonce: u64) -> Result<CWithdraw, BadUnits> {
         Ok(CWithdraw { wei: hype_wei(hype)?, nonce })
     }
 
+    /// The amount as the action carries it, in hundred-millionths of HYPE.
     #[must_use]
     pub const fn wei(&self) -> u64 {
         self.wei
@@ -112,14 +118,19 @@ impl TokenDelegate {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::TokenDelegate.signers();
 
+    /// Delegates `hype` of the staking balance to `validator`, signed at `nonce`, refused rather than
+    /// rounded past eight places.
     pub fn delegate(validator: Address, hype: Dec, nonce: u64) -> Result<TokenDelegate, BadUnits> {
         Ok(TokenDelegate { validator, wei: hype_wei(hype)?, is_undelegate: false, nonce })
     }
 
+    /// Undelegates `hype` from `validator` back to the staking balance (`isUndelegate` true), signed at
+    /// `nonce`, refused rather than rounded past eight places.
     pub fn undelegate(validator: Address, hype: Dec, nonce: u64) -> Result<TokenDelegate, BadUnits> {
         Ok(TokenDelegate { validator, wei: hype_wei(hype)?, is_undelegate: true, nonce })
     }
 
+    /// The amount as the action carries it, in hundred-millionths of HYPE.
     #[must_use]
     pub const fn wei(&self) -> u64 {
         self.wei

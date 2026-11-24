@@ -50,6 +50,7 @@ pub fn lockup_ms(network: Network, vault: Address) -> u64 {
     }
 }
 
+/// `vaultTransfer`: USDC between the perp balance and a vault.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VaultTransfer {
     vault: Address,
@@ -80,11 +81,13 @@ impl VaultTransfer {
         VaultTransfer { vault, is_deposit, usd }
     }
 
+    /// The amount as the action carries it, in millionths of USDC.
     #[must_use]
     pub const fn usd(&self) -> u64 {
         self.usd
     }
 
+    /// The vault's address.
     #[must_use]
     pub const fn vault(&self) -> Address {
         self.vault

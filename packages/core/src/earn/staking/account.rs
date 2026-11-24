@@ -15,6 +15,7 @@ pub const REWARDS_WINDOW_MS: u64 = 30 * 86_400_000;
 /// A withdrawal from staking still on its way to spot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PendingWithdrawal {
+    /// The HYPE withdrawn.
     pub amount: Dec,
     /// When it was asked for, milliseconds.
     pub initiated: u64,
@@ -47,7 +48,9 @@ pub fn rewards_since(rewards: &[Reward], since_ms: u64) -> Option<Dec> {
 /// One account's stake.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Staking {
+    /// The account's `delegatorSummary`.
     pub summary: DelegatorSummary,
+    /// Each delegation, as `delegations` lists them.
     pub delegations: Vec<Delegation>,
     /// The newest withdrawals still queued, as many as the summary counts.
     pub pending: Vec<PendingWithdrawal>,
@@ -56,6 +59,8 @@ pub struct Staking {
 }
 
 impl Staking {
+    /// Puts the reads together at `now_ms`: keeps as many queued withdrawals as the summary counts and
+    /// sums the rewards over the last [`REWARDS_WINDOW_MS`].
     #[must_use]
     pub fn new(
         network: Network,

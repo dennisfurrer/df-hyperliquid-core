@@ -36,6 +36,7 @@ pub async fn reserve_state(transport: &impl Transport, token: u32) -> Result<Res
     info(transport, reserve_state_request(token)).await
 }
 
+/// An account's lending positions and health.
 pub async fn user_state(transport: &impl Transport, user: Address) -> Result<UserState, ApiError> {
     info(transport, user_state_request(user)).await
 }
@@ -57,7 +58,9 @@ pub struct ReserveState {
     pub oracle_px: Dec,
     /// How much of the token's value backs a borrow; 0 where it backs none.
     pub ltv: Dec,
+    /// Everything supplied to the reserve, in the token (`totalSupplied`).
     pub total_supplied: Dec,
+    /// Everything borrowed from the reserve, in the token (`totalBorrowed`).
     pub total_borrowed: Dec,
 }
 
@@ -86,13 +89,16 @@ pub struct UserState {
 /// How near liquidation the venue says an account's lending is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Risk {
+    /// `healthy`.
     Safe,
     /// `atRisk`, or a word not seen yet: worth a warning.
     Near,
+    /// `liquidatable`.
     Liquidatable,
 }
 
 impl UserState {
+    /// The position in `token`; `None` when the account never touched it.
     #[must_use]
     pub fn position(&self, token: u32) -> Option<&Position> {
         self.token_to_state.iter().find(|(index, _)| *index == token).map(|(_, position)| position)
@@ -118,6 +124,7 @@ impl UserState {
         self.position(token).map_or(Dec::ZERO, |position| position.borrow.value)
     }
 
+    /// Whether the venue says `healthy`.
     #[must_use]
     pub fn is_healthy(&self) -> bool {
         self.health == "healthy"
@@ -141,10 +148,13 @@ impl UserState {
     }
 }
 
+/// One token's position: what is borrowed and what is supplied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 pub struct Position {
+    /// What is borrowed; zero when the venue leaves it out.
     #[serde(default)]
     pub borrow: Basis,
+    /// What is supplied; zero when the venue leaves it out.
     #[serde(default)]
     pub supply: Basis,
 }
@@ -153,8 +163,10 @@ pub struct Position {
 /// A live portfolio-margin account wrote positions with no `basis`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 pub struct Basis {
+    /// What went in, in the token; zero when the venue leaves it out.
     #[serde(default)]
     pub basis: Dec,
+    /// What is held or owed now, in the token.
     pub value: Dec,
 }
 

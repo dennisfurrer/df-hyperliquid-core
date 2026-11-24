@@ -10,15 +10,21 @@ use crate::utils::sign::{L1Action, Map, Value};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Operation {
+    /// `supply`: lends the token to the reserve.
     Supply,
+    /// `withdraw`: takes back what was supplied.
     Withdraw,
+    /// `borrow`: borrows the token from the reserve.
     Borrow,
+    /// `repay`: pays back what was borrowed.
     Repay,
 }
 
 impl Operation {
+    /// Every operation, in the order the variants are declared.
     pub const ALL: [Operation; 4] = [Operation::Supply, Operation::Withdraw, Operation::Borrow, Operation::Repay];
 
+    /// The name sent as `operation`.
     #[must_use]
     pub const fn wire(self) -> &'static str {
         match self {
@@ -30,8 +36,10 @@ impl Operation {
     }
 }
 
+/// Why a [`BorrowLend`] could not be made.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadLend {
+    /// An amount of zero or less; holds the amount given.
     #[error("{0} is not an amount above zero")]
     NotPositive(Dec),
 }
@@ -60,18 +68,22 @@ impl BorrowLend {
         }
     }
 
+    /// `supply` of `amount` of `token`, refusing an amount of zero or less.
     pub fn supply(token: u32, amount: Dec) -> Result<BorrowLend, BadLend> {
         BorrowLend::new(Operation::Supply, token, amount)
     }
 
+    /// `withdraw` of `amount` of `token`, refusing an amount of zero or less.
     pub fn withdraw(token: u32, amount: Dec) -> Result<BorrowLend, BadLend> {
         BorrowLend::new(Operation::Withdraw, token, amount)
     }
 
+    /// `borrow` of `amount` of `token`, refusing an amount of zero or less.
     pub fn borrow(token: u32, amount: Dec) -> Result<BorrowLend, BadLend> {
         BorrowLend::new(Operation::Borrow, token, amount)
     }
 
+    /// `repay` of `amount` of `token`, refusing an amount of zero or less.
     pub fn repay(token: u32, amount: Dec) -> Result<BorrowLend, BadLend> {
         BorrowLend::new(Operation::Repay, token, amount)
     }
@@ -88,16 +100,19 @@ impl BorrowLend {
         BorrowLend { operation: Operation::Repay, token, amount: None }
     }
 
+    /// What the action does to the reserve.
     #[must_use]
     pub const fn operation(&self) -> Operation {
         self.operation
     }
 
+    /// The spot token index.
     #[must_use]
     pub const fn token(&self) -> u32 {
         self.token
     }
 
+    /// The amount in the token; `None`, sent as null, for all of it.
     #[must_use]
     pub const fn amount(&self) -> Option<Dec> {
         self.amount

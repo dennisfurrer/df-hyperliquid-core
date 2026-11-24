@@ -18,11 +18,13 @@ pub fn vault_details_request(vault: Address, user: Option<Address>) -> String {
     info_request("vaultDetails", &fields)
 }
 
+/// `{"type":"userVaultEquities","user":..}`.
 #[must_use]
 pub fn user_vault_equities_request(user: Address) -> String {
     user_request("userVaultEquities", user)
 }
 
+/// `{"type":"leadingVaults","user":..}`.
 #[must_use]
 pub fn leading_vaults_request(user: Address) -> String {
     user_request("leadingVaults", user)
@@ -47,12 +49,17 @@ pub async fn leading_vaults(transport: &impl Transport, user: Address) -> Result
     info(transport, leading_vaults_request(user)).await
 }
 
+/// One vault, as `vaultDetails` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultDetails {
+    /// The vault's name.
     pub name: String,
+    /// The vault's address (`vaultAddress`).
     pub vault_address: Address,
+    /// The leader's address.
     pub leader: Address,
+    /// The leader's description; empty when the venue leaves it out.
     #[serde(default)]
     pub description: String,
     /// Yearly, as a fraction.
@@ -67,20 +74,25 @@ pub struct VaultDetails {
     /// The leader's cut of followers' profit.
     #[serde(default)]
     pub leader_commission: Option<Figure>,
+    /// Every follower, the leader's own row among them.
     #[serde(default)]
     pub followers: Vec<Follower>,
+    /// The most the vault can pay out now (`maxDistributable`), in USDC.
     #[serde(default)]
     pub max_distributable: Option<Figure>,
     /// For the asking follower: what may leave now, in USDC.
     #[serde(default)]
     pub max_withdrawable: Option<Figure>,
+    /// Whether the vault is closed (`isClosed`).
     #[serde(default)]
     pub is_closed: bool,
     /// Whether it leads strategy vaults (HLP), is one, or neither.
     #[serde(default)]
     pub relationship: Relationship,
+    /// Whether the vault takes deposits (`allowDeposits`).
     #[serde(default)]
     pub allow_deposits: bool,
+    /// Whether a follower's positions are closed when it withdraws (`alwaysCloseOnWithdraw`).
     #[serde(default)]
     pub always_close_on_withdraw: bool,
 }
@@ -95,7 +107,10 @@ pub enum Relationship {
     Normal,
     /// Leads the strategy vaults it lists (HLP).
     #[serde(rename_all = "camelCase")]
-    Parent { child_addresses: Vec<Address> },
+    Parent {
+        /// The strategy vaults' addresses (`childAddresses`).
+        child_addresses: Vec<Address>,
+    },
     /// One of a parent's strategies, led by the parent itself.
     Child,
 }
@@ -123,19 +138,25 @@ impl VaultDetails {
     }
 }
 
+/// One follower of a vault.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Follower {
     /// `None` for the leader's own row, which the venue writes as `"user":"Leader"`.
     #[serde(deserialize_with = "follower_user")]
     pub user: Option<Address>,
+    /// The follower's equity in the vault, in USDC (`vaultEquity`).
     pub vault_equity: Dec,
+    /// Profit and loss, in USDC.
     #[serde(default)]
     pub pnl: Option<Dec>,
+    /// Profit and loss over the follower's whole time in the vault, in USDC (`allTimePnl`).
     #[serde(default)]
     pub all_time_pnl: Option<Dec>,
+    /// How many days the follower has followed (`daysFollowing`).
     #[serde(default)]
     pub days_following: Option<u64>,
+    /// When the follower entered the vault (`vaultEntryTime`), milliseconds.
     #[serde(default)]
     pub vault_entry_time: Option<u64>,
     /// Milliseconds; a withdrawal before it is refused.
@@ -160,16 +181,20 @@ fn follower_user<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Op
     text.parse().map(Some).map_err(serde::de::Error::custom)
 }
 
+/// An account's equity in one vault, as `userVaultEquities` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VaultEquity {
+    /// The vault's address (`vaultAddress`).
     pub vault_address: Address,
+    /// The account's equity in the vault, in USDC.
     pub equity: Dec,
     /// Milliseconds.
     pub locked_until_timestamp: u64,
 }
 
 impl VaultEquity {
+    /// Whether a withdrawal at `now_ms` would be refused for the lockup.
     #[must_use]
     pub const fn is_locked(&self, now_ms: u64) -> bool {
         now_ms < self.locked_until_timestamp
@@ -186,9 +211,12 @@ impl VaultEquity {
     }
 }
 
+/// One vault an account leads, as `leadingVaults` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct LeadingVault {
+    /// The vault's address.
     pub address: Address,
+    /// The vault's name; empty when the venue leaves it out.
     #[serde(default)]
     pub name: String,
 }

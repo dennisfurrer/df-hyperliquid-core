@@ -16,10 +16,13 @@ pub const LIQUIDATOR_DECIMALS: u32 = 6;
 /// Why an amount is not one the backstop liquidator takes.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadLiquidatorTransfer {
+    /// An empty dex name, which would mean the main dex.
     #[error("the main dex has no backstop liquidator; name a HIP-3 dex")]
     NoDex,
+    /// An amount of zero or less, or not a whole multiple of [`LIQUIDATOR_STEP`]; holds the amount.
     #[error("{0} is not a whole multiple of {LIQUIDATOR_STEP} of the quote token")]
     NotAStep(Dec),
+    /// The amount has more than [`LIQUIDATOR_DECIMALS`] decimal places.
     #[error(transparent)]
     Units(#[from] BadUnits),
 }
