@@ -54,7 +54,9 @@ pub enum Change {
 /// The balance an action changes, and what reading it back should show.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Effect {
+    /// The figure to read back.
     pub balance: Balance,
+    /// How it should move.
     pub change: Change,
 }
 
@@ -74,41 +76,60 @@ impl Effect {
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan<A> {
+    /// The network the action is signed for.
     pub network: Network,
+    /// The action to sign.
     pub action: A,
     /// What it is signed with; a user-signed action carries it too.
     pub nonce: u64,
+    /// Who may sign it.
     pub key: Signers,
+    /// The balance that should change, and by how much.
     pub effect: Effect,
 }
 
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refused {
+    /// A pooled account has one balance, so there is nothing to move between the two named.
     #[error("a pooled account holds USDC in one balance, so there is nothing to move between {0}")]
     OneBalance(&'static str),
+    /// The source and destination balances are the same.
     #[error("the two balances are the same one")]
     SameDex,
+    /// The recipient is the account itself.
     #[error("that is this account; a send goes somewhere else")]
     ToSelf,
+    /// The recipient is a system address; a send there crosses to HyperEVM and goes through
+    /// [`Ctx::to_evm`].
     #[error("{0} is a system address: a send there crosses to HyperEVM, which `to_evm` plans")]
     SystemAddress(Address),
+    /// The token, by name, has no ERC-20 on HyperEVM.
     #[error("{0} has no token on HyperEVM to cross to")]
     NotLinked(String),
     /// No vector covers USDC crossing to HyperEVM, so it is refused.
     #[error("USDC does not cross to HyperEVM here")]
     Usdc,
+    /// The amount has more places than the balance it moves counts.
     #[error("{amount} has more than {places} decimal places")]
-    TooFine { amount: Dec, places: u32 },
+    TooFine {
+        /// The amount asked for.
+        amount: Dec,
+        /// The most places allowed.
+        places: u32,
+    },
 }
 
 /// Everything outside the amounts that a plan is made from.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Ctx {
+    /// The network the action is signed for.
     pub network: Network,
     /// The account that moves the money.
     pub account: Address,
+    /// How the account keeps its balances, from its mode.
     pub keeping: Keeping,
+    /// The nonce the action is signed with.
     pub nonce: u64,
 }
 

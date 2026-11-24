@@ -14,6 +14,7 @@ pub const HYPE_EVM_DECIMALS: u32 = 18;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotToken {
+    /// The token's name, `HYPE` or `PURR`.
     pub name: String,
     /// What a balance's `token` and `borrowLend` name it by.
     pub index: u32,
@@ -30,6 +31,7 @@ pub struct SpotToken {
 /// A token's ERC-20 on HyperEVM. The venue spells this key in snake case.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct EvmContract {
+    /// The ERC-20's address on HyperEVM.
     pub address: Address,
     /// Its decimals on HyperEVM less `weiDecimals`.
     #[serde(rename = "evm_extra_wei_decimals")]

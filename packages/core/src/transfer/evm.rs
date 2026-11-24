@@ -50,6 +50,7 @@ pub fn system_token(address: Address) -> Option<u64> {
 /// checks its supply or what its `transfer` does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Linked {
+    /// The token's index in `spotMeta`.
     pub index: u64,
     /// The ERC-20; `None` for HYPE, which is the chain's native coin.
     pub contract: Option<Address>,

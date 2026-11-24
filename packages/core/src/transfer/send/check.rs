@@ -21,8 +21,11 @@ pub fn pre_transfer_check_request(recipient: Address, sender: Address) -> String
 pub struct PreTransferCheck {
     /// A send to it is refused.
     pub is_sanctioned: bool,
+    /// Whether the venue has seen the address before (`userExists`).
     pub user_exists: bool,
+    /// The activation fee a first transfer to it pays, in USDC; zero when none.
     pub fee: Dec,
+    /// Whether the address has sent a transaction of its own (`userHasSentTx`).
     pub user_has_sent_tx: bool,
 }
 
@@ -34,6 +37,7 @@ impl PreTransferCheck {
     }
 }
 
+/// Reads `preTransferCheck`; see [`pre_transfer_check_request`].
 pub async fn pre_transfer_check(
     transport: &impl Transport,
     recipient: Address,

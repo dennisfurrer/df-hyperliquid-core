@@ -57,14 +57,19 @@ pub const fn rpc_url(network: Network) -> &'static str {
     }
 }
 
+/// A deposit amount refused before any calldata is made.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadDeposit {
+    /// More than six decimal places, which USDC does not count.
     #[error("{0} USDC has more than six decimal places")]
     TooFine(Dec),
+    /// Zero or below.
     #[error("{0} USDC is not a positive amount")]
     NotPositive(Dec),
+    /// Below [`MINIMUM_DEPOSIT`], which the bridge would not credit.
     #[error("{0} USDC is below the bridge's minimum of {MINIMUM_DEPOSIT}; less is lost")]
     BelowMinimum(Dec),
+    /// Too large to fit a `uint256` in six decimals.
     #[error("{0} USDC is too large")]
     TooLarge(Dec),
 }

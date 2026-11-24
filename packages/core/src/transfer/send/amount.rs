@@ -8,18 +8,25 @@ use crate::utils::{Dec, Round};
 /// The most places an amount the venue takes may have.
 pub const MAX_DECIMALS: u32 = 8;
 
+/// Why an amount is refused.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadAmount {
+    /// Nothing, or only spaces, was given.
     #[error("no amount given")]
     Empty,
+    /// Not digits with at most one point and digits before it: `1,000`, `1e5`, `.5`, `+5`.
     #[error("`{0}` is not a plain decimal amount")]
     NotDecimal(String),
+    /// More than [`MAX_DECIMALS`] places.
     #[error("`{0}` has more than {MAX_DECIMALS} decimal places")]
     TooFine(String),
+    /// Zero, or a computed figure that cuts to zero.
     #[error("the amount is zero")]
     Zero,
+    /// Below zero.
     #[error("`{0}` is below zero")]
     Negative(String),
+    /// Too large for a [`Dec`].
     #[error("`{0}` is too large")]
     TooLarge(String),
 }
@@ -58,6 +65,7 @@ impl Amount {
         &self.wire
     }
 
+    /// The amount as a [`Dec`].
     #[must_use]
     pub const fn value(&self) -> Dec {
         self.value

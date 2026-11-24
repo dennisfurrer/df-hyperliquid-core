@@ -73,6 +73,7 @@ impl SendAsset {
         self
     }
 
+    /// The amount, in normal form.
     #[must_use]
     pub const fn amount(&self) -> &Amount {
         &self.amount
@@ -104,6 +105,7 @@ impl SpotSend {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::SpotSend.signers();
 
+    /// `token` (`NAME:0x<tokenId>`) to `destination`, with `time` in milliseconds as its nonce.
     #[must_use]
     pub fn new(destination: Address, token: &str, amount: Amount, time: u64) -> SpotSend {
         SpotSend { destination: destination.to_hex(), token: token.to_owned(), amount, time }
@@ -131,6 +133,7 @@ impl UsdSend {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::UsdSend.signers();
 
+    /// USDC to `destination`, with `time` in milliseconds as its nonce.
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> UsdSend {
         UsdSend { destination: destination.to_hex(), amount, time }
@@ -157,6 +160,7 @@ impl UsdClassTransfer {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::UsdClassTransfer.signers();
 
+    /// USDC to the perp balance when `to_perp`, else to spot, signed at `nonce`.
     #[must_use]
     pub const fn new(amount: Amount, to_perp: bool, nonce: u64) -> UsdClassTransfer {
         UsdClassTransfer { amount, to_perp, nonce }
@@ -184,11 +188,13 @@ impl Withdraw3 {
     /// User-signed: only the account's own key.
     pub const KEY: Signers = ActionKind::Withdraw3.signers();
 
+    /// USDC to `destination` on Arbitrum, with `time` in milliseconds as its nonce.
     #[must_use]
     pub fn new(destination: Address, amount: Amount, time: u64) -> Withdraw3 {
         Withdraw3 { destination: destination.to_hex(), amount, time }
     }
 
+    /// The amount, in normal form, the venue's fee included.
     #[must_use]
     pub const fn amount(&self) -> &Amount {
         &self.amount
@@ -208,7 +214,9 @@ impl UserAction for Withdraw3 {
 /// takes it). Either goes to a person, or through a system address to HyperEVM.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SpotOut {
+    /// `spotSend`, for an account that keeps spot apart.
     SpotSend(SpotSend),
+    /// `sendAsset` from spot to spot, for a pooled account or one whose mode is not known.
     SendAsset(SendAsset),
 }
 
@@ -281,6 +289,7 @@ impl AgentSendAsset {
         self.nonce
     }
 
+    /// The amount, in normal form.
     #[must_use]
     pub const fn amount(&self) -> &Amount {
         &self.amount
