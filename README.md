@@ -14,7 +14,7 @@
 [![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
 [![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
 
-Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn and deploy in one crate, with exact decimals, signing and native or wasm transports.
+Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn and HIP-4 deploys in one crate, with exact decimals, signing and native or wasm transports.
 
 ## SDK
 
