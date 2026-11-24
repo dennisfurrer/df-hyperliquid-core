@@ -38,6 +38,13 @@ pub enum ActionKind {
     ApproveAgent,
     ApproveBuilderFee,
     UserSetAbstraction,
+    TrailingStop,
+    CDeposit2,
+    ClaimRewards,
+    ReserveRequestWeight,
+    Hip3LiquidatorTransfer,
+    SendToEvmWithData,
+    ConvertToMultiSigUser,
 }
 
 /// Which key signs: the one in hand.
@@ -103,7 +110,7 @@ pub fn may_sign(kind: ActionKind, key: Key) -> Result<(), Refused> {
 }
 
 impl ActionKind {
-    pub const ALL: [ActionKind; 31] = [
+    pub const ALL: [ActionKind; 38] = [
         ActionKind::Order,
         ActionKind::Cancel,
         ActionKind::CancelByCloid,
@@ -135,6 +142,13 @@ impl ActionKind {
         ActionKind::ApproveAgent,
         ActionKind::ApproveBuilderFee,
         ActionKind::UserSetAbstraction,
+        ActionKind::TrailingStop,
+        ActionKind::CDeposit2,
+        ActionKind::ClaimRewards,
+        ActionKind::ReserveRequestWeight,
+        ActionKind::Hip3LiquidatorTransfer,
+        ActionKind::SendToEvmWithData,
+        ActionKind::ConvertToMultiSigUser,
     ];
 
     /// The action's `type`.
@@ -172,6 +186,13 @@ impl ActionKind {
             ActionKind::ApproveAgent => "approveAgent",
             ActionKind::ApproveBuilderFee => "approveBuilderFee",
             ActionKind::UserSetAbstraction => "userSetAbstraction",
+            ActionKind::TrailingStop => "trailingStop",
+            ActionKind::CDeposit2 => "cDeposit2",
+            ActionKind::ClaimRewards => "claimRewards",
+            ActionKind::ReserveRequestWeight => "reserveRequestWeight",
+            ActionKind::Hip3LiquidatorTransfer => "hip3LiquidatorTransfer",
+            ActionKind::SendToEvmWithData => "sendToEvmWithData",
+            ActionKind::ConvertToMultiSigUser => "convertToMultiSigUser",
         }
     }
 
@@ -198,6 +219,8 @@ impl ActionKind {
                 | ActionKind::ApproveAgent
                 | ActionKind::ApproveBuilderFee
                 | ActionKind::UserSetAbstraction
+                | ActionKind::SendToEvmWithData
+                | ActionKind::ConvertToMultiSigUser
         )
     }
 

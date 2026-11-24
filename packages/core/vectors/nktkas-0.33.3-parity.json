@@ -1,0 +1,559 @@
+{
+  "source": "Made by @nktkas/hyperliquid 0.33.3 itself, its own action functions (claimRewards, reserveRequestWeight, hip3LiquidatorTransfer, userOutcome, sendToEvmWithData, convertToMultiSigUser) with the key below and a recording transport; digests are viem 2.58.4 hashTypedData over the SDK's EIP-712 types, L1 hashes the SDK's createL1ActionHash, msgpack its own encoder. The SDK has no function for cDeposit2 or trailingStop: those actions are written in the exchange endpoint docs' key order and signed by the SDK's signL1Action. Every signature and L1 hash is reproduced by the venue's Python SDK 0.24.0 (sign_l1_action, action_hash, user_signed_payload and sign_inner).",
+  "key": "0x0123456789012345678901234567890123456789012345678901234567890123",
+  "nonce": 1790412105001,
+  "userSigned": [
+    {
+      "name": "sendToEvmWithData",
+      "isTestnet": false,
+      "action": {
+        "type": "sendToEvmWithData",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "10.5",
+        "sourceDex": "",
+        "destinationRecipient": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "addressEncoding": "hex",
+        "destinationChainId": 999,
+        "gasLimit": 200000,
+        "data": "0x1234abcd",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x7e4ba72b5350ac8f0f45b02d3a4f4bc7c8cbe5ba14e81fcab8fa1904392f3d48",
+      "signature": {
+        "r": "0xfb44756d2586fe4aef0dd4b413115329b8d724d5c814dcb0f961c27a281a1e8f",
+        "s": "0x671121efac511ba978bf146b088fd463e21848529d91a9ce4704bf37c9fa4d39",
+        "v": 27
+      }
+    },
+    {
+      "name": "sendToEvmWithData.empty",
+      "isTestnet": false,
+      "action": {
+        "type": "sendToEvmWithData",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "1",
+        "sourceDex": "spot",
+        "destinationRecipient": "11111111111111111111111111111111",
+        "addressEncoding": "base58",
+        "destinationChainId": 1,
+        "gasLimit": 0,
+        "data": "0x",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x7cb9111f6a36635f33f0a0345affa79947f155308bac75ff451a955636ce7044",
+      "signature": {
+        "r": "0x24f2de38fc244aad67f0e49c9b3e8a1b2a0a87b053b7197a2924cc1189509f84",
+        "s": "0x4ca4762d603b3e4f5fe1a1008515f5d2848ff0285c55b9f5c29599d9bfb016bf",
+        "v": 27
+      }
+    },
+    {
+      "name": "convertToMultiSigUser",
+      "isTestnet": false,
+      "action": {
+        "type": "convertToMultiSigUser",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "signers": "{\"authorizedUsers\":[\"0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\",\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\"],\"threshold\":2}",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xe5ace73df7c0b1b72218fce7e743fcfb3dc1d795fab9fe8eefd384bb47b24745",
+      "signature": {
+        "r": "0x7adbbbb3d39e21878b97c2a5cf7823b4160d6acda0bcdc91d5da413452b17b96",
+        "s": "0x0b8967a6022cfa427acb48f23ea3442093af9c9503faec8367ba8e7c409f1a2d",
+        "v": 28
+      }
+    },
+    {
+      "name": "convertToMultiSigUser.single",
+      "isTestnet": false,
+      "action": {
+        "type": "convertToMultiSigUser",
+        "signatureChainId": "0xa4b1",
+        "hyperliquidChain": "Mainnet",
+        "signers": "null",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x0bd6ddeb33df7b76b79dfa902f7651a84385e113a3c747d47cda267978edd796",
+      "signature": {
+        "r": "0x34940ad9f32744ad9cabc2718512d7f75a91a73bae6314535c8de13b3297faf6",
+        "s": "0x099096c83d83e78c6b9b43f8739e11b93010dbf69dd46af76a0d09acbad818bb",
+        "v": 28
+      }
+    },
+    {
+      "name": "sendToEvmWithData",
+      "isTestnet": true,
+      "action": {
+        "type": "sendToEvmWithData",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "token": "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        "amount": "10.5",
+        "sourceDex": "",
+        "destinationRecipient": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+        "addressEncoding": "hex",
+        "destinationChainId": 999,
+        "gasLimit": 200000,
+        "data": "0x1234abcd",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x2af7a4ddb0e037cbc5331532624b536addcdc95d85b80063614acbb39af6d74f",
+      "signature": {
+        "r": "0x0e73f62fec5d6e50262be6b714b84c7f035490886e6773fa143a66ae572f1ecb",
+        "s": "0x622dec96c974b05e506e046ca0948f6786dca9ef8625a71349d548f7bf5cebd8",
+        "v": 27
+      }
+    },
+    {
+      "name": "sendToEvmWithData.empty",
+      "isTestnet": true,
+      "action": {
+        "type": "sendToEvmWithData",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "token": "HYPE:0x0d01dc56dcaaca66ad901c959b4011ec",
+        "amount": "1",
+        "sourceDex": "spot",
+        "destinationRecipient": "11111111111111111111111111111111",
+        "addressEncoding": "base58",
+        "destinationChainId": 1,
+        "gasLimit": 0,
+        "data": "0x",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x5b806a5cdc7e3ca581c630a4b4a0f1c7c623b1df2935ea5be8d5b1d83abfe836",
+      "signature": {
+        "r": "0xc1575b5d79b867c9e1b10a26f72765e2ffb71033e90ae47488638ffd0edd241d",
+        "s": "0x56d734e2acde615bc64c69d20973832aad9161e32cedb0af74df0f50729cce95",
+        "v": 28
+      }
+    },
+    {
+      "name": "convertToMultiSigUser",
+      "isTestnet": true,
+      "action": {
+        "type": "convertToMultiSigUser",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "signers": "{\"authorizedUsers\":[\"0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc\",\"0x70997970c51812dc3a010c7d01b50e0d17dc79c8\"],\"threshold\":2}",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0xb88f7b7773d52a32971574eaf08bade9d58af2ea16733059ad6a57ddbf608112",
+      "signature": {
+        "r": "0x060919be40e60422b2770a3154b9686a8f6fd132f9233ca90b5cb8540ea25298",
+        "s": "0x256668b08d5dff963c9d62c8c760ce484da48be52f885406246218046063077b",
+        "v": 27
+      }
+    },
+    {
+      "name": "convertToMultiSigUser.single",
+      "isTestnet": true,
+      "action": {
+        "type": "convertToMultiSigUser",
+        "signatureChainId": "0x66eee",
+        "hyperliquidChain": "Testnet",
+        "signers": "null",
+        "nonce": 1790412105001
+      },
+      "signingHash": "0x6ad5f41d465483365a4e34dca3f42b68135986a9f2223518e29d4d5bf9e2f292",
+      "signature": {
+        "r": "0x113e4fbb582eca397d0a698ed9ffe9d7863ad93b56f05c8b04ca4c9792354e7d",
+        "s": "0x029f934155a0615724c6c43689aa9e49516460d0d77a11f580197ad0d12a3808",
+        "v": 27
+      }
+    }
+  ],
+  "l1": [
+    {
+      "name": "claimRewards",
+      "isTestnet": false,
+      "action": {
+        "type": "claimRewards"
+      },
+      "msgpack": "0x81a474797065ac636c61696d52657761726473",
+      "actionHash": "0x8f8998684cbcef78890c604b18c95c65add60ab61971b1cf488420a906d97847",
+      "signature": {
+        "r": "0x98113920895c7f2967b9429f94ac283b3bb43e55d3f2956c89aa6c0a6eca1a6c",
+        "s": "0x297cdfc98ac38fc28e2f20ca526125a716988d3f5163fb87506d1d51df56fdda",
+        "v": 28
+      }
+    },
+    {
+      "name": "reserveRequestWeight",
+      "isTestnet": false,
+      "action": {
+        "type": "reserveRequestWeight",
+        "weight": 1000
+      },
+      "msgpack": "0x82a474797065b47265736572766552657175657374576569676874a6776569676874cd03e8",
+      "actionHash": "0x247c2dfacb9a4fdea9e58ab795805395faf3652863b7560849cb1d32b63065cf",
+      "signature": {
+        "r": "0xba80cbd771525a7d17b4fc6ac08ffa19631e26b6b0294df91f4d6a6a24444252",
+        "s": "0x2e713438ddf18a3696eb52e488a9a09b08dd463474d480c902ddcdd0c6a92d3b",
+        "v": 27
+      }
+    },
+    {
+      "name": "reserveRequestWeight.destination",
+      "isTestnet": false,
+      "action": {
+        "type": "reserveRequestWeight",
+        "weight": 1000,
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+      },
+      "msgpack": "0x83a474797065b47265736572766552657175657374576569676874a6776569676874cd03e8ab64657374696e6174696f6ed92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134",
+      "actionHash": "0x14e2ad5ee37de4db62ab39ec457b47453f896694cb25ebdd16ab9458d32aa126",
+      "signature": {
+        "r": "0x7bba9610110972d8b121e5f78f78dda3436f3cc8dc40f1733ae15b744b13b0aa",
+        "s": "0x5b58d73f2630ef6af55360e7791c92d700be76aeb8a598dc55fcbe667c196c2d",
+        "v": 28
+      }
+    },
+    {
+      "name": "hip3LiquidatorTransfer.deposit",
+      "isTestnet": false,
+      "action": {
+        "type": "hip3LiquidatorTransfer",
+        "dex": "xyz",
+        "ntl": 1000000000,
+        "isDeposit": true
+      },
+      "msgpack": "0x84a474797065b6686970334c697175696461746f725472616e73666572a3646578a378797aa36e746cce3b9aca00a969734465706f736974c3",
+      "actionHash": "0xfcd3e8dc109f80335533223459cbae072e15757e9b999897598b348dcd258e31",
+      "signature": {
+        "r": "0x225e439ca8219da11b4f9372c648c90809782e46348e19c626d0007164970d3f",
+        "s": "0x421119b96893f136947bce4f968e617476357cc187ca33ae518b64386df1e6f7",
+        "v": 27
+      }
+    },
+    {
+      "name": "hip3LiquidatorTransfer.withdraw",
+      "isTestnet": false,
+      "action": {
+        "type": "hip3LiquidatorTransfer",
+        "dex": "xyz",
+        "ntl": 5000000000,
+        "isDeposit": false
+      },
+      "msgpack": "0x84a474797065b6686970334c697175696461746f725472616e73666572a3646578a378797aa36e746ccf000000012a05f200a969734465706f736974c2",
+      "actionHash": "0x02fcf9acf0cd952a8daca5fed613a25a182cd8e621e58dba118881884a6e3220",
+      "signature": {
+        "r": "0x3ecb0f054d6817b4050469c1d6245bbac25e80230c68e01198980402c408ebc2",
+        "s": "0x2922541586425dbb04624bb8ac1c92dd33b0c37a59589f7d9ca98698f63bdbc0",
+        "v": 27
+      }
+    },
+    {
+      "name": "mergeQuestion",
+      "isTestnet": false,
+      "action": {
+        "type": "userOutcome",
+        "mergeQuestion": {
+          "question": 51,
+          "amount": "12.5"
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6d657267655175657374696f6e82a87175657374696f6e33a6616d6f756e74a431322e35",
+      "actionHash": "0x23a1639e755a09f6186acc7a61426b1de8fe678e1db2d6a84d0c04965cc80e33",
+      "signature": {
+        "r": "0xd1c0c48512d2872489a703f851144a99dbf1d28cc85c6a9c48fdfccde756d708",
+        "s": "0x03d0eb9ad3f950fb2e9c7a37d3b3fe7977dfb2783ddfaa878ace947da8e3508f",
+        "v": 28
+      }
+    },
+    {
+      "name": "mergeQuestion.all",
+      "isTestnet": false,
+      "action": {
+        "type": "userOutcome",
+        "mergeQuestion": {
+          "question": 51,
+          "amount": null
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6d657267655175657374696f6e82a87175657374696f6e33a6616d6f756e74c0",
+      "actionHash": "0xe5406867d58efa41186b1745a1676ec90aad8c78cc6dc76711e5ac61ba164867",
+      "signature": {
+        "r": "0x25e0038a023f0a9ee43a2b104b82b05852ec8794049e5beb246c9fc14e45a4df",
+        "s": "0x58c28b31a55bfbf7b2a458b62f30304c28d210d0cfa7bb4740c951c0b796410e",
+        "v": 27
+      }
+    },
+    {
+      "name": "negateOutcome",
+      "isTestnet": false,
+      "action": {
+        "type": "userOutcome",
+        "negateOutcome": {
+          "question": 51,
+          "outcome": 1473,
+          "amount": "3"
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6e65676174654f7574636f6d6583a87175657374696f6e33a76f7574636f6d65cd05c1a6616d6f756e74a133",
+      "actionHash": "0x60053c106ed287266541f22d1be481031d94ac55f13a7e8118002b3cf2006cfc",
+      "signature": {
+        "r": "0xca3098fbcd6c0eaf2b2cbf640b759784e07cc0d2595cb82e2e3c148c8e72eceb",
+        "s": "0x70b5e8533c13ec94d9148c4922c9203c157df84ad06c3b180dd1a3d559e41785",
+        "v": 27
+      }
+    },
+    {
+      "name": "cDeposit2",
+      "isTestnet": false,
+      "action": {
+        "type": "cDeposit2",
+        "wei": 10000000000
+      },
+      "msgpack": "0x82a474797065a9634465706f73697432a3776569cf00000002540be400",
+      "actionHash": "0x13d42a5bde3315e18a2966ef6c8619d8d397f025011f8f8db98ef04f8c0d2e8f",
+      "signature": {
+        "r": "0x8dd599a979576d23c672ebec23c3720a40b06b799e583a9cc11641b3f6f98c8e",
+        "s": "0x06ad84d1d0a7be1d148d0761464075060fa5b7c477d07f69439e87c955b552e4",
+        "v": 27
+      }
+    },
+    {
+      "name": "trailingStop.pct",
+      "isTestnet": false,
+      "action": {
+        "type": "trailingStop",
+        "asset": 0,
+        "isBuy": false,
+        "sz": "0.01",
+        "reduceOnly": true,
+        "retracement": {
+          "pct": "1.5%"
+        },
+        "activationPx": null
+      },
+      "msgpack": "0x87a474797065ac747261696c696e6753746f70a5617373657400a56973427579c2a2737aa4302e3031aa7265647563654f6e6c79c3ab726574726163656d656e7481a3706374a4312e3525ac61637469766174696f6e5078c0",
+      "actionHash": "0x4947e1467a9bb282a5e91dc7fa1b8ca03a5a84278a6be73bafc3f3a84bc2ba95",
+      "signature": {
+        "r": "0x07b69d05efd211e3ab99230ac24c44637ae2a2fed823a88e97489a913ed79655",
+        "s": "0x44a452b4baf6222ea42b78836b21f3f1f610c73a6f0ddb3cba82edeff2f950f8",
+        "v": 28
+      }
+    },
+    {
+      "name": "trailingStop.px",
+      "isTestnet": false,
+      "action": {
+        "type": "trailingStop",
+        "asset": 110001,
+        "isBuy": true,
+        "sz": "2",
+        "reduceOnly": false,
+        "retracement": {
+          "px": "2.5"
+        },
+        "activationPx": "410"
+      },
+      "msgpack": "0x87a474797065ac747261696c696e6753746f70a56173736574ce0001adb1a56973427579c3a2737aa132aa7265647563654f6e6c79c2ab726574726163656d656e7481a27078a3322e35ac61637469766174696f6e5078a3343130",
+      "actionHash": "0xefd231266c19ad7577b111bb97e696af49a1e0e975f8fbf60e8d844a69957156",
+      "signature": {
+        "r": "0x452da3818837f732ee46341eceafa5b461aee7240cd77888fbf4397e94150ec3",
+        "s": "0x5a9131ab86e5dad1ff024bc49805e79f4186eb144dc14bdee6f06f939e7937db",
+        "v": 27
+      }
+    },
+    {
+      "name": "claimRewards",
+      "isTestnet": true,
+      "action": {
+        "type": "claimRewards"
+      },
+      "msgpack": "0x81a474797065ac636c61696d52657761726473",
+      "actionHash": "0x8f8998684cbcef78890c604b18c95c65add60ab61971b1cf488420a906d97847",
+      "signature": {
+        "r": "0xe8c08e99b0a6f580cc3b79451456d5948eace282a6b7ffe789d4a8122f023919",
+        "s": "0x1c3d6fe71ec21912ec46d165c5c5b4da559f552895fdc77ab3b872bb2445c6d2",
+        "v": 28
+      }
+    },
+    {
+      "name": "reserveRequestWeight",
+      "isTestnet": true,
+      "action": {
+        "type": "reserveRequestWeight",
+        "weight": 1000
+      },
+      "msgpack": "0x82a474797065b47265736572766552657175657374576569676874a6776569676874cd03e8",
+      "actionHash": "0x247c2dfacb9a4fdea9e58ab795805395faf3652863b7560849cb1d32b63065cf",
+      "signature": {
+        "r": "0x8a72be3a1244298aa026ca941e1166878c50929226f1903f511538cbe7b67e70",
+        "s": "0x2b501a8a422ef5e52fc3820107bc865236a0e0f0eb1598599fc817c8dac69a48",
+        "v": 27
+      }
+    },
+    {
+      "name": "reserveRequestWeight.destination",
+      "isTestnet": true,
+      "action": {
+        "type": "reserveRequestWeight",
+        "weight": 1000,
+        "destination": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+      },
+      "msgpack": "0x83a474797065b47265736572766552657175657374576569676874a6776569676874cd03e8ab64657374696e6174696f6ed92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134",
+      "actionHash": "0x14e2ad5ee37de4db62ab39ec457b47453f896694cb25ebdd16ab9458d32aa126",
+      "signature": {
+        "r": "0xb15eb9548d4d77ef513ec860ea05db012d3519904a3cb1adfaeef91486000dc6",
+        "s": "0x4a2d1c27100d67907c30e55a4be8126c42dad581c696e8ef22371255fabaf0fb",
+        "v": 28
+      }
+    },
+    {
+      "name": "hip3LiquidatorTransfer.deposit",
+      "isTestnet": true,
+      "action": {
+        "type": "hip3LiquidatorTransfer",
+        "dex": "xyz",
+        "ntl": 1000000000,
+        "isDeposit": true
+      },
+      "msgpack": "0x84a474797065b6686970334c697175696461746f725472616e73666572a3646578a378797aa36e746cce3b9aca00a969734465706f736974c3",
+      "actionHash": "0xfcd3e8dc109f80335533223459cbae072e15757e9b999897598b348dcd258e31",
+      "signature": {
+        "r": "0x8ab572dbcc8b1c40d55e64031f360105d2f3ea48eacc936947d4dbe52e934421",
+        "s": "0x6e87d2edab41bac61443ad052f36dc72410fc75652df30bacaf8935da6c0b135",
+        "v": 28
+      }
+    },
+    {
+      "name": "hip3LiquidatorTransfer.withdraw",
+      "isTestnet": true,
+      "action": {
+        "type": "hip3LiquidatorTransfer",
+        "dex": "xyz",
+        "ntl": 5000000000,
+        "isDeposit": false
+      },
+      "msgpack": "0x84a474797065b6686970334c697175696461746f725472616e73666572a3646578a378797aa36e746ccf000000012a05f200a969734465706f736974c2",
+      "actionHash": "0x02fcf9acf0cd952a8daca5fed613a25a182cd8e621e58dba118881884a6e3220",
+      "signature": {
+        "r": "0x0c5288d3950fc68aa5aa5c26700d031e384ddb50b89a270f881d3a60f8d3f9cd",
+        "s": "0x76ecf946fc58f8c4b401635ffba9b8cb44159b74aa924ebbd4951ca9c2070f21",
+        "v": 28
+      }
+    },
+    {
+      "name": "mergeQuestion",
+      "isTestnet": true,
+      "action": {
+        "type": "userOutcome",
+        "mergeQuestion": {
+          "question": 51,
+          "amount": "12.5"
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6d657267655175657374696f6e82a87175657374696f6e33a6616d6f756e74a431322e35",
+      "actionHash": "0x23a1639e755a09f6186acc7a61426b1de8fe678e1db2d6a84d0c04965cc80e33",
+      "signature": {
+        "r": "0x20c27725e5d8e40ac466f3df1f6a277635f6361f119e723008ede94f2dc93a8e",
+        "s": "0x781db5ef7bafede63b9f8dc122ec7f4fc3706096749bdbaad0bdc0f618c2bfaf",
+        "v": 28
+      }
+    },
+    {
+      "name": "mergeQuestion.all",
+      "isTestnet": true,
+      "action": {
+        "type": "userOutcome",
+        "mergeQuestion": {
+          "question": 51,
+          "amount": null
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6d657267655175657374696f6e82a87175657374696f6e33a6616d6f756e74c0",
+      "actionHash": "0xe5406867d58efa41186b1745a1676ec90aad8c78cc6dc76711e5ac61ba164867",
+      "signature": {
+        "r": "0x6a3fec32ec3711d80e4db117054faeb8a03025b769aa86df3fb12eab0ae353a7",
+        "s": "0x22dac7d018b76d5152f6c0ed5507da5d7e06ad149a697e6720e4d0de51eb245f",
+        "v": 27
+      }
+    },
+    {
+      "name": "negateOutcome",
+      "isTestnet": true,
+      "action": {
+        "type": "userOutcome",
+        "negateOutcome": {
+          "question": 51,
+          "outcome": 1473,
+          "amount": "3"
+        }
+      },
+      "msgpack": "0x82a474797065ab757365724f7574636f6d65ad6e65676174654f7574636f6d6583a87175657374696f6e33a76f7574636f6d65cd05c1a6616d6f756e74a133",
+      "actionHash": "0x60053c106ed287266541f22d1be481031d94ac55f13a7e8118002b3cf2006cfc",
+      "signature": {
+        "r": "0x3b9c285edefc74637182fbd1e6ed74f031c6ae16bcbef753c5bab40b068f9193",
+        "s": "0x7938203c0f276f02826100151dde5a44d7e0fd63460a2d673d2374f984972063",
+        "v": 27
+      }
+    },
+    {
+      "name": "cDeposit2",
+      "isTestnet": true,
+      "action": {
+        "type": "cDeposit2",
+        "wei": 10000000000
+      },
+      "msgpack": "0x82a474797065a9634465706f73697432a3776569cf00000002540be400",
+      "actionHash": "0x13d42a5bde3315e18a2966ef6c8619d8d397f025011f8f8db98ef04f8c0d2e8f",
+      "signature": {
+        "r": "0x0b9339b73b9dc333a11eb2ac3cc37c952f848689df39a8f505637ffa7b818906",
+        "s": "0x350bc364c1bba0a18ec4910c42664fa9c3b8d93bad46e4bd32c8e9b4aea979ce",
+        "v": 27
+      }
+    },
+    {
+      "name": "trailingStop.pct",
+      "isTestnet": true,
+      "action": {
+        "type": "trailingStop",
+        "asset": 0,
+        "isBuy": false,
+        "sz": "0.01",
+        "reduceOnly": true,
+        "retracement": {
+          "pct": "1.5%"
+        },
+        "activationPx": null
+      },
+      "msgpack": "0x87a474797065ac747261696c696e6753746f70a5617373657400a56973427579c2a2737aa4302e3031aa7265647563654f6e6c79c3ab726574726163656d656e7481a3706374a4312e3525ac61637469766174696f6e5078c0",
+      "actionHash": "0x4947e1467a9bb282a5e91dc7fa1b8ca03a5a84278a6be73bafc3f3a84bc2ba95",
+      "signature": {
+        "r": "0xf126ba35e3380023048ef5151da7fa24af57745042c28f8987ba90fa168910d9",
+        "s": "0x33f991765174867dd4b74be4af317e3e43c4dbcce8425fa2694df3e26f7f5cbb",
+        "v": 27
+      }
+    },
+    {
+      "name": "trailingStop.px",
+      "isTestnet": true,
+      "action": {
+        "type": "trailingStop",
+        "asset": 110001,
+        "isBuy": true,
+        "sz": "2",
+        "reduceOnly": false,
+        "retracement": {
+          "px": "2.5"
+        },
+        "activationPx": "410"
+      },
+      "msgpack": "0x87a474797065ac747261696c696e6753746f70a56173736574ce0001adb1a56973427579c3a2737aa132aa7265647563654f6e6c79c2ab726574726163656d656e7481a27078a3322e35ac61637469766174696f6e5078a3343130",
+      "actionHash": "0xefd231266c19ad7577b111bb97e696af49a1e0e975f8fbf60e8d844a69957156",
+      "signature": {
+        "r": "0xdf0519ee32027f94a13a4e297ec598f16e8ff38568314d72de9e00c829d57bce",
+        "s": "0x3c058a535bf043665da344eb4f7a4103fe121424952bad2c41dd7cda23791d8d",
+        "v": 27
+      }
+    }
+  ]
+}

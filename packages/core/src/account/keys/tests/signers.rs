@@ -4,6 +4,7 @@ use super::*;
 use crate::utils::json::Json;
 
 const NKTKAS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/nktkas-0.33.2.json"));
+const PARITY: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/nktkas-0.33.3-parity.json"));
 const SESSION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors/session.json"));
 
 /// User-signed actions recover to the agent, which holds nothing; subaccount actions and HIP-4
@@ -12,7 +13,7 @@ const SESSION: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/vectors
 #[test]
 fn each_kind_is_signed_by_the_keys_its_rule_allows() {
     use Why::{UserSigned, WrongAccount};
-    let rules: [(&str, Option<Why>); 31] = [
+    let rules: [(&str, Option<Why>); 38] = [
         ("order", None),
         ("cancel", None),
         ("cancelByCloid", None),
@@ -44,6 +45,13 @@ fn each_kind_is_signed_by_the_keys_its_rule_allows() {
         ("approveAgent", Some(UserSigned)),
         ("approveBuilderFee", Some(UserSigned)),
         ("userSetAbstraction", Some(UserSigned)),
+        ("trailingStop", None),
+        ("cDeposit2", None),
+        ("claimRewards", None),
+        ("reserveRequestWeight", None),
+        ("hip3LiquidatorTransfer", None),
+        ("sendToEvmWithData", Some(UserSigned)),
+        ("convertToMultiSigUser", Some(UserSigned)),
     ];
     for ((wire, why), kind) in rules.into_iter().zip(ActionKind::ALL) {
         assert_eq!((kind.wire(), ActionKind::from_wire(wire)), (wire, Some(kind)), "{wire}");
@@ -61,7 +69,8 @@ fn each_kind_is_signed_by_the_keys_its_rule_allows() {
     );
 }
 
-/// `@nktkas/hyperliquid` lists an action under `userSigned` exactly when it is user-signed, and in
+/// `@nktkas/hyperliquid` (0.33.2, and 0.33.3 for the actions added since) lists an action under
+/// `userSigned` exactly when it is user-signed, and in
 /// the session made by hand (`vectors/session.json`) each request is signed by a key that may.
 #[test]
 fn the_other_implementations_agree_on_who_signs_what() {
@@ -69,6 +78,14 @@ fn the_other_implementations_agree_on_who_signs_what() {
     for (list, user_signed) in [("userSigned", true), ("l1", false)] {
         for case in file.get(list).and_then(Json::as_array).unwrap() {
             let name = case.get("name").and_then(Json::as_str).unwrap();
+            let kind = ActionKind::from_wire(name).unwrap_or_else(|| panic!("{name} is a kind"));
+            assert_eq!(kind.is_user_signed(), user_signed, "{name}");
+        }
+    }
+    let file = Json::parse(PARITY).unwrap();
+    for (list, user_signed) in [("userSigned", true), ("l1", false)] {
+        for case in file.get(list).and_then(Json::as_array).unwrap() {
+            let name = case.get("action").and_then(|action| action.get("type")).and_then(Json::as_str).unwrap();
             let kind = ActionKind::from_wire(name).unwrap_or_else(|| panic!("{name} is a kind"));
             assert_eq!(kind.is_user_signed(), user_signed, "{name}");
         }
