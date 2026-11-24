@@ -21,6 +21,8 @@ pub enum Field<'a> {
     Uint256([u8; 32]),
     /// Each element's big-endian word, in order.
     Uint256Array(&'a [[u8; 32]]),
+    /// Bytes of any length, carried as `0x` and lowercase hex.
+    Bytes(&'a [u8]),
 }
 
 impl Field<'_> {
@@ -36,6 +38,7 @@ impl Field<'_> {
             Field::Uint128(_) => "uint128",
             Field::Uint256(_) => "uint256",
             Field::Uint256Array(_) => "uint256[]",
+            Field::Bytes(_) => "bytes",
         }
     }
 
@@ -54,6 +57,7 @@ impl Field<'_> {
             Field::Uint256Array(words) => {
                 words.iter().fold(Keccak256::new(), |sponge, element| sponge.chain(element)).finalize()
             }
+            Field::Bytes(bytes) => keccak256(bytes),
         }
     }
 
@@ -75,6 +79,7 @@ impl Field<'_> {
             Field::Uint256Array(words) => {
                 Json::Array(words.iter().map(|element| Json::String(word_decimal(element))).collect())
             }
+            Field::Bytes(bytes) => Json::String(hex::encode_prefixed(bytes)),
         }
     }
 
@@ -94,6 +99,7 @@ impl Field<'_> {
             Field::Uint256Array(words) => {
                 Value::Array(words.iter().map(|element| Value::from(word_decimal(element))).collect())
             }
+            Field::Bytes(bytes) => Value::from(hex::encode_prefixed(bytes)),
         }
     }
 }

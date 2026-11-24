@@ -306,3 +306,33 @@ impl Http for Arbitrum {
         self.0.send(request)
     }
 }
+
+/// USDC sent to its linked contract with a payload: user-signed for mainnet's chain, `data` posted
+/// as `0x` and hex.
+#[tokio::test]
+async fn a_token_is_sent_to_its_contract_with_data_signed_by_the_account() {
+    use df_hyperliquid_core::transfer::{Destination, SendToEvmWithData};
+
+    let client = Client::new(Venue::mainnet().exchange("default"), Network::Mainnet, clock, key());
+    let recipient = address("0x0d1d9635d0640821d15e323ac8adadfa9c111414");
+    let nonce = client.next_nonce();
+    let send = SendToEvmWithData::new(
+        "USDC:0x6d1e7cde53ba9467b783cb7c530ce054",
+        amount("10.50"),
+        PERP_DEX,
+        Destination::evm(recipient, 999),
+        200_000,
+        vec![0x12, 0x34, 0xab, 0xcd],
+        nonce,
+    );
+    client.send_user(&send).await.unwrap();
+
+    let [sent] = client.http().actions().try_into().unwrap();
+    assert_eq!(
+        sent.action.compact(),
+        format!(
+            r#"{{"type":"sendToEvmWithData","signatureChainId":"0xa4b1","hyperliquidChain":"Mainnet","token":"USDC:0x6d1e7cde53ba9467b783cb7c530ce054","amount":"10.5","sourceDex":"","destinationRecipient":"0x0d1d9635d0640821d15e323ac8adadfa9c111414","addressEncoding":"hex","destinationChainId":999,"gasLimit":200000,"data":"0x1234abcd","nonce":{nonce}}}"#
+        )
+    );
+    assert_eq!((sent.nonce, sent.chain.as_deref()), (nonce, Some("Mainnet")));
+}

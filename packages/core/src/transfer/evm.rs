@@ -2,11 +2,15 @@
 //! its system address: `0x2222...2222` for HYPE, `0x20`, zeros and the token index for any other.
 //! Core to EVM is a `spotSend` or `sendAsset` to [`Linked::system`]; EVM to Core is a HyperEVM
 //! transaction to the same address ([`Linked::to_core`]). A send to a system address leaves Core
-//! rather than reaching a person, so a transfer checks for them.
+//! rather than reaching a person, so a transfer checks for them. `sendToEvmWithData` sends a linked
+//! token to its contract with a payload, for contracts that take `coreReceiveWithData`.
 
+use crate::account::{ActionKind, Signers};
 use crate::client::evm::tx::Call;
 use crate::client::evm::u256::{BadAmount, NATIVE_DECIMALS, U256};
 use crate::transfer::erc20;
+use crate::transfer::send::Amount;
+use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
 use crate::utils::{Address, Dec};
 
 /// HYPE's system address, `0x2222...2222`: HYPE is the native coin on HyperEVM.
@@ -113,6 +117,145 @@ impl Linked {
                 Call { to: Some(contract), value: U256::ZERO, data: erc20::transfer(self.system(), units) }
             }
         })
+    }
+}
+
+/// How `destinationRecipient` is written.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AddressEncoding {
+    /// `0x` and hex: an EVM address.
+    Hex,
+    /// Base58: an address on a chain such as Solana.
+    Base58,
+}
+
+impl AddressEncoding {
+    /// `hex` or `base58`.
+    #[must_use]
+    pub const fn wire(self) -> &'static str {
+        match self {
+            AddressEncoding::Hex => "hex",
+            AddressEncoding::Base58 => "base58",
+        }
+    }
+}
+
+/// Where the linked contract is asked to send the token on: a recipient in its encoding, on a
+/// chain by its id. The contract reads both; the venue passes them through.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Destination {
+    recipient: String,
+    encoding: AddressEncoding,
+    chain_id: u32,
+}
+
+impl Destination {
+    /// An EVM address on the chain `chain_id`, written lowercase.
+    #[must_use]
+    pub fn evm(recipient: Address, chain_id: u32) -> Destination {
+        Destination { recipient: recipient.to_hex(), encoding: AddressEncoding::Hex, chain_id }
+    }
+
+    /// A base58 address on the chain `chain_id`, as given.
+    #[must_use]
+    pub fn base58(recipient: &str, chain_id: u32) -> Destination {
+        Destination { recipient: recipient.to_owned(), encoding: AddressEncoding::Base58, chain_id }
+    }
+
+    /// The recipient as posted.
+    #[must_use]
+    pub fn recipient(&self) -> &str {
+        &self.recipient
+    }
+
+    /// How the recipient is written.
+    #[must_use]
+    pub const fn encoding(&self) -> AddressEncoding {
+        self.encoding
+    }
+
+    /// The chain the recipient is on.
+    #[must_use]
+    pub const fn chain_id(&self) -> u32 {
+        self.chain_id
+    }
+}
+
+/// `sendToEvmWithData`: a linked token from a Core balance to its contract on HyperEVM, which the
+/// venue calls with `coreReceiveWithData(from, destinationRecipient, destinationChainId, amount,
+/// nonce, data)` in place of a transfer. The token must be linked to a contract that takes that
+/// call; nothing here checks it. User-signed, keys in the order `@nktkas/hyperliquid` 0.33.3 posts
+/// them: `token`, `amount`, `sourceDex`, `destinationRecipient`, `addressEncoding`,
+/// `destinationChainId`, `gasLimit`, `data` as `0x` and hex (signed as `bytes`), then the nonce.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SendToEvmWithData {
+    token: String,
+    amount: Amount,
+    source_dex: String,
+    destination: Destination,
+    gas_limit: u64,
+    data: Vec<u8>,
+    nonce: u64,
+}
+
+impl SendToEvmWithData {
+    /// User-signed: only the account's own key.
+    pub const KEY: Signers = ActionKind::SendToEvmWithData.signers();
+
+    /// `amount` of `token` (`NAME:0x<tokenId>`, as `spotMeta` lists it) from the balance
+    /// `source_dex` names (`""` the main perp dex, `spot` the spot balance), for `destination`,
+    /// with `gas_limit` for the call on the destination chain and `data` passed to the contract.
+    #[must_use]
+    pub fn new(
+        token: &str,
+        amount: Amount,
+        source_dex: &str,
+        destination: Destination,
+        gas_limit: u64,
+        data: Vec<u8>,
+        nonce: u64,
+    ) -> SendToEvmWithData {
+        SendToEvmWithData {
+            token: token.to_owned(),
+            amount,
+            source_dex: source_dex.to_owned(),
+            destination,
+            gas_limit,
+            data,
+            nonce,
+        }
+    }
+
+    /// The amount sent.
+    #[must_use]
+    pub const fn amount(&self) -> &Amount {
+        &self.amount
+    }
+
+    /// Where the contract is asked to send it on.
+    #[must_use]
+    pub const fn destination(&self) -> &Destination {
+        &self.destination
+    }
+
+    /// The payload the contract is called with.
+    #[must_use]
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
+}
+
+impl UserAction for SendToEvmWithData {
+    fn user_signed(&self) -> UserSigned<'_> {
+        UserSigned::new("sendToEvmWithData", "HyperliquidTransaction:SendToEvmWithData", NonceKey::Nonce, self.nonce)
+            .field("token", Field::String(&self.token))
+            .field("amount", Field::String(self.amount.as_str()))
+            .field("sourceDex", Field::String(&self.source_dex))
+            .field("destinationRecipient", Field::String(&self.destination.recipient))
+            .field("addressEncoding", Field::String(self.destination.encoding.wire()))
+            .field("destinationChainId", Field::Uint32(self.destination.chain_id))
+            .field("gasLimit", Field::Uint64(self.gas_limit))
+            .field("data", Field::Bytes(&self.data))
     }
 }
 

@@ -7,7 +7,10 @@ pub mod evm;
 pub mod send;
 
 pub use crate::utils::sign::{L1Action, UserAction};
-pub use evm::{HYPE_SYSTEM, Linked, is_system_address, system_address, system_token};
+pub use evm::{
+    AddressEncoding, Destination, HYPE_SYSTEM, Linked, SendToEvmWithData, is_system_address, system_address,
+    system_token,
+};
 pub use send::{
     AgentSendAsset, Amount, BadAmount, Balance, Change, Ctx, Effect, EvmContract, HYPE_EVM_DECIMALS, MAX_DECIMALS,
     PERP_DEX, Plan, PreTransferCheck, Refused, SPOT_DEX, SendAsset, SpotOut, SpotSend, SpotToken, UsdClassTransfer,
