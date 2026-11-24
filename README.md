@@ -200,6 +200,7 @@ Add the badge to your README and open an issue to be listed here:
 ## Stability
 
 - Versions follow [semantic versioning](https://semver.org) from 0.1.0. Within 0.1.x, patch releases never break the public API. A breaking change waits for 0.2.0 and is listed in [CHANGELOG.md](CHANGELOG.md).
+- Moving from a 0.0.x beta: [MIGRATION.md](MIGRATION.md) lists every moved, renamed and removed item and what to write instead.
 - When Hyperliquid changes the shape of a request or answer, the fix ships as a patch release if the crate's public API can stay the same.
 - Minimum supported Rust version (MSRV): 1.94, edition 2024. CI builds with the toolchain pinned in `rust-toolchain.toml`. The MSRV is raised only in a minor release, and the change is noted in the changelog.
 - Questions and bugs: [GitHub issues](https://github.com/dennisfurrer/df-hyperliquid-core/issues).
