@@ -68,11 +68,7 @@ impl BuilderSetting {
     /// The builder an order on `kind` names, or why it cannot.
     pub fn on(&self, kind: AssetKind) -> Result<Builder, OverCap> {
         let fee = self.fee_on(kind);
-        let cap = kind.builder_cap();
-        match fee > cap {
-            true => Err(OverCap { fee, cap, kind }),
-            false => Ok(Builder::new(self.address, fee)),
-        }
+        fee.allowed_on(kind).map(|()| Builder::new(self.address, fee))
     }
 
     /// The builder one action over these assets names: held to the

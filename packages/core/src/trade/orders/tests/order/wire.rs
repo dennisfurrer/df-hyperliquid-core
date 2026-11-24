@@ -61,3 +61,22 @@ fn keys_go_in_the_order_the_venue_hashes_and_ids_as_it_spells_them() {
     assert!(!BatchModify::new(vec![modify]).is_always_place(), "a limit order needs no always place");
     assert!(BatchModify::new(vec![modify]).always_place().wire().ends_with(r#""a":true}"#));
 }
+
+#[test]
+fn an_order_built_from_its_own_type_is_the_same_order() {
+    let btc = asset(0);
+    let limit = Order::limit(btc, Side::Buy, Dec::parse("100").unwrap(), Dec::parse("1").unwrap(), Tif::Alo);
+    let again = Order::new(limit.asset(), limit.side(), limit.price(), limit.size(), limit.order_type());
+    assert_eq!(again, limit);
+    let trigger = Order::trigger(
+        btc,
+        Side::Sell,
+        Dec::parse("90").unwrap(),
+        Dec::ZERO,
+        Dec::parse("95").unwrap(),
+        Tpsl::StopLoss,
+        true,
+    );
+    let again = Order::new(trigger.asset(), trigger.side(), trigger.price(), trigger.size(), trigger.order_type());
+    assert_eq!(again, trigger);
+}

@@ -52,6 +52,13 @@ impl Order {
         Order { asset, side, price, size, reduce_only: false, order_type: OrderType::Limit(tif), cloid: None }
     }
 
+    /// An order of any type: what [`Order::limit`] and [`Order::trigger`] build, from an
+    /// [`OrderType`] already chosen, such as one read back from [`Order::order_type`].
+    #[must_use]
+    pub const fn new(asset: Asset, side: Side, price: Dec, size: Dec, order_type: OrderType) -> Order {
+        Order { asset, side, price, size, reduce_only: false, order_type, cloid: None }
+    }
+
     /// A market order: `FrontendMarket`, always, at `bound`, the worst price
     /// the trader takes (the reference moved by the slippage, on the grid; on
     /// an outcome, the edge of the range). Never `Gtc`: a `Gtc` at the bound

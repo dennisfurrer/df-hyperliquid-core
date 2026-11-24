@@ -202,7 +202,6 @@ impl Call {
 
 /// The two fees a type 2 transaction names, in wei per unit of gas.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-#[non_exhaustive]
 pub struct Fees {
     /// The tip cap in wei per unit of gas (`maxPriorityFeePerGas`).
     pub max_priority_fee: U256,

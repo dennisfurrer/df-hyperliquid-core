@@ -58,6 +58,13 @@ Outside the crate, `#[non_exhaustive]` means:
   assert_eq!((remaining.daily, remaining.active), (793, 3));
   ```
 
+### Code that matched to rebuild a value
+
+Two patterns met while moving apps to 0.2, and what replaces them (both from 0.2.1):
+
+- A `match` on `OrderType` to call `Order::limit` or `Order::trigger` again: use `Order::new(asset, side, price, size, order_type)`.
+- Building an `OverCap` to get its message: use `BuilderFee::allowed_on(kind)`, which returns it.
+
 ### What stays exhaustive
 
 Enums that cannot gain a variant, so a `match` on them needs no `_` arm: `markets::Side`, `utils::OutcomeSide`, `utils::Round`, `utils::Json`, `markets::Dex`, `client::Network`, `account::Readiness`, `account::OrderLookup`, `client::ExchangeResponse` and `client::Status`. Enum variants with fields are not marked either, so `Event::Closed { reason, retry }` still names every field.
@@ -66,7 +73,7 @@ Structs you build yourself keep their struct literals:
 
 - Plan contexts: `transfer::Ctx`, `earn::staking::Ctx`, `earn::vaults::Ctx`, `earn::lending::Ctx`, and what you pass to `Standing::worth`: `account::Beside`, `account::holdings::VaultShare`.
 - Orders: `trade::OrderIntent`, `trade::TwapIntent`, `trade::TriggerIntent`, `trade::Exit`, `trade::Close`, `trade::Scale`.
-- Transport and HyperEVM: `client::Request`, `client::Response` (for your own `Transport`), `client::evm::Call`, `client::evm::CallRequest`, `client::evm::LogFilter`, `client::evm::Eip1559`, `client::evm::AccessItem`, `client::evm::Function`, `client::evm::Param`.
+- Transport and HyperEVM: `client::Request`, `client::Response` (for your own `Transport`), `client::evm::Fees` and `client::evm::NodeError` (from 0.2.1), `client::evm::Call`, `client::evm::CallRequest`, `client::evm::LogFilter`, `client::evm::Eip1559`, `client::evm::AccessItem`, `client::evm::Function`, `client::evm::Param`.
 - Deploys and validators: `deploy::TokenSpec`, `deploy::FinalizeEvmContract`, `deploy::AuthorizeAqav2Role`, `deploy::perp::NewAsset`, `deploy::perp::DexSchema`, `deploy::perp::MarginTier`, `deploy::perp::SubDeployer`, `deploy::perp::DeployerFee`, `deploy::outcomes::Grant`, `deploy::outcomes::Instance`, `deploy::outcomes::OutcomeDeploy`, `deploy::outcomes::Settlement`, `earn::validator::ValidatorProfile`, `earn::validator::ProfileChange`.
 - Signing and sockets: `utils::sign::Domain`, `utils::sign::MultiSig`, `live::Timing`, `live::Limits`.
 - Small closed values: `markets::outcomes::Template`, `account::AccountRef`, `live::L2Level`, `client::evm::precompiles::Bbo`.

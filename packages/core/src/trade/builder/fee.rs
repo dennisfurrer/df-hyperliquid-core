@@ -37,6 +37,16 @@ impl BuilderFee {
         self.0
     }
 
+    /// Whether the venue lets a builder take this fee on an order of `kind`: `Err` with the cap
+    /// when it is over it.
+    pub const fn allowed_on(self, kind: AssetKind) -> Result<(), OverCap> {
+        let cap = kind.builder_cap();
+        match self.0 > cap.0 {
+            true => Err(OverCap { fee: self, cap, kind }),
+            false => Ok(()),
+        }
+    }
+
     /// The percent string `approveBuilderFee` takes as `maxFeeRate`: 880 is `0.88%`, 100 is `0.1%`,
     /// 1000 is `1%`. It always matches `^[0-9]+(\.[0-9]+)?%$`.
     #[must_use]

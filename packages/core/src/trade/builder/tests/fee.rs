@@ -25,3 +25,12 @@ fn max_builder_fee_answers_a_bare_number_of_tenths() {
     assert_eq!(serde_json::from_str::<BuilderFee>("0").unwrap(), BuilderFee::ZERO);
     assert!(serde_json::from_str::<BuilderFee>("\"0.88%\"").is_err());
 }
+
+#[test]
+fn a_fee_is_allowed_up_to_its_kind_s_cap_and_refused_past_it() {
+    assert_eq!(BuilderFee::from_tenths(100).allowed_on(AssetKind::Perp), Ok(()), "the perp cap itself");
+    let over = BuilderFee::from_tenths(101).allowed_on(AssetKind::Perp).unwrap_err();
+    assert_eq!((over.fee.tenths(), over.cap.tenths(), over.kind), (101, 100, AssetKind::Perp));
+    assert_eq!(BuilderFee::from_tenths(1000).allowed_on(AssetKind::Spot), Ok(()));
+    assert!(BuilderFee::from_tenths(1001).allowed_on(AssetKind::Outcome).is_err());
+}

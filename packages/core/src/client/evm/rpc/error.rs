@@ -10,7 +10,6 @@ use crate::utils::hex;
 
 /// A JSON-RPC error object, as the node wrote it.
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
 pub struct NodeError {
     /// The error code; [`NodeError::kind`] says what it means.
     pub code: i64,
