@@ -2,6 +2,31 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.1.1
+
+Every L1 action checked on testnet, and the units of irreversible deploy fields confirmed on chain.
+
+Added:
+
+- `just testnet` (`tests/testnet`): signs every L1 action in `vectors/` with a new key that has no account, posts it to testnet, and requires the node to recover that key's address. 159 actions pass, including every action that was built from the docs alone: `trailingStop`, `cDeposit2`, `setTokenAnnotation`, `setDeployerLabel`, `setFundingClamps`, `setDeployerFees`, the `normal` margin mode and a removed open interest cap.
+- `Template::parse`, which returns `VersionTooLarge` for a template version past 255.
+- Doc comments that name the unit of every irreversible deploy field, each confirmed against mainnet or testnet deploys and the state they produced: `commission_bps` is basis points (500 is 5%), `initial_wei` and every `maxGas` are HYPE wei with 8 decimals, genesis amounts are the token's wei, open interest caps are millionths of the collateral token, and `spotDeployState` balances are whole tokens with only `totalGenesisBalanceWei` exact.
+
+Changed:
+
+- Annotation lengths (`setTokenAnnotation`, `setPerpAnnotation`) are counted in UTF-8 bytes, as the venue counts them: testnet refused a 6-character, 18-byte display name. Text the venue would refuse is now refused before signing.
+- HIP-4 keyword errors say bytes, which is what they always counted and what the venue counts.
+
+Deprecated:
+
+- `SpotDeploy::EnableAlignedQuoteToken` and `SpotDeploy::DisableAlignedQuoteToken`: mainnet and testnet refuse both for every shape.
+- `Template::classify`, which drops a version past 255 without an error. Use `Template::parse`.
+
+Documented:
+
+- `ValidatorProfile::node_ip` and `ProfileChange::node_ip` must be IPv4: the node refuses an IPv6 address.
+- A later `userGenesis` for the same address replaces its amount, and `setDeployerTradingFeeShare` only takes a strictly lower share.
+
 ## 0.1.0
 
 The first stable release: full parity with the Hyperliquid API docs, every public item documented, and benchmarks.

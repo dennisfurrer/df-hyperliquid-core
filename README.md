@@ -89,7 +89,13 @@ flowchart TB
 
 ## Feature parity
 
-Full parity with the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api): every info request, exchange action, websocket channel and HyperEVM method the docs list is in the crate. Each signed action is checked against @nktkas/hyperliquid and the official Python SDK in `tests/conformance`.
+Full parity with the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api): every info request, exchange action, websocket channel and HyperEVM method the docs list is in the crate.
+
+How the signed actions are checked:
+
+- Against @nktkas/hyperliquid and the official Python SDK, byte for byte, in `tests/conformance`.
+- On testnet, with `just testnet`: every L1 action is signed by a new key that has no account and posted to `/exchange`. The node must read the action and recover that key's address, which shows it parsed every field and hashed the same bytes. Nothing can execute from an empty account. All 159 accepted actions pass (2026-11-24).
+- The units of the numbers that cannot be undone (genesis amounts, gas, validator commission and stake, open interest caps) are confirmed against real mainnet and testnet deploys and the state they produced, and each one is named in its doc comment.
 
 | API area | Status | Module |
 |---|---|---|
@@ -116,7 +122,7 @@ Full parity with the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyper
 | Exchange: HIP-4 outcome positions (`userOutcome`: split, merge, `mergeQuestion`, `negateOutcome`) | Supported | `trade::outcomes` |
 | Exchange: multi-sig (`multiSig`, `convertToMultiSigUser`) | Supported | `utils::sign::multi_sig`, `account::keys` |
 | Exchange: validator actions (`validatorL1Stream`, `authorizeAqav2Role`, `CValidatorAction`, `CSignerAction`) | Supported | `deploy::aligned`, `earn::validator` |
-| Deploy: spot tokens (`spotDeploy`, every sub-action, and `finalizeEvmContract`) | Supported | `deploy::spot` |
+| Deploy: spot tokens (`spotDeploy`, every sub-action the node accepts, and `finalizeEvmContract`) | Supported | `deploy::spot` |
 | Deploy: HIP-3 perp dexes (`perpDeploy`, every sub-action) | Supported | `deploy::perp` |
 | Deploy: HIP-4 outcome markets (`outcomeDeploy`, `activateOutcomeDeployer`) | Supported | `deploy::outcomes` |
 | Websocket subscriptions (every channel, including `l2`, `pac` and `sac`) | Supported | `live`, `client::native::Feed`, `client::web::Feed` |
@@ -129,6 +135,7 @@ Not included:
 
 - `userDexAbstraction` and `agentEnableDexAbstraction`: deprecated, and mainnet no longer accepts them. `userSetAbstraction` and `agentSetAbstraction` replace them.
 - The HIP-3 `star` operations: the docs mark them testnet only, and the crate does not target testnet.
+- `enableAlignedQuoteToken` and `disableAlignedQuoteToken`: the docs list them, but mainnet and testnet refuse both with `422 Failed to deserialize` for every shape, the answer for an action that does not exist. The crate keeps them, deprecated, until the node accepts them; `just testnet` fails when it does.
 
 ## Benchmarks
 
