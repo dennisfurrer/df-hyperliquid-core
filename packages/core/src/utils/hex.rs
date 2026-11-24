@@ -1,13 +1,26 @@
+//! Lowercase hex encoding, and decoding that takes either case, an optional `0x` or `0X`
+//! prefix and surrounding whitespace.
+
+/// Why text did not decode as hex.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum BadHex {
+    /// The digits after the prefix were an odd count; holds that count.
     #[error("hex must have an even number of digits, found {0}")]
     OddLength(usize),
+    /// The hex decoded to a different number of bytes than the target holds.
     #[error("expected {expected} bytes of hex, found {found}")]
-    WrongLength { expected: usize, found: usize },
+    WrongLength {
+        /// The bytes the target holds.
+        expected: usize,
+        /// The bytes the hex holds.
+        found: usize,
+    },
+    /// A character that is not `0-9`, `a-f` or `A-F`.
     #[error("`{0}` is not a hex digit")]
     NotAHexDigit(char),
 }
 
+/// The bytes as lowercase hex, two digits each, with no prefix.
 #[must_use]
 pub fn encode(bytes: &[u8]) -> String {
     let mut text = String::with_capacity(bytes.len() * 2);
@@ -18,6 +31,7 @@ pub fn encode(bytes: &[u8]) -> String {
     text
 }
 
+/// The bytes as lowercase hex with a `0x` prefix.
 #[must_use]
 pub fn encode_prefixed(bytes: &[u8]) -> String {
     let mut text = String::with_capacity(bytes.len() * 2 + 2);
@@ -37,6 +51,7 @@ pub fn decode(text: &str) -> Result<Vec<u8>, BadHex> {
     Ok(bytes)
 }
 
+/// Decodes hex into `out`, which it must fill exactly; `0x` prefix and whitespace optional.
 pub fn decode_into(text: &str, out: &mut [u8]) -> Result<(), BadHex> {
     let body = body_of(text);
     if !body.len().is_multiple_of(2) {
@@ -48,6 +63,7 @@ pub fn decode_into(text: &str, out: &mut [u8]) -> Result<(), BadHex> {
     fill(body, out)
 }
 
+/// Decodes hex into exactly `N` bytes; `0x` prefix and whitespace optional.
 pub fn decode_array<const N: usize>(text: &str) -> Result<[u8; N], BadHex> {
     let mut bytes = [0u8; N];
     decode_into(text, &mut bytes)?;

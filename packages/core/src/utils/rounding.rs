@@ -43,6 +43,7 @@ impl Grid {
         Grid { sz_decimals, ceiling: SPOT_PRICE_PLACES }
     }
 
+    /// The asset's `szDecimals`: the places a size may use.
     #[must_use]
     pub const fn sz_decimals(self) -> u32 {
         self.sz_decimals

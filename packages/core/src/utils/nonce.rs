@@ -1,3 +1,5 @@
+//! [`NonceClock`], the source of action nonces.
+
 /// One account's nonces: milliseconds, strictly increasing. The venue keeps
 /// the highest nonces it has seen per signer and refuses a repeat, so each
 /// account holds its own clock. The time is passed in, since the browser and
@@ -8,6 +10,7 @@ pub struct NonceClock {
 }
 
 impl NonceClock {
+    /// A clock that has handed out nothing yet.
     #[must_use]
     pub const fn new() -> Self {
         NonceClock { last: 0 }
@@ -26,6 +29,7 @@ impl NonceClock {
         nonce
     }
 
+    /// The last nonce handed out, or the `last` it was made with; 0 for a new clock.
     #[must_use]
     pub const fn last(&self) -> u64 {
         self.last

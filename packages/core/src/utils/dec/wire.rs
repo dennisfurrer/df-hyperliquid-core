@@ -7,12 +7,17 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 use crate::utils::dec::{Dec, MAX_SCALE};
 
+/// Why text did not read as a [`Dec`]. Each variant holds the text given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadDec {
+    /// Empty, an exponent, a second point, or any character other than a
+    /// leading sign, digits and one point.
     #[error("`{0}` is not a decimal number")]
     NotANumber(String),
+    /// More than eighteen places behind the point once trailing zeros are dropped.
     #[error("`{0}` has more than eighteen decimal places")]
     TooFine(String),
+    /// The digits do not fit in an `i128`.
     #[error("`{0}` is larger than this build can count")]
     OutOfRange(String),
 }

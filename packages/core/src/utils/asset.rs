@@ -26,10 +26,12 @@ pub const OUTCOME_ASSET_BASE: u32 = 100_000_000;
 pub enum OutcomeSide {
     /// The first side, `0`: the one a settle fraction pays.
     Yes,
+    /// The second side, `1`.
     No,
 }
 
 impl OutcomeSide {
+    /// The side's digit in an outcome asset id: 0 for yes, 1 for no.
     #[must_use]
     pub const fn digit(self) -> u32 {
         match self {
@@ -38,6 +40,7 @@ impl OutcomeSide {
         }
     }
 
+    /// The opposite side.
     #[must_use]
     pub const fn other(self) -> OutcomeSide {
         match self {
@@ -86,8 +89,10 @@ pub enum AssetKind {
 }
 
 impl AssetKind {
+    /// Every kind, in id order.
     pub const ALL: [AssetKind; 4] = [AssetKind::Perp, AssetKind::Spot, AssetKind::Hip3Perp, AssetKind::Outcome];
 
+    /// The kind an asset id names, by the range it falls in.
     #[must_use]
     pub const fn of(id: u32) -> AssetKind {
         if id >= OUTCOME_ASSET_BASE {
@@ -149,11 +154,13 @@ impl Asset {
         Asset(id)
     }
 
+    /// The integer id, as an order's `a` carries it.
     #[must_use]
     pub const fn id(self) -> u32 {
         self.0
     }
 
+    /// What the id names, by its range.
     #[must_use]
     pub const fn kind(self) -> AssetKind {
         AssetKind::of(self.0)

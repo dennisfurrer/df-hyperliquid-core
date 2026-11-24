@@ -5,12 +5,14 @@ use crate::utils::dec::round::{Round, divide};
 use crate::utils::dec::{Dec, MAX_SCALE, ten};
 
 impl Dec {
+    /// `self + other`, exact. `None` when the sum passes what a `Dec` holds.
     #[must_use]
     pub fn checked_add(self, other: Dec) -> Option<Dec> {
         let (a, b, scale) = self.aligned(other)?;
         Some(Dec { units: a.checked_add(b)?, scale }.normal())
     }
 
+    /// `self - other`, exact. `None` when the difference passes what a `Dec` holds.
     #[must_use]
     pub fn checked_sub(self, other: Dec) -> Option<Dec> {
         self.checked_add(other.negate())

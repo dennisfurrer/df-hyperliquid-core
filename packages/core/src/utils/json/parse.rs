@@ -7,12 +7,16 @@ use crate::utils::json::Json;
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("line {line}, column {column}: {message}")]
 pub struct BadJson {
+    /// The line, from 1.
     pub line: usize,
+    /// The column on that line, from 1.
     pub column: usize,
+    /// What was wrong there.
     pub message: String,
 }
 
 impl Json {
+    /// Reads one JSON value from `text`, with only whitespace around it.
     pub fn parse(text: &str) -> Result<Json, BadJson> {
         let mut reader = Reader { text: text.as_bytes(), at: 0, source: text };
         reader.space();

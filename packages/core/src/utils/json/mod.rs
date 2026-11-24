@@ -9,19 +9,26 @@ mod write;
 pub use msgpack::Unpackable;
 pub use parse::BadJson;
 
+/// A JSON value that keeps key order and the digits of each number.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Json {
+    /// `null`.
     Null,
+    /// `true` or `false`.
     Bool(bool),
     /// The number exactly as written: no float ever holds it.
     Number(String),
+    /// A string, unescaped.
     String(String),
+    /// An array, items in order.
     Array(Vec<Json>),
     /// Keys in the order they were written.
     Object(Vec<(String, Json)>),
 }
 
 impl Json {
+    /// An object's value under `key`, the first if the key repeats; `None` for a
+    /// missing key or a value that is not an object.
     #[must_use]
     pub fn get(&self, key: &str) -> Option<&Json> {
         match self {
@@ -30,6 +37,7 @@ impl Json {
         }
     }
 
+    /// The text of a string; `None` for anything else.
     #[must_use]
     pub fn as_str(&self) -> Option<&str> {
         match self {
@@ -56,6 +64,7 @@ impl Json {
         }
     }
 
+    /// An array's items; `None` for anything else.
     #[must_use]
     pub fn as_array(&self) -> Option<&[Json]> {
         match self {
@@ -64,6 +73,7 @@ impl Json {
         }
     }
 
+    /// An object's keys and values in the order written; `None` for anything else.
     #[must_use]
     pub fn as_object(&self) -> Option<&[(String, Json)]> {
         match self {
@@ -72,6 +82,8 @@ impl Json {
         }
     }
 
+    /// What kind of value this is, for an error message: `null`, `a boolean`, `a number`,
+    /// `a string`, `an array` or `an object`.
     #[must_use]
     pub const fn kind(&self) -> &'static str {
         match self {

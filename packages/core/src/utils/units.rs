@@ -10,12 +10,21 @@ pub const USDC_DECIMALS: u32 = 6;
 /// HYPE on HyperCore counts in 1e8: what `wei` means in staking and delegation.
 pub const HYPE_DECIMALS: u32 = 8;
 
+/// Why an amount has no integer form to sign.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadUnits {
+    /// Zero or negative, or cut to zero units; holds the amount.
     #[error("{0} is not a positive amount")]
     NotPositive(Dec),
+    /// [`exact_units`] was given an amount finer than the places allowed.
     #[error("{value} has more than {places} decimal places")]
-    TooFine { value: Dec, places: u32 },
+    TooFine {
+        /// The amount given.
+        value: Dec,
+        /// The most places allowed.
+        places: u32,
+    },
+    /// The count of units does not fit in a `u64`; holds the amount.
     #[error("{0} is too large")]
     TooLarge(Dec),
 }

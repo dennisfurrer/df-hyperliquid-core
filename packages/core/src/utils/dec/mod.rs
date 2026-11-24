@@ -24,7 +24,9 @@ pub struct Dec {
 }
 
 impl Dec {
+    /// 0.
     pub const ZERO: Dec = Dec { units: 0, scale: 0 };
+    /// 1.
     pub const ONE: Dec = Dec { units: 1, scale: 0 };
 
     /// `units / 10^scale`. A scale past [`MAX_SCALE`] is refused.
@@ -49,6 +51,7 @@ impl Dec {
         Dec { units, scale: SCALE }
     }
 
+    /// A whole number, with no places behind the point.
     #[must_use]
     pub const fn from_int(whole: i64) -> Dec {
         Dec { units: whole as i128, scale: 0 }
@@ -67,21 +70,25 @@ impl Dec {
         self
     }
 
+    /// Whether the value is 0.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.units == 0
     }
 
+    /// Whether the value is below 0.
     #[must_use]
     pub const fn is_negative(self) -> bool {
         self.units < 0
     }
 
+    /// Whether the value is above 0.
     #[must_use]
     pub const fn is_positive(self) -> bool {
         self.units > 0
     }
 
+    /// Whether the value has nothing behind the point once trailing zeros are dropped.
     #[must_use]
     pub fn is_integer(self) -> bool {
         self.normal().scale == 0
@@ -93,11 +100,13 @@ impl Dec {
         self.normal().scale
     }
 
+    /// The value without its sign, at the same scale.
     #[must_use]
     pub const fn abs(self) -> Dec {
         Dec { units: self.units.abs(), scale: self.scale }
     }
 
+    /// The value with its sign flipped, at the same scale.
     #[must_use]
     pub const fn negate(self) -> Dec {
         Dec { units: -self.units, scale: self.scale }

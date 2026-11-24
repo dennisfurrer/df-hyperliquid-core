@@ -46,6 +46,7 @@ impl Stamp {
         Stamp(minutes)
     }
 
+    /// Minutes since 1970.
     #[must_use]
     pub const fn minutes(self) -> i64 {
         self.0

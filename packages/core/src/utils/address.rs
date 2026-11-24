@@ -1,3 +1,5 @@
+//! The 20-byte account [`Address`] and its `0x` hex form.
+
 use std::{fmt, str::FromStr};
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -7,23 +9,28 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Address([u8; 20]);
 
+/// Text that is not `0x` and forty hex digits; holds the text given, trimmed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("`{0}` is not a 20-byte hex address")]
 pub struct BadAddress(String);
 
 impl Address {
+    /// `0x0000000000000000000000000000000000000000`.
     pub const ZERO: Address = Address([0u8; 20]);
 
+    /// The address with these 20 bytes.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; 20]) -> Self {
         Address(bytes)
     }
 
+    /// The 20 bytes.
     #[must_use]
     pub const fn bytes(&self) -> &[u8; 20] {
         &self.0
     }
 
+    /// Whether this is [`Address::ZERO`].
     #[must_use]
     pub fn is_zero(&self) -> bool {
         *self == Address::ZERO
