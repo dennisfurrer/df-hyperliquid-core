@@ -76,3 +76,7 @@ impl L1Action for AuthorizeAqav2Role {
         Map::new().put("type", "authorizeAqav2Role").put("token", self.token).put("role", self.role.wire())
     }
 }
+
+#[cfg(test)]
+#[path = "tests/aligned.rs"]
+mod tests;
