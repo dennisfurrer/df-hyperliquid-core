@@ -9,6 +9,11 @@
 
 # df-hyperliquid-core
 
+[![crates.io](https://img.shields.io/crates/v/df-hyperliquid-core.svg)](https://crates.io/crates/df-hyperliquid-core)
+[![docs.rs](https://img.shields.io/docsrs/df-hyperliquid-core)](https://docs.rs/df-hyperliquid-core)
+[![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
+[![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
+
 Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn and deploy in one crate, with exact decimals, signing and native or wasm transports.
 
 ## SDK
@@ -101,6 +106,17 @@ packages/core
 
 - [metalliq.xyz](https://metalliq.xyz)
 - [tui.hip4.dev](https://tui.hip4.dev)
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
+- MIT license ([LICENSE-MIT](LICENSE-MIT))
+
+at your option.
+
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in this crate, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
 
 <br>
 
