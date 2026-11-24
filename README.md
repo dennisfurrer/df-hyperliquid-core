@@ -14,7 +14,7 @@
 [![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
 [![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
 
-Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn and HIP-4 deploys in one crate, with exact decimals, signing and native or wasm transports.
+Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest order signing of the SDKs benchmarked, and native or wasm transports.
 
 ## SDK
 
@@ -42,7 +42,7 @@ df-hyperliquid-core
 │   ├── builder     builder fees and their caps
 │   └── outcomes    outcome fees, split and merge
 ├── transfer        sends, withdrawals, Arbitrum deposits, HyperCore to HyperEVM
-├── earn            staking, vaults, lending
+├── earn            staking, vaults, lending, validators
 ├── deploy          spot tokens, deploy auctions, HIP-3 dexes, HIP-4 outcome markets
 ├── live            websocket subscriptions, frames, connection state, a kept store
 └── utils           decimals, rounding, asset ids, units, time, hex, nonces, signing
