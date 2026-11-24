@@ -1,5 +1,6 @@
 //! Orders: the wire every order type ends in ([`Order`], [`PlaceOrder`]), what an order's `t`
-//! says, its client id, and one module per type. Keys go in the order the venue hashes:
+//! says, its client id, and one module per type. A trailing stop is an action of its own
+//! ([`TrailingStop`]). Keys go in the order the venue hashes:
 //! `a b p s r t c` for an order, then `grouping`, then `builder` last.
 
 pub mod cloid;
@@ -10,6 +11,7 @@ pub mod market;
 pub mod order_type;
 pub mod scale;
 pub mod tpsl;
+pub mod trailing;
 pub mod trigger;
 pub mod twap;
 
@@ -19,6 +21,7 @@ pub use entry::{OrderIntent, Price, order};
 pub use order_type::{Grouping, OrderType, Tif, Tpsl};
 pub use scale::{LEAST_LEVELS, MOST_LEVELS, Scale, scale};
 pub use tpsl::{Covers, TriggerIntent, trigger};
+pub use trailing::{BadTrailingStop, Retracement, TrailingStop};
 pub use trigger::{Exit, ExitPrice, TRIGGER_SLIPPAGE};
 pub use twap::{MINIMUM_TWAP_VALUE, Twap, TwapCancel, TwapIntent, twap};
 

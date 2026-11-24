@@ -1,5 +1,5 @@
-//! Orders on every market: place, cancel, modify, TWAP, TP/SL, leverage and margin, builder fees,
-//! outcome splits and fees, and the ticket that turns an intent into the exact action.
+//! Orders on every market: place, cancel, modify, TWAP, TP/SL, trailing stops, leverage and margin,
+//! builder fees, outcome splits and fees, and the ticket that turns an intent into the exact action.
 
 pub mod action;
 pub mod answer;
@@ -26,8 +26,8 @@ pub use margin::{
     add_margin, checked_leverage, remove_margin,
 };
 pub use orders::{
-    Cloid, Close, Covers, Exit, ExitPrice, Grouping, Order, OrderIntent, OrderType, PlaceOrder, Price, Scale, Side,
-    Tif, Tpsl, TriggerIntent, Twap, TwapCancel, TwapIntent,
+    BadTrailingStop, Cloid, Close, Covers, Exit, ExitPrice, Grouping, Order, OrderIntent, OrderType, PlaceOrder, Price,
+    Retracement, Scale, Side, Tif, Tpsl, TrailingStop, TriggerIntent, Twap, TwapCancel, TwapIntent,
 };
 pub use ticket::{Amount, Market, Refusal};
 

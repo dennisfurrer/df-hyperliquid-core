@@ -10,6 +10,7 @@ mod resting;
 mod scale;
 mod switch;
 mod tpsl;
+mod trailing;
 mod twap;
 
 use df_hyperliquid_core::account::LocalKey;

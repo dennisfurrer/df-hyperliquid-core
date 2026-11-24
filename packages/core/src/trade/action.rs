@@ -5,7 +5,7 @@ use crate::trade::manage::{BatchModify, Modify};
 use crate::trade::manage::{Cancel, CancelByCloid};
 use crate::trade::manage::{Noop, ScheduleCancel};
 use crate::trade::margin::{UpdateIsolatedMargin, UpdateLeverage};
-use crate::trade::orders::PlaceOrder;
+use crate::trade::orders::{PlaceOrder, TrailingStop};
 use crate::trade::orders::{Twap, TwapCancel};
 use crate::utils::sign::{L1Action, Map};
 
@@ -22,6 +22,7 @@ pub enum TradeAction {
     Margin(UpdateIsolatedMargin),
     ScheduleCancel(ScheduleCancel),
     Noop(Noop),
+    TrailingStop(TrailingStop),
 }
 
 impl TradeAction {
@@ -40,6 +41,7 @@ impl TradeAction {
             TradeAction::Margin(_) => "updateIsolatedMargin",
             TradeAction::ScheduleCancel(_) => "scheduleCancel",
             TradeAction::Noop(_) => "noop",
+            TradeAction::TrailingStop(_) => "trailingStop",
         }
     }
 
@@ -71,6 +73,7 @@ impl L1Action for TradeAction {
             TradeAction::Margin(action) => action.action(),
             TradeAction::ScheduleCancel(action) => action.action(),
             TradeAction::Noop(action) => action.action(),
+            TradeAction::TrailingStop(action) => action.action(),
         }
     }
 }
@@ -97,6 +100,7 @@ from! {
     UpdateIsolatedMargin => Margin,
     ScheduleCancel => ScheduleCancel,
     Noop => Noop,
+    TrailingStop => TrailingStop,
 }
 
 #[cfg(test)]
