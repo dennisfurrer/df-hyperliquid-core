@@ -1,10 +1,10 @@
-//! HIP-4: a side bought at market through the builder at the outcome cap, and quote split into
-//! both sides and merged back.
+//! HIP-4: a side bought at market through the builder at the outcome cap, quote split into both
+//! sides and merged back, and a question's outcomes merged and one negated.
 
 use df_hyperliquid_core::markets::outcomes::{self, Coin, Qty, outcome_meta};
 use df_hyperliquid_core::markets::{Precision, book};
 use df_hyperliquid_core::trade::answer::{orders, taken};
-use df_hyperliquid_core::trade::outcomes::{MergeOutcome, SplitOutcome};
+use df_hyperliquid_core::trade::outcomes::{MergeOutcome, MergeQuestion, NegateOutcome, SplitOutcome};
 use df_hyperliquid_core::trade::{BuilderSetting, OrderAnswer, PlaceOrder, Side};
 use df_hyperliquid_core::utils::OutcomeSide;
 
@@ -52,6 +52,24 @@ async fn an_outcome_side_is_bought_through_the_builder_and_quote_is_split_into_b
             r#"{"type":"order","orders":[{"a":100014730,"b":true,"p":"0.59666","s":"20","r":false,"t":{"limit":{"tif":"FrontendMarket"}}}],"grouping":"na","builder":{"b":"0x6967d7acd1ec5f210e9590666498e0cc5d13a843","f":880}}"#,
             r#"{"type":"userOutcome","splitOutcome":{"outcome":1473,"amount":"12.5"}}"#,
             r#"{"type":"userOutcome","mergeOutcome":{"outcome":1473,"amount":null}}"#,
+        ]
+    );
+}
+
+/// The tournament question (51 on mainnet): a full set of its outcomes' Yes merged back, every set
+/// the account holds merged, and Arsenal's No turned into a Yes of every other outcome.
+#[tokio::test]
+async fn a_question_s_outcomes_are_merged_and_one_outcome_negated() {
+    let client = client(Venue::mainnet().exchange("default").exchange("default").exchange("default"));
+    client.send(&MergeQuestion::new(51, dec("12.50")).unwrap()).await.unwrap();
+    client.send(&MergeQuestion::all(51)).await.unwrap();
+    client.send(&NegateOutcome::new(51, ARSENAL, dec("3")).unwrap()).await.unwrap();
+    assert_eq!(
+        actions(&client),
+        [
+            r#"{"type":"userOutcome","mergeQuestion":{"question":51,"amount":"12.5"}}"#,
+            r#"{"type":"userOutcome","mergeQuestion":{"question":51,"amount":null}}"#,
+            r#"{"type":"userOutcome","negateOutcome":{"question":51,"outcome":1473,"amount":"3"}}"#,
         ]
     );
 }

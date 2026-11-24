@@ -60,3 +60,19 @@ fn an_amount_is_positive_with_at_most_eight_places_and_trailing_zeros_are_one_ac
     }
     assert_eq!(MergeOutcome::new(1210, Dec::ZERO), Err(OutcomeError::Amount(Dec::ZERO)), "zero is not everything");
 }
+
+/// A question merge and a negation hold their amounts to what a split takes; a merge of every set
+/// posts nil.
+#[test]
+fn a_question_merge_and_a_negation_hold_their_amounts_as_a_split_does() {
+    assert_eq!(MergeQuestion::new(51, dec("0")), Err(OutcomeError::Amount(dec("0"))));
+    assert_eq!(NegateOutcome::new(51, 1473, dec("0.000000001")), Err(OutcomeError::Amount(dec("0.000000001"))));
+    assert_eq!(
+        MergeQuestion::all(51).wire(),
+        r#"{"type":"userOutcome","mergeQuestion":{"question":51,"amount":null}}"#
+    );
+    assert_eq!(
+        NegateOutcome::new(51, 1473, dec("3.10")).unwrap().wire(),
+        r#"{"type":"userOutcome","negateOutcome":{"question":51,"outcome":1473,"amount":"3.1"}}"#
+    );
+}
