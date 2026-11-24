@@ -1,0 +1,16 @@
+# Benchmarks of df-hyperliquid-core against hypersdk and the official Python SDK.
+# Its own workspace, so hypersdk never enters the main Cargo.lock. Build each binary on its
+# own (`cargo build --release -p bench-df`, then `-p bench-hypersdk`) so cargo does not unify
+# the two SDKs' dependency features into one build: each binary is what a user of that SDK
+# alone would compile.
+[workspace]
+resolver = "3"
+members = ["common", "df", "hypersdk"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[profile.release]
+debug = false

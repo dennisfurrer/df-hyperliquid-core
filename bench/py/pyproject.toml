@@ -1,0 +1,17 @@
+[project]
+name = "hl-sdk-bench-py"
+version = "0.0.0"
+description = "Benchmarks for the official Hyperliquid Python SDK, run next to the Rust ones."
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "hyperliquid-python-sdk==0.24.0",
+]
+
+[dependency-groups]
+# Not a dependency of the SDK. Installed so the signing benchmark can also report eth-keys'
+# libsecp256k1 backend; every run picks its backend with ECC_BACKEND_CLASS.
+coincurve = ["coincurve==21.0.0"]
+
+[tool.uv]
+package = false
+default-groups = ["coincurve"]
