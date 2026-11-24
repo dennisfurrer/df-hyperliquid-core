@@ -17,23 +17,29 @@ use crate::utils::Address;
 pub enum Interest {
     /// A market's whole book, ungrouped: its frames name no grouping, so one book a coin.
     Book {
+        /// The coin.
         coin: String,
     },
     /// A market's prints.
     Trades {
+        /// The coin.
         coin: String,
     },
     /// A market's candles at one interval.
     Candles {
+        /// The coin.
         coin: String,
+        /// The candle interval.
         interval: Interval,
     },
     /// Every coin's mid on one perp dex, `""` the first, which also carries spot and outcomes.
     Mids {
+        /// The dex, `""` for the first.
         dex: String,
     },
     /// One market's context: a perp's, a spot pair's or an outcome side's.
     Context {
+        /// The coin.
         coin: String,
     },
     /// Every perp's context on every dex, in one frame.
@@ -43,21 +49,29 @@ pub enum Interest {
     /// An account's clearinghouse on every dex, its spot balances and its mode: what its
     /// positions, usable balances and worth are read from.
     State {
+        /// The account.
         user: Address,
     },
     /// An account's resting orders on one dex; spot and outcome orders come with the first.
     Orders {
+        /// The account.
         user: Address,
+        /// The dex, `""` for the first.
         dex: String,
     },
+    /// An account's fills.
     Fills {
+        /// The account.
         user: Address,
     },
+    /// An account's funding payments.
     Fundings {
+        /// The account.
         user: Address,
     },
     /// Deposits, withdrawals, transfers and every other ledger row but funding.
     Ledger {
+        /// The account.
         user: Address,
     },
 }
@@ -115,6 +129,7 @@ pub struct Handle {
 }
 
 impl Handle {
+    /// The interest it holds.
     #[must_use]
     pub const fn interest(&self) -> &Interest {
         &self.interest
@@ -132,11 +147,14 @@ impl Drop for Handle {
 /// order it was first wanted.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Changes {
+    /// Subscriptions to drop, sent first.
     pub unsubscribe: Vec<Subscription>,
+    /// Subscriptions to add.
     pub subscribe: Vec<Subscription>,
 }
 
 impl Changes {
+    /// Whether there is nothing to send.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.unsubscribe.is_empty() && self.subscribe.is_empty()

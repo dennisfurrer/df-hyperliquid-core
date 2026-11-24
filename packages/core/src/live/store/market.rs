@@ -23,12 +23,14 @@ pub const BARS: usize = 5_000;
 /// A market's context, by the kind of market it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Context<'a> {
+    /// A perp's.
     Perp(&'a PerpCtx),
     /// A spot pair's or an outcome side's.
     Spot(&'a SpotCtx),
 }
 
 impl Context<'_> {
+    /// The market's mark price.
     #[must_use]
     pub const fn mark(&self) -> Dec {
         match self {

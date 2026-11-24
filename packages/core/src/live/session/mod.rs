@@ -70,12 +70,14 @@ impl Session {
         self
     }
 
+    /// The same session with other timing.
     #[must_use]
     pub const fn with_timing(mut self, timing: Timing) -> Self {
         self.timing = timing;
         self
     }
 
+    /// The network it connects to.
     #[must_use]
     pub const fn network(&self) -> Network {
         self.network
@@ -87,6 +89,7 @@ impl Session {
         self.network.ws_url()
     }
 
+    /// Whether a socket is open, from [`Session::opened`] until [`Session::closed`].
     #[must_use]
     pub const fn is_open(&self) -> bool {
         matches!(self.link, Link::Open { .. })

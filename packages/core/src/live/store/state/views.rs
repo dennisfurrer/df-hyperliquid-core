@@ -70,6 +70,7 @@ impl Store {
         &self.markets.collateral
     }
 
+    /// One account as the store holds it; `None` when nothing about it is held.
     #[must_use]
     pub fn account(&self, user: Address) -> Option<&Account> {
         self.accounts.get(&user)

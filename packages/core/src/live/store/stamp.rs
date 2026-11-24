@@ -7,6 +7,7 @@ use std::ops::Deref;
 /// still being sent, and is not stale.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Stamped<T> {
+    /// The state itself.
     pub value: T,
     /// Milliseconds, as handed in.
     pub heard: u64,

@@ -43,6 +43,7 @@ impl Account {
         self.mode.as_ref()
     }
 
+    /// The account's spot balances; `None` until the socket or a read says.
     #[must_use]
     pub const fn spot(&self) -> Option<&Stamped<SpotState>> {
         self.spot.as_ref()

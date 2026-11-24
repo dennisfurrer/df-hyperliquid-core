@@ -32,11 +32,21 @@ pub enum Read<'a> {
     /// `candleSnapshot`, oldest first: what the socket already sent of the same candles stays.
     Candles(&'a [Candle]),
     /// `allMids` of one perp dex, `""` the first.
-    Mids { dex: &'a str, mids: &'a Mids },
+    Mids {
+        /// The dex, `""` for the first perp dex.
+        dex: &'a str,
+        /// The mids.
+        mids: &'a Mids,
+    },
     /// `metaAndAssetCtxs`: the first dex's universe, collateral and contexts.
     Perps(&'a MetaAndAssetCtxs),
     /// `metaAndAssetCtxs` with a HIP-3 `dex`.
-    Dex { dex: &'a str, read: &'a MetaAndAssetCtxs },
+    Dex {
+        /// The HIP-3 dex's name.
+        dex: &'a str,
+        /// The answer.
+        read: &'a MetaAndAssetCtxs,
+    },
     /// `perpDexs` with `allPerpMetas`: every dex's universe and collateral.
     Dexes(&'a crate::markets::dexes::Dexes),
     /// `spotMetaAndAssetCtxs`.
@@ -44,22 +54,66 @@ pub enum Read<'a> {
     /// `spotMeta`: the tokens and pairs that price spot balances.
     SpotMeta(&'a SpotMeta),
     /// `clearinghouseState` of one dex, at the account's own address.
-    Clearinghouse { user: Address, dex: &'a str, state: &'a ClearinghouseState },
+    Clearinghouse {
+        /// The account it was read for.
+        user: Address,
+        /// The dex, `""` for the first perp dex.
+        dex: &'a str,
+        /// The answer.
+        state: &'a ClearinghouseState,
+    },
     /// `spotClearinghouseState`.
-    SpotState { user: Address, state: &'a crate::account::SpotState },
+    SpotState {
+        /// The account it was read for.
+        user: Address,
+        /// The answer.
+        state: &'a crate::account::SpotState,
+    },
     /// `userAbstraction`.
-    Mode { user: Address, mode: &'a Abstraction },
+    Mode {
+        /// The account it was read for.
+        user: Address,
+        /// The account mode.
+        mode: &'a Abstraction,
+    },
     /// `frontendOpenOrders` of one dex.
-    Orders { user: Address, dex: &'a str, orders: &'a [FrontendOrder] },
+    Orders {
+        /// The account it was read for.
+        user: Address,
+        /// The dex, `""` for the first perp dex.
+        dex: &'a str,
+        /// The resting orders.
+        orders: &'a [FrontendOrder],
+    },
     /// `userFills`: the latest, newest first, which replace what is held.
-    Fills { user: Address, fills: &'a [Fill] },
+    Fills {
+        /// The account it was read for.
+        user: Address,
+        /// The fills, newest first.
+        fills: &'a [Fill],
+    },
     /// `userFillsByTime`: a window, oldest first, added to what is held.
-    MoreFills { user: Address, fills: &'a [Fill] },
+    MoreFills {
+        /// The account it was read for.
+        user: Address,
+        /// The fills, oldest first.
+        fills: &'a [Fill],
+    },
     /// `userFunding`: a window, oldest first, added to what is held.
-    Fundings { user: Address, fundings: &'a [UserFunding] },
+    Fundings {
+        /// The account it was read for.
+        user: Address,
+        /// The funding payments, oldest first.
+        fundings: &'a [UserFunding],
+    },
     /// `userNonFundingLedgerUpdates`: a window, oldest first, added to what is held, in the
     /// socket's row type.
-    Ledger { user: Address, rows: &'a [LedgerUpdate] },
+    Ledger {
+        /// The account it was read for.
+        user: Address,
+        /// The ledger rows, oldest first.
+        rows: &'a [LedgerUpdate],
+    },
 }
 
 /// What a frame or a read did to the store.
@@ -86,7 +140,9 @@ pub struct Synced {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("this store is on {store} and the session on {session}; one store is one network")]
 pub struct OtherNetwork {
+    /// The store's network.
     pub store: Network,
+    /// The session's network.
     pub session: Network,
 }
 
@@ -118,6 +174,7 @@ impl Store {
         self
     }
 
+    /// The network the store is on.
     #[must_use]
     pub const fn network(&self) -> Network {
         self.network

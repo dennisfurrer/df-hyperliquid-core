@@ -42,6 +42,7 @@ impl Default for Timing {
 /// What a tick asks of the socket's owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tick {
+    /// Nothing to do yet.
     Wait,
     /// Send [`crate::live::request::PING`].
     Ping,
