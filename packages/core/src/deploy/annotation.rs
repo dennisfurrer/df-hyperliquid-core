@@ -57,21 +57,25 @@ impl Annotation {
         })
     }
 
+    /// The category, at most 15 characters.
     #[must_use]
     pub fn category(&self) -> &str {
         &self.category
     }
 
+    /// The description, at most 400 characters.
     #[must_use]
     pub fn description(&self) -> &str {
         &self.description
     }
 
+    /// The name frontends show instead of the listed name; `None` keeps the listed name.
     #[must_use]
     pub fn display_name(&self) -> Option<&str> {
         self.display_name.as_deref()
     }
 
+    /// Up to two words searches match against, each at most 10 characters.
     #[must_use]
     pub fn keywords(&self) -> &[String] {
         &self.keywords

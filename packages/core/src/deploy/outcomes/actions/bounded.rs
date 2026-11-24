@@ -25,9 +25,12 @@ fn bounded(text: &str, most: Dec) -> Option<Dec> {
 pub struct FeeScale(Dec);
 
 impl FeeScale {
+    /// A scale of 0: the deployer takes no fees.
     pub const ZERO: FeeScale = FeeScale(Dec::ZERO);
+    /// A scale of 1.
     pub const ONE: FeeScale = FeeScale(Dec::ONE);
 
+    /// The scale as a decimal.
     #[must_use]
     pub const fn value(self) -> Dec {
         self.0
@@ -63,14 +66,18 @@ impl fmt::Display for FeeScale {
 pub struct Fraction(Dec);
 
 impl Fraction {
+    /// A fraction of 0: the second side is paid in full.
     pub const ZERO: Fraction = Fraction(Dec::ZERO);
+    /// A fraction of 1: the first side is paid in full.
     pub const ONE: Fraction = Fraction(Dec::ONE);
 
+    /// The fraction as a decimal.
     #[must_use]
     pub const fn value(self) -> Dec {
         self.0
     }
 
+    /// The string hashed: no trailing zeros, `1.0` as `1`.
     #[must_use]
     pub fn to_wire(self) -> String {
         self.0.to_wire()

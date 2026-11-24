@@ -25,16 +25,21 @@ use crate::utils::sign::{L1Action, Map};
 /// Settling pays out at once and cannot be undone.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OutcomeDeploy {
+    /// The venue the operation is for, sent as its name.
     pub venue: Venue,
+    /// The register, settle or grant, sent under `operation`.
     pub operation: Operation,
 }
 
 impl OutcomeDeploy {
+    /// `registerStandaloneOutcomeFromTemplate` for one outcome made from `instance`, at `fee_scale`.
     #[must_use]
     pub fn register_standalone(venue: Venue, instance: Instance, fee_scale: FeeScale) -> Self {
         OutcomeDeploy { venue, operation: Operation::RegisterStandalone { instance, fee_scale } }
     }
 
+    /// `registerQuestionFromTemplate` for a question and its named outcomes, at `fee_scale`, refusing a
+    /// question with no named outcomes.
     pub fn register_question(
         venue: Venue,
         question: Instance,
@@ -47,6 +52,8 @@ impl OutcomeDeploy {
         Ok(OutcomeDeploy { venue, operation: Operation::RegisterQuestion { question, fee_scale, named } })
     }
 
+    /// `registerAndAssociateNamedOutcomeFromTemplate`: one more named outcome on the live question
+    /// `question`, at the question's fee scale.
     #[must_use]
     pub fn register_and_associate(venue: Venue, question: u32, named: Instance) -> Self {
         OutcomeDeploy { venue, operation: Operation::RegisterAndAssociate { question, named } }
@@ -97,6 +104,7 @@ impl OutcomeDeploy {
         Ok(OutcomeDeploy { venue, operation: Operation::SettleQuestion { question, settlements, name, description } })
     }
 
+    /// `setSubDeployers`, refusing an empty grant list.
     pub fn set_sub_deployers(venue: Venue, grants: Vec<Grant>) -> Result<Self, DeployError> {
         if grants.is_empty() {
             return Err(DeployError::NoGrants);

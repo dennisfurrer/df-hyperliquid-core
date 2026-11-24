@@ -32,9 +32,13 @@ impl MarginMode {
 /// oracle price and margin table.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NewAsset {
+    /// The coin, `dex:NAME`.
     pub coin: String,
+    /// Size decimals (`szDecimals`): how many decimal places an order size may have.
     pub sz_decimals: u32,
+    /// The starting oracle price (`oraclePx`).
     pub oracle_px: Dec,
+    /// The id of the margin table the asset uses (`marginTableId`).
     pub margin_table_id: u32,
 }
 
@@ -56,8 +60,11 @@ impl NewAsset {
 /// deployer).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DexSchema {
+    /// The dex's full name (`fullName`).
     pub full_name: String,
+    /// The spot token index of the collateral (`collateralToken`).
     pub collateral_token: u32,
+    /// The address that updates the oracle (`oracleUpdater`); `None`, sent as null, for the deployer.
     pub oracle_updater: Option<Address>,
 }
 

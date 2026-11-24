@@ -13,7 +13,9 @@ pub const MAX_TIERS: usize = 3;
 /// `max_leverage`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MarginTier {
+    /// Position notional from which this tier applies (`lowerBound`).
     pub lower_bound: u64,
+    /// The highest leverage allowed from the lower bound up (`maxLeverage`), from 1 to 50.
     pub max_leverage: u32,
 }
 
@@ -39,11 +41,13 @@ impl MarginTable {
         Ok(MarginTable { description: description.into(), tiers })
     }
 
+    /// The table's description.
     #[must_use]
     pub fn description(&self) -> &str {
         &self.description
     }
 
+    /// The tiers, lower bounds rising.
     #[must_use]
     pub fn tiers(&self) -> &[MarginTier] {
         &self.tiers

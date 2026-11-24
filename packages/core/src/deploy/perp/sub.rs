@@ -8,21 +8,37 @@ use crate::utils::sign::Map;
 /// sub-deployer grant names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PerpKind {
+    /// `registerAsset2`.
     RegisterAsset2,
+    /// `registerAsset`.
     RegisterAsset,
+    /// `setOracle`.
     SetOracle,
+    /// `setFundingMultipliers`.
     SetFundingMultipliers,
+    /// `setFundingInterestRates`.
     SetFundingInterestRates,
+    /// `setFundingClamps`.
     SetFundingClamps,
+    /// `haltTrading`.
     HaltTrading,
+    /// `insertMarginTable`.
     InsertMarginTable,
+    /// `setMarginTableIds`.
     SetMarginTableIds,
+    /// `setFeeRecipient`.
     SetFeeRecipient,
+    /// `setOpenInterestCaps`.
     SetOpenInterestCaps,
+    /// `setSubDeployers`.
     SetSubDeployers,
+    /// `setMarginModes`.
     SetMarginModes,
+    /// `setDeployerFees`.
     SetDeployerFees,
+    /// `setPerpAnnotation`.
     SetPerpAnnotation,
+    /// `disableDex`.
     DisableDex,
 }
 
@@ -75,8 +91,11 @@ impl PerpKind {
 /// dex.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SubDeployer {
+    /// The `perpDeploy` variant granted or taken away.
     pub variant: PerpKind,
+    /// The address the grant is for.
     pub user: Address,
+    /// `true` lets the address send the variant, `false` stops it.
     pub allowed: bool,
 }
 

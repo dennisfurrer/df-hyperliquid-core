@@ -67,7 +67,9 @@ impl AqaRole {
 /// Activation then goes to a validator vote.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AuthorizeAqav2Role {
+    /// The token the role is for, by spot token index; 0 for USDC.
     pub token: u32,
+    /// The role taken.
     pub role: AqaRole,
 }
 

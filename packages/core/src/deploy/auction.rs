@@ -9,9 +9,11 @@ use crate::utils::dec::Dec;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GasAuction {
+    /// When the round started, Unix seconds.
     pub start_time_seconds: u64,
+    /// How long the round runs, in seconds.
     pub duration_seconds: u64,
-    /// HYPE.
+    /// The price the round opened at, in HYPE.
     pub start_gas: Dec,
     /// What a slot costs now, in HYPE; `null` once the round has ended.
     #[serde(default)]

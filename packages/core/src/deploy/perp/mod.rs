@@ -28,6 +28,7 @@ pub type ByCoin<T> = BTreeMap<String, T>;
 pub struct DeployerFee {
     /// From 0 to 3, or from 0 up to (not including) 10 in growth mode.
     pub scale: Dec,
+    /// Growth mode (`growthMode`): when on, the scale may go up to (not including) 10.
     pub growth_mode: bool,
 }
 
@@ -41,24 +42,43 @@ pub enum PerpDeploy {
     /// null) pays the current auction price, and 0 uses a reserve
     /// deployment whether or not the auction has ended.
     RegisterAsset2 {
+        /// The most native token wei to pay (`maxGas`); `None`, sent as null, pays the current auction price.
         max_gas: Option<u64>,
+        /// The asset to list (`assetRequest`).
         asset: NewAsset,
+        /// How the asset may be margined (`marginMode`).
         margin_mode: MarginMode,
+        /// The dex the asset is listed on.
         dex: DexName,
+        /// The new dex's schema when this asset creates the dex; `None`, sent as null, for an existing dex.
         schema: Option<DexSchema>,
     },
     /// `registerAsset`: as [`RegisterAsset2`](PerpDeploy::RegisterAsset2),
     /// with `onlyIsolated` for the margin mode.
     RegisterAsset {
+        /// The most native token wei to pay (`maxGas`); `None`, sent as null, pays the current auction price.
         max_gas: Option<u64>,
+        /// The asset to list (`assetRequest`).
         asset: NewAsset,
+        /// Whether the asset is isolated margin only (`onlyIsolated`).
         only_isolated: bool,
+        /// The dex the asset is listed on.
         dex: DexName,
+        /// The new dex's schema when this asset creates the dex; `None`, sent as null, for an existing dex.
         schema: Option<DexSchema>,
     },
     /// `setOracle`: oracle prices, 0 to 2 lists of mark prices, and external
     /// perp prices for every asset. At least 2.5 seconds apart.
-    SetOracle { dex: DexName, oracle_pxs: ByCoin<Dec>, mark_pxs: Vec<ByCoin<Dec>>, external_perp_pxs: ByCoin<Dec> },
+    SetOracle {
+        /// The dex the prices are for.
+        dex: DexName,
+        /// Oracle prices by coin (`oraclePxs`).
+        oracle_pxs: ByCoin<Dec>,
+        /// 0 to 2 lists of mark prices by coin (`markPxs`).
+        mark_pxs: Vec<ByCoin<Dec>>,
+        /// External perp prices by coin (`externalPerpPxs`).
+        external_perp_pxs: ByCoin<Dec>,
+    },
     /// `setFundingMultipliers`, each from 0 to 10.
     SetFundingMultipliers(ByCoin<Dec>),
     /// `setFundingInterestRates`: 8 hour rates, each from -0.01 to 0.01.
@@ -66,24 +86,49 @@ pub enum PerpDeploy {
     /// `setFundingClamps`: 8 hour clamps, each from 0 to 0.01.
     SetFundingClamps(ByCoin<Dec>),
     /// `haltTrading`: halts (`true`) or resumes (`false`) one asset.
-    HaltTrading { coin: String, is_halted: bool },
+    HaltTrading {
+        /// The coin, `dex:NAME`.
+        coin: String,
+        /// `true` halts the asset, `false` resumes it (`isHalted`).
+        is_halted: bool,
+    },
     /// `insertMarginTable`.
-    InsertMarginTable { dex: DexName, margin_table: MarginTable },
+    InsertMarginTable {
+        /// The dex the table is for.
+        dex: DexName,
+        /// The table to insert (`marginTable`).
+        margin_table: MarginTable,
+    },
     /// `setMarginTableIds`, none of them 0.
     SetMarginTableIds(ByCoin<u32>),
     /// `setFeeRecipient`.
-    SetFeeRecipient { dex: DexName, fee_recipient: Address },
+    SetFeeRecipient {
+        /// The dex whose fees are paid out.
+        dex: DexName,
+        /// The address the deployer's fee share goes to (`feeRecipient`).
+        fee_recipient: Address,
+    },
     /// `setOpenInterestCaps`: notional caps; `None` (sent as null) removes
     /// an asset's custom cap.
     SetOpenInterestCaps(ByCoin<Option<u64>>),
     /// `setSubDeployers`.
-    SetSubDeployers { dex: DexName, sub_deployers: Vec<SubDeployer> },
+    SetSubDeployers {
+        /// The dex the grants are for.
+        dex: DexName,
+        /// The grants (`subDeployers`), at least one.
+        sub_deployers: Vec<SubDeployer>,
+    },
     /// `setMarginModes`.
     SetMarginModes(ByCoin<MarginMode>),
     /// `setDeployerFees`. On mainnet, one change per 30 days.
     SetDeployerFees(ByCoin<DeployerFee>),
     /// `setPerpAnnotation`.
-    SetPerpAnnotation { coin: String, annotation: Annotation },
+    SetPerpAnnotation {
+        /// The coin, `dex:NAME`.
+        coin: String,
+        /// The annotation, sent flat next to the coin.
+        annotation: Annotation,
+    },
     /// `disableDex`.
     DisableDex(DexName),
 }

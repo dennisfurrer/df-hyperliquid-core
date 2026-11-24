@@ -10,6 +10,7 @@ pub fn perp_deploy_auction_request() -> String {
     info_request("perpDeployAuctionStatus", &[])
 }
 
+/// The current round of the shared HIP-3 perp deploy auction.
 pub async fn perp_deploy_auction(transport: &impl Transport) -> Result<GasAuction, ApiError> {
     info(transport, perp_deploy_auction_request()).await
 }

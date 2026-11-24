@@ -11,20 +11,46 @@ use crate::utils::sign::{Map, Value};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operation {
     /// `registerStandaloneOutcomeFromTemplate`: one outcome with two sides.
-    RegisterStandalone { instance: Instance, fee_scale: FeeScale },
+    RegisterStandalone {
+        /// The template instance the outcome is made from.
+        instance: Instance,
+        /// The deployer's fee scale (`deployerFeeScale`), sent inside the instance.
+        fee_scale: FeeScale,
+    },
     /// `registerQuestionFromTemplate`: a question and its named outcomes, in
     /// the order given, which is the order they are shown in. The venue adds
     /// a fallback, so N named outcomes make N + 1.
-    RegisterQuestion { question: Instance, fee_scale: FeeScale, named: Vec<Instance> },
+    RegisterQuestion {
+        /// The template instance the question is made from (`questionTemplateInstance`).
+        question: Instance,
+        /// The deployer's fee scale (`deployerFeeScale`), sent inside the question's instance.
+        fee_scale: FeeScale,
+        /// The named outcomes' template instances (`namedOutcomeTemplateInstances`), at least one.
+        named: Vec<Instance>,
+    },
     /// `registerAndAssociateNamedOutcomeFromTemplate`: one more named outcome
     /// on a live question, at the question's fee scale.
-    RegisterAndAssociate { question: u32, named: Instance },
+    RegisterAndAssociate {
+        /// The question's id.
+        question: u32,
+        /// The new named outcome's template instance (`namedOutcomeTemplateInstance`).
+        named: Instance,
+    },
     /// `settleOutcome`. Pays out at once and cannot be undone.
     SettleOutcome(Settlement),
     /// `settleQuestion2`: every named outcome of the question not yet
     /// settled, exactly one of them at 1, the fallback left out. Pays out at
     /// once and cannot be undone.
-    SettleQuestion { question: u32, settlements: Vec<Settlement>, name: String, description: String },
+    SettleQuestion {
+        /// The question's id.
+        question: u32,
+        /// One settlement per named outcome left (`outcomeSettlements`).
+        settlements: Vec<Settlement>,
+        /// The question's name as `outcomeMeta` lists it, sent first in `nameAndDescription`.
+        name: String,
+        /// The question's description as `outcomeMeta` lists it, sent second in `nameAndDescription`.
+        description: String,
+    },
     /// `setSubDeployers`.
     SetSubDeployers(Vec<Grant>),
 }
@@ -63,6 +89,7 @@ impl Operation {
         matches!(self, Operation::SettleOutcome(_) | Operation::SettleQuestion { .. })
     }
 
+    /// The value sent under [`wire_name`](Self::wire_name).
     #[must_use]
     pub fn body(&self) -> Value {
         match self {

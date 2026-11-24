@@ -47,16 +47,19 @@ impl Keywords {
         }
     }
 
+    /// The value given for `keyword`; `None` when there is none.
     #[must_use]
     pub fn get(&self, keyword: &str) -> Option<&str> {
         self.0.get(keyword).map(String::as_str)
     }
 
+    /// How many keywords have a value.
     #[must_use]
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
+    /// Whether no keyword has a value.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()

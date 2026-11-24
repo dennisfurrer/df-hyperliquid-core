@@ -12,6 +12,7 @@ pub fn spot_deploy_state_request(user: Address) -> String {
     user_request("spotDeployState", user)
 }
 
+/// The account's unfinished spot token deployments and the current token auction.
 pub async fn spot_deploy_state(transport: &impl Transport, user: Address) -> Result<SpotDeployState, ApiError> {
     info(transport, spot_deploy_state_request(user)).await
 }
@@ -22,10 +23,12 @@ pub fn spot_pair_deploy_auction_request() -> String {
     info_request("spotPairDeployAuctionStatus", &[])
 }
 
+/// The current round of the spot pair deploy auction.
 pub async fn spot_pair_deploy_auction(transport: &impl Transport) -> Result<GasAuction, ApiError> {
     info(transport, spot_pair_deploy_auction_request()).await
 }
 
+/// What `spotDeployState` answers for one account.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotDeployState {
@@ -42,9 +45,12 @@ pub struct SpotDeployState {
 pub struct DeployingToken {
     /// Its index, claimed by the first step.
     pub token: u32,
+    /// The name, size decimals and wei decimals registered.
     pub spec: TokenSpec,
+    /// The full name (`fullName`), when one was registered.
     #[serde(default)]
     pub full_name: Option<String>,
+    /// The deployer's share of trading fees (`deployerTradingFeeShare`), as a fraction.
     #[serde(default)]
     pub deployer_trading_fee_share: Option<Dec>,
     /// The pairs registered for it so far, by pair index.
@@ -53,14 +59,20 @@ pub struct DeployingToken {
     /// Set by genesis.
     #[serde(default)]
     pub max_supply: Option<Dec>,
+    /// The supply kept for hyperliquidity at genesis (`hyperliquidityGenesisBalance`).
     #[serde(default)]
     pub hyperliquidity_genesis_balance: Option<Dec>,
+    /// The total given out at genesis, in wei (`totalGenesisBalanceWei`).
     #[serde(default)]
     pub total_genesis_balance_wei: Option<Dec>,
+    /// What each address was given by the user genesis steps (`userGenesisBalances`).
     #[serde(default)]
     pub user_genesis_balances: Vec<(Address, Dec)>,
+    /// What was shared among the holders of each existing token (`existingTokenGenesisBalances`), by
+    /// token index.
     #[serde(default)]
     pub existing_token_genesis_balances: Vec<(u32, Dec)>,
+    /// Addresses blacklisted from holding the token (`blacklistUsers`).
     #[serde(default)]
     pub blacklist_users: Vec<Address>,
 }
@@ -69,8 +81,11 @@ pub struct DeployingToken {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenSpec {
+    /// The token's name.
     pub name: String,
+    /// Size decimals (`szDecimals`): how many decimal places a spot order size may have.
     pub sz_decimals: u32,
+    /// Wei decimals (`weiDecimals`): how many decimal places a balance is kept to.
     pub wei_decimals: u32,
 }
 

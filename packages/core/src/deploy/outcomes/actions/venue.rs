@@ -11,6 +11,7 @@ use crate::deploy::outcomes::actions::error::DeployError;
 pub struct Venue(String);
 
 impl Venue {
+    /// The name as sent.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0

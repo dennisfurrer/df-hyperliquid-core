@@ -9,7 +9,10 @@ use crate::utils::sign::{L1Action, Map, Value};
 pub enum EvmFinalizer {
     /// `{"create":{"nonce"}}`: the contract was deployed from an account,
     /// which sends this with the EVM nonce it deployed at.
-    Create { nonce: u64 },
+    Create {
+        /// The EVM nonce the deploying account used.
+        nonce: u64,
+    },
     /// `"firstStorageSlot"`: the contract's first storage slot holds the
     /// sender's address.
     FirstStorageSlot,
@@ -35,7 +38,9 @@ impl EvmFinalizer {
 /// asked for. Not nested in `spotDeploy`. Linking cannot be undone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FinalizeEvmContract {
+    /// The spot token index being linked.
     pub token: u32,
+    /// How the sender shows it deployed the contract.
     pub input: EvmFinalizer,
 }
 

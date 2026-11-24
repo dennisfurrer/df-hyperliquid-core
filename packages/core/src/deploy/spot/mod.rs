@@ -25,31 +25,70 @@ use crate::utils::{Address, Dec};
 pub enum SpotDeploy {
     /// `registerToken2`: claims a token index, paying the token auction up
     /// to `max_gas`. `fullName` is left out when `None`.
-    RegisterToken2 { spec: TokenSpec, max_gas: u64, full_name: Option<String> },
+    RegisterToken2 {
+        /// The name, size decimals and wei decimals to register.
+        spec: TokenSpec,
+        /// The most to pay for the token auction (`maxGas`), in native token wei.
+        max_gas: u64,
+        /// The full name (`fullName`); `None` leaves it out.
+        full_name: Option<String>,
+    },
     /// `userGenesis`: wei for addresses, wei shared among the holders of
     /// existing tokens, and addresses to blacklist (`true`) or take off the
     /// blacklist (`false`). `blacklistUsers` is left out when empty.
     UserGenesis {
+        /// The token index.
         token: u32,
+        /// Wei given to each address (`userAndWei`).
         user_and_wei: Vec<(Address, u128)>,
+        /// Wei shared among the holders of each existing token, by token index (`existingTokenAndWei`).
         existing_token_and_wei: Vec<(u32, u128)>,
+        /// Addresses to blacklist (`true`) or take off the blacklist (`false`) (`blacklistUsers`).
         blacklist_users: Vec<(Address, bool)>,
     },
     /// `genesis`: the maximum supply in wei, which must equal what the
     /// user genesis steps gave out. `noHyperliquidity` is sent, as `true`,
     /// only when set.
-    Genesis { token: u32, max_supply: u128, no_hyperliquidity: bool },
+    Genesis {
+        /// The token index.
+        token: u32,
+        /// The maximum supply in wei (`maxSupply`), sent as a string.
+        max_supply: u128,
+        /// `true` deploys without hyperliquidity (`noHyperliquidity`).
+        no_hyperliquidity: bool,
+    },
     /// `registerSpot`: the pair of a base and a quote token. Between two
     /// existing tokens it pays the spot pair auction.
-    RegisterSpot { base: u32, quote: u32 },
+    RegisterSpot {
+        /// The base token index, sent first in `tokens`.
+        base: u32,
+        /// The quote token index, sent second in `tokens`.
+        quote: u32,
+    },
     /// `registerHyperliquidity`: the pair index (not the token's), the
     /// starting price, each order's size in tokens (not wei), the number of
     /// orders (0 after a genesis with no hyperliquidity) and the number of
     /// levels seeded with USDC. `nSeededLevels` is left out when `None`.
-    RegisterHyperliquidity { spot: u32, start_px: Dec, order_sz: Dec, n_orders: u32, n_seeded_levels: Option<u32> },
+    RegisterHyperliquidity {
+        /// The spot pair index.
+        spot: u32,
+        /// The starting price (`startPx`).
+        start_px: Dec,
+        /// Each order's size in tokens, not wei (`orderSz`).
+        order_sz: Dec,
+        /// The number of orders (`nOrders`).
+        n_orders: u32,
+        /// The number of levels seeded with USDC (`nSeededLevels`); `None` leaves it out.
+        n_seeded_levels: Option<u32>,
+    },
     /// `setDeployerTradingFeeShare`, at any time after `registerToken2`, and
     /// again only to lower it.
-    SetDeployerTradingFeeShare { token: u32, share: FeeShare },
+    SetDeployerTradingFeeShare {
+        /// The token index.
+        token: u32,
+        /// The share the deployer keeps.
+        share: FeeShare,
+    },
     /// `enableQuoteToken`: lets the token quote spot pairs.
     EnableQuoteToken(u32),
     /// `enableAlignedQuoteToken`: makes the token an aligned quote asset.
@@ -60,7 +99,12 @@ pub enum SpotDeploy {
     DisableAlignedQuoteToken(u32),
     /// `setTokenAnnotation`, at any time after `registerToken2`, at most
     /// once a day.
-    SetTokenAnnotation { token: u32, annotation: Annotation },
+    SetTokenAnnotation {
+        /// The token index.
+        token: u32,
+        /// The annotation.
+        annotation: Annotation,
+    },
     /// `setDeployerLabel`: the label shown for the deployer's tokens, set
     /// once per deployer.
     SetDeployerLabel(DexName),
@@ -69,7 +113,14 @@ pub enum SpotDeploy {
     EnableFreezePrivilege(u32),
     /// `freezeUser`: freezes (`true`) or unfreezes (`false`) one holder. In
     /// Hyperliquid's Python SDK; not in the API docs.
-    FreezeUser { token: u32, user: Address, freeze: bool },
+    FreezeUser {
+        /// The token index.
+        token: u32,
+        /// The holder to freeze or unfreeze.
+        user: Address,
+        /// `true` freezes, `false` unfreezes.
+        freeze: bool,
+    },
     /// `revokeFreezePrivilege`: gives the freeze privilege up. In
     /// Hyperliquid's Python SDK; not in the API docs.
     RevokeFreezePrivilege(u32),
@@ -78,7 +129,14 @@ pub enum SpotDeploy {
     /// [`FinalizeEvmContract`]. `evm_extra_wei_decimals` is the EVM
     /// contract's decimals less the token's wei decimals, from -2 to 18.
     /// Linking cannot be undone.
-    RequestEvmContract { token: u32, address: Address, evm_extra_wei_decimals: i8 },
+    RequestEvmContract {
+        /// The token index.
+        token: u32,
+        /// The ERC-20 contract's address on the HyperEVM.
+        address: Address,
+        /// The EVM contract's decimals less the token's wei decimals (`evmExtraWeiDecimals`), from -2 to 18.
+        evm_extra_wei_decimals: i8,
+    },
 }
 
 /// `[key, value]`, the tuple form the venue's lists take.

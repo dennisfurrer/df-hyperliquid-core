@@ -11,9 +11,13 @@ use crate::utils::sign::{Map, Value};
 /// given.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settlement {
+    /// The outcome's id.
     pub outcome: u32,
+    /// The share the first side is paid (`settleFraction`).
     pub fraction: Fraction,
+    /// The outcome's name as `outcomeMeta` lists it, sent first in `nameAndDescription`.
     pub name: String,
+    /// The outcome's description as `outcomeMeta` lists it, sent second in `nameAndDescription`.
     pub description: String,
     /// The first side is the one `fraction` pays.
     pub sides: [String; 2],

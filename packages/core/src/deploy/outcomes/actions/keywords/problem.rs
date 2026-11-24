@@ -9,17 +9,24 @@ pub const MAX_VALUE_LEN: usize = 100;
 /// What is wrong with one keyword's value, in words for the person typing it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Problem {
+    /// A declared keyword with no value, or an empty value.
     Missing,
+    /// A value over [`MAX_VALUE_LEN`] bytes.
     TooLong,
     /// `{`, `}` or `|`, which would break the `keyword:value|...` description
     /// the venue writes from the values.
     Reserved,
+    /// A `dateTime` value not written `YYYYMMDD-HHMM`.
     DateTime,
+    /// A `date` value not written `YYYYMMDD`.
     Date,
+    /// A `shortString` value over [`MAX_SHORT_LEN`](super::MAX_SHORT_LEN) bytes.
     ShortString,
+    /// A `uInt` value with a sign, a leading zero or anything but digits.
     UInt,
     /// A `uInt` of 2^64 or more.
     TooLarge,
+    /// A `uDecimal` value with a sign, an exponent, or a leading or trailing zero.
     UDecimal,
     /// A `dateTime` at or before now.
     Passed,
@@ -27,6 +34,7 @@ pub enum Problem {
     TooFar,
     /// A value for a keyword the template does not declare.
     Unknown,
+    /// A keyword given a value twice.
     Repeated,
 }
 
@@ -62,7 +70,9 @@ impl fmt::Display for Problem {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{keyword} {problem}")]
 pub struct BadValue {
+    /// The keyword whose value is refused.
     pub keyword: String,
+    /// What is wrong with the value.
     pub problem: Problem,
 }
 
