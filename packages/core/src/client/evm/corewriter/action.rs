@@ -16,45 +16,146 @@ use crate::utils::{Address, BadUnits, Dec, HYPE_DECIMALS, USDC_DECIMALS, exact_u
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     /// Action 1. `cloid` 0 is none.
-    LimitOrder { asset: u32, is_buy: bool, limit_px: u64, sz: u64, reduce_only: bool, tif: Tif, cloid: u128 },
+    LimitOrder {
+        /// The asset id, counted as [`Asset`](crate::utils::Asset) counts them.
+        asset: u32,
+        /// Whether the order buys.
+        is_buy: bool,
+        /// `limitPx`: the limit price times 1e8, whatever the market.
+        limit_px: u64,
+        /// The size times 1e8, whatever the market.
+        sz: u64,
+        /// `reduceOnly`: whether the order may only shrink a position.
+        reduce_only: bool,
+        /// `encodedTif`: the time in force.
+        tif: Tif,
+        /// The client order id; 0 is none.
+        cloid: u128,
+    },
     /// Action 2.
-    VaultTransfer { vault: Address, is_deposit: bool, usd: u64 },
+    VaultTransfer {
+        /// The vault's address.
+        vault: Address,
+        /// `isDeposit`: true deposits into the vault, false withdraws from it.
+        is_deposit: bool,
+        /// The amount in USDC at 1e6.
+        usd: u64,
+    },
     /// Action 3.
-    TokenDelegate { validator: Address, wei: u64, is_undelegate: bool },
+    TokenDelegate {
+        /// The validator's address.
+        validator: Address,
+        /// The amount in HYPE at 1e8.
+        wei: u64,
+        /// `isUndelegate`: true takes the stake back from the validator.
+        is_undelegate: bool,
+    },
     /// Action 4.
-    StakingDeposit { wei: u64 },
+    StakingDeposit {
+        /// The amount in HYPE at 1e8, moved from spot into staking.
+        wei: u64,
+    },
     /// Action 5.
-    StakingWithdraw { wei: u64 },
+    StakingWithdraw {
+        /// The amount in HYPE at 1e8, moved from staking back to spot.
+        wei: u64,
+    },
     /// Action 6.
-    SpotSend { destination: Address, token: u64, wei: u64 },
+    SpotSend {
+        /// The receiving address.
+        destination: Address,
+        /// The spot token index.
+        token: u64,
+        /// The amount in the token's `weiDecimals`.
+        wei: u64,
+    },
     /// Action 7.
-    UsdClassTransfer { ntl: u64, to_perp: bool },
+    UsdClassTransfer {
+        /// The amount in USDC at 1e6.
+        ntl: u64,
+        /// `toPerp`: true moves spot USDC to perps, false moves perp USDC to spot.
+        to_perp: bool,
+    },
     /// Action 8. `create_nonce` is read only by [`FinalizeVariant::Create`].
-    FinalizeEvmContract { token: u64, variant: FinalizeVariant, create_nonce: u64 },
+    FinalizeEvmContract {
+        /// The spot token index being linked to its ERC-20.
+        token: u64,
+        /// `encodedFinalizeEvmContractVariant`: how the deployer is proven.
+        variant: FinalizeVariant,
+        /// `createNonce`: the nonce the contract was deployed at.
+        create_nonce: u64,
+    },
     /// Action 9. An empty name makes the wallet the main, unnamed agent.
-    AddApiWallet { wallet: Address, name: String },
+    AddApiWallet {
+        /// The agent wallet's address.
+        wallet: Address,
+        /// The agent's name; empty for the main, unnamed agent.
+        name: String,
+    },
     /// Action 10.
-    CancelByOid { asset: u32, oid: u64 },
+    CancelByOid {
+        /// The asset id of the order's market.
+        asset: u32,
+        /// The order id HyperCore gave the order.
+        oid: u64,
+    },
     /// Action 11.
-    CancelByCloid { asset: u32, cloid: u128 },
+    CancelByCloid {
+        /// The asset id of the order's market.
+        asset: u32,
+        /// The client order id the order was placed with.
+        cloid: u128,
+    },
     /// Action 12.
-    ApproveBuilderFee { max_fee_rate: u64, builder: Address },
+    ApproveBuilderFee {
+        /// `maxFeeRate`: the most the builder may charge, in tenths of a basis point (10 is 0.01%).
+        max_fee_rate: u64,
+        /// The builder's address.
+        builder: Address,
+    },
     /// Action 13. A non-zero `sub_account` sends from that subaccount; a dex of
     /// [`SPOT_DEX`](crate::client::evm::corewriter::SPOT_DEX) is spot.
     SendAsset {
+        /// The receiving address.
         destination: Address,
+        /// `subAccount`: the subaccount to send from, or the zero address for the sender itself.
         sub_account: Address,
+        /// `source_dex`: the dex the asset leaves, or `SPOT_DEX` for spot.
         source_dex: u32,
+        /// `destination_dex`: the dex the asset arrives in, or `SPOT_DEX` for spot.
         destination_dex: u32,
+        /// The token index.
         token: u64,
+        /// The amount in the token's `weiDecimals`.
         wei: u64,
     },
     /// Action 15. `wei` 0 applies the operation to the most there is.
-    BorrowLend { operation: BorrowLendOp, token: u64, wei: u64 },
+    BorrowLend {
+        /// `encodedOperation`: supply, withdraw, borrow or repay.
+        operation: BorrowLendOp,
+        /// The token index.
+        token: u64,
+        /// The amount in the token's `weiDecimals`; 0 is the most there is.
+        wei: u64,
+    },
     /// Action 16.
-    SetAbstraction { user: Address, abstraction: Abstraction },
+    SetAbstraction {
+        /// The master account or subaccount whose mode is set.
+        user: Address,
+        /// The account mode to set.
+        abstraction: Abstraction,
+    },
     /// Action 17. `wei` must be a multiple of the size; 0 merges the most there is.
-    Outcome { operation: OutcomeOp, question: u32, outcome: u32, wei: u64 },
+    Outcome {
+        /// `encodedOperation`: split, merge, merge question or negate.
+        operation: OutcomeOp,
+        /// The HIP-4 question id; must be 0 for split and merge.
+        question: u32,
+        /// The HIP-4 outcome id; must be 0 for merge question.
+        outcome: u32,
+        /// The amount, in the outcome token's `weiDecimals`; 0 merges the most there is.
+        wei: u64,
+    },
 }
 
 /// One field's encoding: a word, or text behind an offset.
@@ -96,6 +197,7 @@ fn encode(fields: &[Field]) -> Vec<u8> {
 }
 
 impl Action {
+    /// The action id that goes in the payload header: 1 to 17, never 14.
     #[must_use]
     pub const fn id(&self) -> u32 {
         match self {

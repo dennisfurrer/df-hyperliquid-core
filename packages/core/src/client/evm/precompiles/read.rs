@@ -11,7 +11,9 @@ use crate::utils::Address;
 /// A typed read: where the call goes, its calldata, and how its answer reads.
 #[derive(Debug, Clone)]
 pub struct Read<T> {
+    /// The precompile's address, `0x...0800` through `0x...0814`.
     pub at: Address,
+    /// The calldata: the ABI-encoded arguments with no selector.
     pub data: Vec<u8>,
     decode: fn(&[u8]) -> Result<T, AbiError>,
 }
@@ -29,11 +31,14 @@ impl<T> Read<T> {
     }
 }
 
+/// Why a precompile read failed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ReadError {
     #[error(transparent)]
+    /// The `eth_call` failed.
     Rpc(#[from] RpcError),
     #[error("the precompile's answer does not fit its struct: {0}")]
+    /// The answer does not decode as the precompile's declared return struct.
     Abi(#[from] AbiError),
 }
 

@@ -14,7 +14,9 @@ use crate::utils::Address;
 pub struct RawAction {
     /// `msg.sender` of `sendRawAction`, the account HyperCore acts for.
     pub user: Address,
+    /// The payload's first byte, the encoding version; 0 when the payload is shorter than the header.
     pub version: u8,
+    /// The action id from bytes 1 to 3 of the payload, big-endian; 0 when the payload is shorter than the header.
     pub id: u32,
     /// The `data` argument as it was logged.
     pub payload: Vec<u8>,

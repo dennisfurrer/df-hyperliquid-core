@@ -7,6 +7,7 @@ use crate::utils::Dec;
 /// A HIP-4 outcome as the chain sees it, the only HIP-4 read on HyperEVM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OutcomeStatus {
+    /// The raw status byte; [`OutcomeStatus::state`] reads it.
     pub status: u8,
     /// 1e8 is 1.0; meaningful once settled.
     pub settled_value: u64,
@@ -17,12 +18,15 @@ pub struct OutcomeStatus {
 /// What [`OutcomeStatus::status`] says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutcomeState {
+    /// Status 0: the outcome id was never created.
     NeverExisted,
+    /// Status 1: the outcome trades and is not yet settled.
     Active,
     /// Settled, its value readable.
     Settled,
     /// Settled and pruned: its value is gone.
     Pruned,
+    /// A status the docs do not name, kept as it came.
     Other(u8),
 }
 
@@ -30,6 +34,7 @@ pub enum OutcomeState {
 pub const SETTLED_DECIMALS: u32 = 8;
 
 impl OutcomeStatus {
+    /// What [`OutcomeStatus::status`] says, by its code.
     #[must_use]
     pub const fn state(&self) -> OutcomeState {
         match self.status {

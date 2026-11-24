@@ -11,16 +11,22 @@ use crate::utils::Address;
 /// Why bytes are not a CoreWriter action this reads.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadAction {
+    /// A log that is not a `RawAction` log from the CoreWriter address, or whose data is not one `bytes` value.
     #[error("not a RawAction log of CoreWriter's")]
     NotRawAction,
+    /// The payload is this many bytes, shorter than the 4-byte header.
     #[error("{0} bytes is shorter than the four-byte header")]
     Short(usize),
+    /// The payload's first byte, an encoding version other than 1.
     #[error("encoding version {0}; the docs give only 1")]
     Version(u8),
+    /// Action id 14, which the docs' table skips.
     #[error("action 14, the gap in the docs' table; it has no published meaning")]
     Gap,
+    /// An action id the docs' table does not have.
     #[error("action {0} is not in the docs' table")]
     UnknownId(u32),
+    /// The fields do not decode against the action's types, or do not fit its Rust fields.
     #[error(transparent)]
     Abi(#[from] AbiError),
 }

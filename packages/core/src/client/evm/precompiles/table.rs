@@ -10,7 +10,9 @@ pub struct Spec {
     pub at: u16,
     /// The `L1Read.sol` function that wraps it.
     pub name: &'static str,
+    /// The arguments as `L1Read.sol` declares them, such as `address user, uint16 perp`.
     pub args: &'static str,
+    /// The return type as `L1Read.sol` declares it, such as `(uint64 withdrawable)`.
     pub returns: &'static str,
 }
 

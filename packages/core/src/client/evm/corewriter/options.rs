@@ -5,14 +5,18 @@
 /// A limit order's time in force.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tif {
+    /// Add liquidity only (post only), code 1.
     Alo,
+    /// Good til cancelled, code 2.
     Gtc,
+    /// Immediate or cancel, code 3.
     Ioc,
     /// A value the docs do not name, kept as it came.
     Other(u8),
 }
 
 impl Tif {
+    /// The `encodedTif` byte: 1, 2 or 3, or the kept code for `Other`.
     #[must_use]
     pub const fn code(self) -> u8 {
         match self {
@@ -23,6 +27,7 @@ impl Tif {
         }
     }
 
+    /// The time in force for an `encodedTif` byte; an unnamed code becomes `Other`.
     #[must_use]
     pub const fn from_code(code: u8) -> Tif {
         match code {
@@ -43,10 +48,12 @@ pub enum FinalizeVariant {
     FirstStorageSlot,
     /// The address in the slot at `keccak256("HyperCore deployer")`.
     CustomStorageSlot,
+    /// A value the docs do not name, kept as it came.
     Other(u8),
 }
 
 impl FinalizeVariant {
+    /// The `encodedFinalizeEvmContractVariant` byte: 1, 2 or 3, or the kept code for `Other`.
     #[must_use]
     pub const fn code(self) -> u8 {
         match self {
@@ -57,6 +64,7 @@ impl FinalizeVariant {
         }
     }
 
+    /// The variant for an `encodedFinalizeEvmContractVariant` byte; an unnamed code becomes `Other`.
     #[must_use]
     pub const fn from_code(code: u8) -> FinalizeVariant {
         match code {
@@ -73,16 +81,20 @@ impl FinalizeVariant {
 /// and 255 are discarded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BorrowLendOp {
+    /// Supply the token to lending, code 0.
     Supply,
+    /// Withdraw the supplied token, code 1.
     Withdraw,
     /// Undocumented.
     Borrow,
     /// Undocumented.
     Repay,
+    /// A value the docs do not name, kept as it came.
     Other(u8),
 }
 
 impl BorrowLendOp {
+    /// The `encodedOperation` byte: 0 to 3, or the kept code for `Other`.
     #[must_use]
     pub const fn code(self) -> u8 {
         match self {
@@ -94,6 +106,7 @@ impl BorrowLendOp {
         }
     }
 
+    /// The operation for an `encodedOperation` byte; an unnamed code becomes `Other`.
     #[must_use]
     pub const fn from_code(code: u8) -> BorrowLendOp {
         match code {
@@ -109,13 +122,18 @@ impl BorrowLendOp {
 /// An account mode (action 16), for the master account or a subaccount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Abstraction {
+    /// No account abstraction, code 1.
     Disabled,
+    /// Unified account, code 2.
     UnifiedAccount,
+    /// Portfolio margin, code 3.
     PortfolioMargin,
+    /// A value the docs do not name, kept as it came.
     Other(u8),
 }
 
 impl Abstraction {
+    /// The `abstraction` byte: 1, 2 or 3, or the kept code for `Other`.
     #[must_use]
     pub const fn code(self) -> u8 {
         match self {
@@ -126,6 +144,7 @@ impl Abstraction {
         }
     }
 
+    /// The mode for an `abstraction` byte; an unnamed code becomes `Other`.
     #[must_use]
     pub const fn from_code(code: u8) -> Abstraction {
         match code {
@@ -142,14 +161,20 @@ impl Abstraction {
 /// merge question ignores `outcome`, negate uses both.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OutcomeOp {
+    /// Quote tokens into as many of each side of an outcome, code 0.
     SplitOutcome,
+    /// One of each side of an outcome back into a quote token, code 1.
     MergeOutcome,
+    /// A Yes of every outcome of a question back into a quote token, code 2.
     MergeQuestion,
+    /// An outcome's No into a Yes of every other outcome of its question, code 3.
     NegateOutcome,
+    /// A value the docs do not name, kept as it came.
     Other(u8),
 }
 
 impl OutcomeOp {
+    /// The `encodedOperation` byte: 0 to 3, or the kept code for `Other`.
     #[must_use]
     pub const fn code(self) -> u8 {
         match self {
@@ -161,6 +186,7 @@ impl OutcomeOp {
         }
     }
 
+    /// The operation for an `encodedOperation` byte; an unnamed code becomes `Other`.
     #[must_use]
     pub const fn from_code(code: u8) -> OutcomeOp {
         match code {

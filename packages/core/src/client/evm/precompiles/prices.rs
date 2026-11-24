@@ -34,7 +34,9 @@ pub fn l1_block_number() -> Read<u64> {
 /// The best bid and offer, scaled as the market's prices are.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Bbo {
+    /// The best bid, unscaled; read it with [`perp_price`] or [`spot_price`].
     pub bid: u64,
+    /// The best ask, unscaled; read it with [`perp_price`] or [`spot_price`].
     pub ask: u64,
 }
 

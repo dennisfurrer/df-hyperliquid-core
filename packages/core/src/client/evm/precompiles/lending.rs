@@ -5,15 +5,21 @@ use crate::client::evm::precompiles::fields::{Fields, tokens};
 use crate::client::evm::precompiles::read::{Arg, Read, read};
 use crate::utils::Address;
 
+/// One side of an account's lending position in a token, in the token's `weiDecimals`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BasisAndValue {
+    /// What went in: the amount supplied or borrowed.
     pub basis: u64,
+    /// What is held or owed now, with interest.
     pub value: u64,
 }
 
+/// An account's lending position in one token, as [`borrow_lend_user_state`] answers it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BorrowLendUserState {
+    /// What the account borrows.
     pub borrow: BasisAndValue,
+    /// What the account supplies.
     pub supply: BasisAndValue,
 }
 
@@ -33,15 +39,24 @@ pub fn borrow_lend_user_state(user: Address, token: u64) -> Read<BorrowLendUserS
     })
 }
 
+/// A token's lending pool, as [`borrow_lend_reserve_state`] answers it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BorrowLendReserveState {
+    /// `borrowYearlyRateBps`: the yearly borrow rate in basis points (500 is 5%).
     pub borrow_yearly_rate_bps: u64,
+    /// `supplyYearlyRateBps`: the yearly supply rate in basis points.
     pub supply_yearly_rate_bps: u64,
+    /// What the pool holds and can lend, in the token's `weiDecimals`.
     pub balance: u64,
+    /// `utilizationBps`: borrowed over supplied, in basis points.
     pub utilization_bps: u64,
+    /// `oraclePx`: the token's oracle price, unscaled.
     pub oracle_px: u64,
+    /// `ltvBps`: the loan-to-value ratio a supply counts at as collateral, in basis points.
     pub ltv_bps: u64,
+    /// `totalSupplied`: all that is supplied, in the token's `weiDecimals`.
     pub total_supplied: u64,
+    /// `totalBorrowed`: all that is borrowed, in the token's `weiDecimals`.
     pub total_borrowed: u64,
 }
 
