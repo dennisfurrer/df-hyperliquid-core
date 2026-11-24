@@ -1,5 +1,6 @@
 //! Deploying on Hyperliquid: spot tokens and their auction, HIP-3 perp dexes, HIP-4 outcome markets
 //! and aligned quote assets.
+pub mod aligned;
 pub mod annotation;
 pub mod auction;
 pub mod dexes;
@@ -10,6 +11,7 @@ pub mod perp;
 pub mod spot;
 pub mod tokens;
 
+pub use aligned::{AqaRole, AuthorizeAqav2Role, ValidatorL1Stream};
 pub use annotation::Annotation;
 pub use auction::GasAuction;
 pub use dexes::{perp_deploy_auction, perp_deploy_auction_request};
