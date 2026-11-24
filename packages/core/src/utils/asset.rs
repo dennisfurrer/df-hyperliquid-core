@@ -77,6 +77,7 @@ impl<'de> serde::Deserialize<'de> for OutcomeSide {
 
 /// What an asset id names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum AssetKind {
     /// A perp on the main dex: its index in `meta.universe`.
     Perp,

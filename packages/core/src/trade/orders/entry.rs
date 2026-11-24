@@ -10,6 +10,7 @@ use crate::utils::rounding::MINIMUM_ORDER_VALUE;
 
 /// At what price an order goes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Price {
     /// `FrontendMarket`, bounded `slippage` (a fraction, 0.01 for 1%) past
     /// `reference`: the mid, or else the mark.

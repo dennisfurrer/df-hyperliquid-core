@@ -41,6 +41,7 @@ pub fn find(rows: &[LedgerUpdate], nonce: u64) -> Option<&LedgerUpdate> {
 
 /// One ledger row.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct LedgerUpdate {
     /// Milliseconds.
     pub time: u64,
@@ -63,6 +64,7 @@ impl LedgerUpdate {
 /// (`"USDC"`, `"HYPE"`). A field not every row of its type carries is an `Option`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum Delta {
     /// `sendAsset`, from `user` to `destination`, possibly between balances.
     #[serde(rename_all = "camelCase")]
@@ -272,6 +274,7 @@ pub enum Delta {
 
 /// A position a liquidation took over: its coin and signed size.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct LiquidatedPosition {
     /// The coin, `ATOM` or `xyz:XYZ100`.
     pub coin: String,

@@ -2,7 +2,7 @@
 //! that spends the nonce of an order signed but never sent.
 
 use df_hyperliquid_core::trade::answer::taken;
-use df_hyperliquid_core::trade::{Asset, Noop, Order, PlaceOrder, ScheduleCancel, Side, Tif, TooSoon};
+use df_hyperliquid_core::trade::{Asset, Noop, Order, PlaceOrder, ScheduleCancel, Side, Tif};
 use df_hyperliquid_core::utils::Json;
 
 use super::{actions, client, dec, signed};
@@ -13,7 +13,8 @@ use crate::support::{NOW, clock};
 async fn a_dead_man_s_switch_is_armed_and_disarmed_and_a_noop_spends_an_unsent_order_s_nonce() {
     let client = client(Venue::mainnet().exchange("default").exchange("default").exchange("default"));
 
-    assert_eq!(ScheduleCancel::arm(NOW + 4_999, clock()), Err(TooSoon { time: NOW + 4_999, earliest: NOW + 5_000 }));
+    let soon = ScheduleCancel::arm(NOW + 4_999, clock()).unwrap_err();
+    assert_eq!((soon.time, soon.earliest), (NOW + 4_999, NOW + 5_000));
     let armed = ScheduleCancel::arm(NOW + 60_000, clock()).unwrap();
     assert_eq!(taken(&client.send(&armed).await.unwrap()), Ok(()));
     assert_eq!(taken(&client.send(&ScheduleCancel::disarm()).await.unwrap()), Ok(()));

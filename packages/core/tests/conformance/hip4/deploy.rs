@@ -8,7 +8,7 @@ use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::deploy::outcomes::{
     ActivateOutcomeDeployer, FeeScale, Fraction, Grant, Hint, Instance, Keywords, OutcomeDeploy, Permission, Venue,
 };
-use df_hyperliquid_core::markets::outcomes::{Outcome, OutcomeMeta, Question, SideSpec};
+use df_hyperliquid_core::markets::outcomes::{Outcome, OutcomeMeta};
 use df_hyperliquid_core::utils::sign::{L1Action, MultiSig};
 use df_hyperliquid_core::utils::{Json, hex};
 
@@ -47,16 +47,35 @@ fn instance(name: &str, json: &Json) -> Instance {
     Instance::new(text(json, "template"), keywords)
 }
 
+/// An `outcomeMeta` row as the venue sends it.
 fn row(outcome: u32, venue: &str, name: &str, description: &str, sides: [&str; 2]) -> Outcome {
-    Outcome {
-        outcome,
-        name: name.to_owned(),
-        description: description.to_owned(),
-        side_specs: sides.iter().map(|side| SideSpec { name: (*side).to_owned() }).collect(),
-        quote_token: Some("USDC".to_owned()),
-        venue: Some(venue.to_owned()),
-        deployer_fee_scale: None,
-    }
+    serde_json::from_value(serde_json::json!({
+        "outcome": outcome,
+        "name": name,
+        "description": description,
+        "sideSpecs": sides.iter().map(|side| serde_json::json!({ "name": side })).collect::<Vec<_>>(),
+        "quoteToken": "USDC",
+        "venue": venue,
+    }))
+    .unwrap()
+}
+
+/// An `outcomeMeta` answer holding `outcomes` and `questions`, as the venue sends it.
+fn meta(outcomes: &[Outcome], questions: serde_json::Value) -> OutcomeMeta {
+    let rows: Vec<serde_json::Value> = outcomes
+        .iter()
+        .map(|row| {
+            serde_json::json!({
+                "outcome": row.outcome,
+                "name": row.name,
+                "description": row.description,
+                "sideSpecs": row.side_specs.iter().map(|side| serde_json::json!({ "name": side.name })).collect::<Vec<_>>(),
+                "quoteToken": row.quote_token,
+                "venue": row.venue,
+            })
+        })
+        .collect();
+    serde_json::from_value(serde_json::json!({ "outcomes": rows, "questions": questions })).unwrap()
 }
 
 fn sides(json: &Json) -> [String; 2] {
@@ -103,24 +122,20 @@ fn built(case: &Json) -> Box<dyn L1Action> {
         _ if given.get("settlements").is_some() => {
             let settlements = list(given, "settlements");
             let outcomes: Vec<Outcome> = settlements.iter().map(|one| settled_row(venue_name, one)).collect();
-            let meta = OutcomeMeta {
-                questions: vec![Question {
-                    question: id("question"),
-                    name: text(given, "name").to_owned(),
-                    description: text(given, "description").to_owned(),
-                    fallback_outcome: None,
-                    named_outcomes: outcomes.iter().map(|row| row.outcome).collect(),
-                    settled_named_outcomes: Vec::new(),
-                }],
-                outcomes,
-                ..OutcomeMeta::default()
-            };
+            let question = serde_json::json!([{
+                "question": id("question"),
+                "name": text(given, "name"),
+                "description": text(given, "description"),
+                "namedOutcomes": outcomes.iter().map(|row| row.outcome).collect::<Vec<_>>(),
+                "settledNamedOutcomes": [],
+            }]);
+            let meta = meta(&outcomes, question);
             let winner = settlements.iter().find(|one| text(one, "fraction") == "1").unwrap();
             let winner = u32::try_from(number(winner, "outcome")).unwrap();
             Box::new(OutcomeDeploy::settle_question(venue, &meta, id("question"), winner).unwrap())
         }
         _ if given.get("fraction").is_some() => {
-            let meta = OutcomeMeta { outcomes: vec![settled_row(venue_name, given)], ..OutcomeMeta::default() };
+            let meta = meta(&[settled_row(venue_name, given)], serde_json::json!([]));
             let fraction: Fraction = text(given, "fraction").parse().unwrap();
             Box::new(OutcomeDeploy::settle_outcome(venue, &meta, id("outcome"), fraction).unwrap())
         }

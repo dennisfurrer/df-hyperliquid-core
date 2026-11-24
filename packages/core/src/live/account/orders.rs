@@ -10,6 +10,7 @@ use serde::Deserialize;
 /// `rejected`, `marginCanceled`, `badAloPxRejected` and the rest the info docs list.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct OrderUpdate {
     /// The order as it stands after the change.
     pub order: OpenOrder,
@@ -21,6 +22,7 @@ pub struct OrderUpdate {
 
 /// `openOrders`: every resting order on one dex, with its trigger and type.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct OpenOrders {
     /// The dex, `""` for the first perp dex.
     pub dex: String,
@@ -33,6 +35,7 @@ pub struct OpenOrders {
 /// `userHistoricalOrders`: orders and what became of them, the latest first.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct HistoricalOrders {
     /// The account the orders belong to.
     pub user: Address,

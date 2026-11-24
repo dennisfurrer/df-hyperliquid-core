@@ -70,6 +70,7 @@ pub fn action_weight(batched: usize) -> u32 {
 
 /// What went out over the last minute.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Spent {
     /// The weight allowed a minute per IP: [`LIMIT`].
     pub limit: u32,
@@ -85,6 +86,7 @@ pub struct Spent {
 
 /// One kind of request in [`Spent`] and what it spent over the last minute.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Kind {
     /// The `/info` read's `type`, such as `l2Book`, or `exchange` for every action.
     pub name: String,

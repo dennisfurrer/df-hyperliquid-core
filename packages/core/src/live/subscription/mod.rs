@@ -11,6 +11,7 @@ use crate::utils::Address;
 /// One feed. A coin is spelled as the venue spells it: `BTC`, `xyz:SP500` (HIP-3), `@107` or
 /// `PURR/USDC` (spot), `#14720` (an outcome side). A `dex` of `""` is the first perp dex.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Subscription {
     /// Every coin's mid on one perp dex. The first dex's also carries spot and outcome mids.
     AllMids {
@@ -177,6 +178,7 @@ pub enum Subscription {
 
 /// Why an object is not a subscription, or a subscription is not one the venue would take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadSubscription {
     /// The value is not a JSON object.
     #[error("a subscription is an object")]

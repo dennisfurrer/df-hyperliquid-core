@@ -3,6 +3,7 @@
 
 /// Why text did not decode as hex.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadHex {
     /// The digits after the prefix were an odd count; holds that count.
     #[error("hex must have an even number of digits, found {0}")]

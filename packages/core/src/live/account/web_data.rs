@@ -8,6 +8,7 @@ use serde::Deserialize;
 /// not list may go; only the listed ones and `abstraction` are read.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct WebData3 {
     /// `userState`: the account's own fields.
     pub user_state: UserState,
@@ -18,6 +19,7 @@ pub struct WebData3 {
 /// `userState` in `webData3`: the account's own fields.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct UserState {
     /// The account.
     pub user: Address,
@@ -48,6 +50,7 @@ pub struct UserState {
 /// One perp dex, in the order the dexes are listed.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PerpDexState {
     /// `totalVaultEquity`: the account's equity in vaults on this dex, USDC.
     pub total_vault_equity: Dec,
@@ -61,6 +64,7 @@ pub struct PerpDexState {
 
 /// A vault the account leads, in `leadingVaults`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct LeadingVault {
     /// The vault's address.
     pub address: Address,

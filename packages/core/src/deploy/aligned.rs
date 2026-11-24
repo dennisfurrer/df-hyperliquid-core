@@ -43,6 +43,7 @@ impl L1Action for ValidatorL1Stream {
 
 /// The two AQAv2 deployer roles. Each stakes 500k HYPE.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum AqaRole {
     /// `technical`: runs minting, redemption and cross-chain transfers.
     Technical,

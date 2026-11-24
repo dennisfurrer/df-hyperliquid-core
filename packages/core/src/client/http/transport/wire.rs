@@ -13,6 +13,7 @@ pub trait Http {
 
 /// An HTTP method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Method {
     /// `GET`.
     Get,
@@ -126,6 +127,7 @@ fn find_header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a st
 
 /// Why a request got no usable answer.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum TransportError {
     /// No answer came back. For `/exchange` that means unknown, not failed:
     /// the action may have landed, so it is never sent again.

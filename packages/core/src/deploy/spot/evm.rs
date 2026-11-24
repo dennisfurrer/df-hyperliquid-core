@@ -6,6 +6,7 @@ use crate::utils::sign::{L1Action, Map, Value};
 /// How the sender of [`FinalizeEvmContract`] shows it deployed the
 /// contract.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum EvmFinalizer {
     /// `{"create":{"nonce"}}`: the contract was deployed from an account,
     /// which sends this with the EVM nonce it deployed at.

@@ -23,6 +23,7 @@ pub async fn settled_outcome(transport: &impl Transport, outcome: u32) -> Result
 /// An outcome as it settled.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SettledOutcome {
     /// The outcome as `outcomeMeta` listed it.
     pub spec: Outcome,
@@ -61,6 +62,7 @@ impl SettledOutcome {
 
 /// A settled leg's question: `{"question":{"active":823},"name","description"}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct SettledQuestion {
     /// The question's id.
     pub question: u32,

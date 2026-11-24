@@ -8,6 +8,7 @@ use crate::utils::dec::Dec;
 /// One round of a deploy auction. Seconds, not milliseconds.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct GasAuction {
     /// When the round started, Unix seconds.
     pub start_time_seconds: u64,

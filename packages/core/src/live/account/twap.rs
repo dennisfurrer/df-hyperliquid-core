@@ -8,6 +8,7 @@ use serde::Deserialize;
 
 /// `twapStates`: the account's running TWAPs on one dex, by id.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct TwapStates {
     /// The dex, `""` for the first perp dex.
     pub dex: String,
@@ -20,6 +21,7 @@ pub struct TwapStates {
 /// One TWAP's settings and how much of it has traded.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TwapState {
     /// The coin it trades.
     pub coin: String,
@@ -46,6 +48,7 @@ pub struct TwapState {
 /// `userTwapSliceFills`: past slices first (`is_snapshot`), then each as it fills.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TwapSliceFills {
     /// The account the fills are for.
     pub user: Address,
@@ -60,6 +63,7 @@ pub struct TwapSliceFills {
 /// A TWAP starting, finishing, being stopped or failing.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TwapEvent {
     /// Seconds, not milliseconds: the venue writes this one so.
     pub time: u64,
@@ -74,6 +78,7 @@ pub struct TwapEvent {
 
 /// The status in a [`TwapEvent`], and why on an error.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct TwapStatus {
     /// `activated`, `finished`, `terminated` or `error`.
     pub status: String,
@@ -85,6 +90,7 @@ pub struct TwapStatus {
 /// `userTwapHistory`: past TWAP events first (`is_snapshot`), then each as it happens.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TwapHistory {
     /// The account the events are for.
     pub user: Address,

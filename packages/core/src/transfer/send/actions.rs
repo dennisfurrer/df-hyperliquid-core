@@ -213,6 +213,7 @@ impl UserAction for Withdraw3 {
 /// to spot for a pooled one (which refuses `spotSend`) or one whose mode is not known (every kind
 /// takes it). Either goes to a person, or through a system address to HyperEVM.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SpotOut {
     /// `spotSend`, for an account that keeps spot apart.
     SpotSend(SpotSend),

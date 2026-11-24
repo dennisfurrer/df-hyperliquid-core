@@ -9,6 +9,7 @@ use serde::Deserialize;
 /// `clearinghouseState`: one dex's clearinghouse (`dex` empty for the first).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DexState {
     /// The dex, `""` for the first perp dex.
     pub dex: String,
@@ -22,6 +23,7 @@ pub struct DexState {
 /// `allDexsClearinghouseState`: every dex's clearinghouse, the first named `""`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct AllDexsState {
     /// The account the states belong to.
     pub user: Address,
@@ -33,6 +35,7 @@ pub struct AllDexsState {
 /// `spotState`: spot balances, outcome sides among them (`+14720`, with no token).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotState {
     /// The account the balances belong to.
     pub user: Address,

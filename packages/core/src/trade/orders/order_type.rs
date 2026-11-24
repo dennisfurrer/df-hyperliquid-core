@@ -6,6 +6,7 @@ use crate::utils::sign::Map;
 
 /// How long an order may rest.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Tif {
     /// Add liquidity only: refused if it would cross.
     Alo,
@@ -33,6 +34,7 @@ impl Tif {
 
 /// Which way a trigger fires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Tpsl {
     /// When the price moves the position's way.
     TakeProfit,
@@ -53,6 +55,7 @@ impl Tpsl {
 
 /// How the orders of one action relate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Grouping {
     /// Each order stands alone.
     #[default]
@@ -77,6 +80,7 @@ impl Grouping {
 
 /// What an order's `t` says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OrderType {
     /// `limit`: rests or crosses as its time in force says.
     Limit(Tif),

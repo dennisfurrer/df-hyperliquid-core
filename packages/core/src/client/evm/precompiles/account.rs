@@ -8,6 +8,7 @@ use crate::utils::Address;
 
 /// One perp position, as [`position`] and [`position2`] answer it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Position {
     /// Signed size in the perp's size decimals; negative is short.
     pub szi: i64,
@@ -49,6 +50,7 @@ pub fn position2(user: Address, perp: u32) -> Read<Position> {
 
 /// One token's balance on HyperCore's spot side, in its `weiDecimals`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct SpotBalance {
     /// The whole balance, including what open orders hold.
     pub total: u64,
@@ -71,6 +73,7 @@ pub fn spot_balance(user: Address, token: u64) -> Read<SpotBalance> {
 
 /// An account's equity in one vault, as [`user_vault_equity`] answers it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct UserVaultEquity {
     /// USDC at 1e6.
     pub equity: u64,
@@ -96,6 +99,7 @@ pub fn withdrawable(user: Address) -> Read<u64> {
 
 /// An account's margin on one perp dex, USDC at 1e6.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct AccountMarginSummary {
     /// `accountValue`: the account's value on the dex, signed.
     pub account_value: i64,

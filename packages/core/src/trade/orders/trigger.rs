@@ -14,6 +14,7 @@ pub const TRIGGER_SLIPPAGE: Dec = Dec::lit::<1>(1);
 
 /// How a take profit or stop loss fills once its trigger fires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ExitPrice {
     /// At market, no worse than `slippage` past the trigger.
     Market {

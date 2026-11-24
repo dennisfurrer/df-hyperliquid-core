@@ -9,6 +9,7 @@ use crate::utils::json::Json;
 
 /// A msgpack value, the parts of the format an action uses. No floats.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Value {
     /// `nil`; JSON `null`.
     Nil,

@@ -109,6 +109,7 @@ impl Readiness {
 
 /// One reason a builder is not ready.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum NotReady {
     /// The builder's main-dex perps account value is under [`BUILDER_MINIMUM`].
     #[error("{value} USDC perps account value, under the {BUILDER_MINIMUM} a builder needs")]

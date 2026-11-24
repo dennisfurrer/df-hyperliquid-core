@@ -9,6 +9,7 @@ use crate::utils::{Address, Asset, AssetKind};
 
 /// What each order pays the builder.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FeeRule {
     /// This many percent of each market kind's cap, cut down to a whole tenth of a basis point: 88 is
     /// 88 of a perp's 100 and 880 of spot's 1000. At most 100.
@@ -120,6 +121,7 @@ impl BuilderSetting {
 /// What the account has approved its builder to charge, as `maxBuilderFee`
 /// last answered or as the last approval the venue took.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum Approved {
     /// Nothing read yet.
     #[default]
@@ -145,6 +147,7 @@ impl Approved {
 
 /// What an order paying a builder needs before it is sent.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Approval {
     /// Nothing: no builder, a fee of 0, or a fee already approved.
     Goes,
@@ -173,6 +176,7 @@ impl Approval {
 /// Why an order cannot go for its builder fee: what is not known is refused
 /// rather than guessed at.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum ApprovalRefused {
     /// What the account has approved is not read yet.
     #[error("the builder fee this account has approved is not read yet; try again in a moment")]

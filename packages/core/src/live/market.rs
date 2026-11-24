@@ -13,6 +13,7 @@ use serde::Deserialize;
 /// resting is `None`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawBbo")]
+#[non_exhaustive]
 pub struct Bbo {
     /// The coin.
     pub coin: String,
@@ -41,6 +42,7 @@ impl From<RawBbo> for Bbo {
 /// `allMids`: every coin's mid on one perp dex, in the order sent. The first dex's (`dex` empty)
 /// also carries spot pairs (`@107`, `PURR/USDC`) and outcome sides (`#14720`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct Mids {
     /// The dex, `""` for the first perp dex and when not sent.
     #[serde(default)]
@@ -61,6 +63,7 @@ impl Mids {
 /// it is (`u`) or as base64 of raw DEFLATE (RFC 1951) over its JSON (`c`), kept as sent: inflating
 /// it needs a decompressor this crate does not carry. The inflated text reads as an [`L2Diff`].
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub enum L2 {
     /// `s`: up to twenty levels a side, as `l2Book` sends them.
     #[serde(rename = "s")]
@@ -90,6 +93,7 @@ pub struct L2Level {
 /// `bids` and `asks` is added or replaced by price; [`L2Diff::apply`] does both.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawL2Diff")]
+#[non_exhaustive]
 pub struct L2Diff {
     /// `c`: the coin.
     pub coin: String,
@@ -127,6 +131,7 @@ impl From<RawL2Diff> for L2Diff {
 
 /// An `l2` diff that does not fit the book it was applied to.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadDiff {
     /// The diff is for another coin than the book.
     #[error("a diff for {diff} applied to the book of {book}")]

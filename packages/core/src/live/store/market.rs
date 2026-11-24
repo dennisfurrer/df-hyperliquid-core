@@ -22,6 +22,7 @@ pub const BARS: usize = 5_000;
 
 /// A market's context, by the kind of market it is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Context<'a> {
     /// A perp's.
     Perp(&'a PerpCtx),

@@ -12,6 +12,7 @@ pub const HYPE_DECIMALS: u32 = 8;
 
 /// Why an amount has no integer form to sign.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadUnits {
     /// Zero or negative, or cut to zero units; holds the amount.
     #[error("{0} is not a positive amount")]

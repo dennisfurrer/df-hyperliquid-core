@@ -14,6 +14,7 @@ pub const MAX_AGENT_VALIDITY_MS: u64 = 180 * 86_400_000;
 /// An expiry that does not lie ahead of `now`, or lies more than 180 days ahead.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("an agent's approval ends ahead of now ({now}) and within 180 days, which {until} does not")]
+#[non_exhaustive]
 pub struct BadExpiry {
     /// The expiry asked for, in milliseconds.
     pub until: u64,

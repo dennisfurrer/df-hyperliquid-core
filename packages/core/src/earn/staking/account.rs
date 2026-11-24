@@ -14,6 +14,7 @@ pub const REWARDS_WINDOW_MS: u64 = 30 * 86_400_000;
 
 /// A withdrawal from staking still on its way to spot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PendingWithdrawal {
     /// The HYPE withdrawn.
     pub amount: Dec,
@@ -47,6 +48,7 @@ pub fn rewards_since(rewards: &[Reward], since_ms: u64) -> Option<Dec> {
 
 /// One account's stake.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Staking {
     /// The account's `delegatorSummary`.
     pub summary: DelegatorSummary,

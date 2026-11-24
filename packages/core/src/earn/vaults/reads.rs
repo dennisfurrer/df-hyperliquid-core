@@ -52,6 +52,7 @@ pub async fn leading_vaults(transport: &impl Transport, user: Address) -> Result
 /// One vault, as `vaultDetails` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct VaultDetails {
     /// The vault's name.
     pub name: String,
@@ -101,6 +102,7 @@ pub struct VaultDetails {
 /// `{"type":"normal"}`.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 #[serde(tag = "type", content = "data", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum Relationship {
     /// A vault anyone may follow, led by a person.
     #[default]
@@ -141,6 +143,7 @@ impl VaultDetails {
 /// One follower of a vault.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Follower {
     /// `None` for the leader's own row, which the venue writes as `"user":"Leader"`.
     #[serde(deserialize_with = "follower_user")]
@@ -184,6 +187,7 @@ fn follower_user<'de, D: serde::Deserializer<'de>>(deserializer: D) -> Result<Op
 /// An account's equity in one vault, as `userVaultEquities` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct VaultEquity {
     /// The vault's address (`vaultAddress`).
     pub vault_address: Address,
@@ -213,6 +217,7 @@ impl VaultEquity {
 
 /// One vault an account leads, as `leadingVaults` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct LeadingVault {
     /// The vault's address.
     pub address: Address,

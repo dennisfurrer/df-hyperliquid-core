@@ -6,6 +6,7 @@ use crate::utils::{Address, Dec};
 
 /// How an asset may be margined.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum MarginMode {
     /// `strictIsolated`: isolated only, and isolated margin cannot be taken
     /// out of an open position.

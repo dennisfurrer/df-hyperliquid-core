@@ -11,6 +11,7 @@ use crate::utils::Dec;
 /// A figure a read back checks: a position's `value` in
 /// `borrowLendUserState`, by token.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Balance {
     /// What is supplied of the token.
     Supplied(u32),
@@ -21,6 +22,7 @@ pub enum Balance {
 /// How the position moves once the action lands. Interest moves it too, so a
 /// read back shows the direction, by about the amount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Change {
     /// Rises by about this amount, in the token.
     Rises(Dec),
@@ -32,6 +34,7 @@ pub enum Change {
 
 /// The position an action changes, and what reading it back should show.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Effect {
     /// The position that changes.
     pub balance: Balance,
@@ -53,6 +56,7 @@ impl Effect {
 
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Plan<A> {
     /// The network the action is signed for.
     pub network: Network,
@@ -68,6 +72,7 @@ pub struct Plan<A> {
 
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refused {
     /// The token has no lending reserve; holds the token index.
     #[error("token {0} has no lending reserve")]

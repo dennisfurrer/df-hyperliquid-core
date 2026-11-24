@@ -8,6 +8,7 @@ use serde::Deserialize;
 /// `userFills`: the last fills first (`is_snapshot`), then each new one as it happens.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct UserFills {
     /// The account the fills are for.
     pub user: Address,
@@ -21,6 +22,7 @@ pub struct UserFills {
 /// One funding payment: on `userFundings`, and as a `userEvents` event on the hour.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Funding {
     /// Milliseconds.
     pub time: u64,
@@ -40,6 +42,7 @@ pub struct Funding {
 /// `userFundings`: past payments first (`is_snapshot`), then one an hour per position.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct UserFundings {
     /// The account the payments are for.
     pub user: Address,
@@ -54,6 +57,7 @@ pub struct UserFundings {
 /// liquidations; past ones first (`is_snapshot`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Ledger {
     /// The account the rows are for.
     pub user: Address,

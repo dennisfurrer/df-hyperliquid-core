@@ -18,6 +18,7 @@ pub fn pre_transfer_check_request(recipient: Address, sender: Address) -> String
 /// charged to the sender on top of the amount as its own `accountActivationGas` ledger row.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PreTransferCheck {
     /// A send to it is refused.
     pub is_sanctioned: bool,

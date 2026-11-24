@@ -178,6 +178,7 @@ impl FromStr for Network {
 
 /// A spot token as the venue names it in each place it appears.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub struct Token {
     /// The token's name in `spotMeta`, such as `USDC`.
     pub name: &'static str,

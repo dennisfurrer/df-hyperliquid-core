@@ -13,6 +13,7 @@ use crate::utils::sign::{L1Action, Map, Value};
 
 /// The order a modify replaces: the venue's id, or the client's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OrderRef {
     /// The venue's order id.
     Oid(u64),
@@ -138,6 +139,7 @@ impl L1Action for BatchModify {
 
 /// What a resting order becomes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Change {
     /// A limit order's new price, size and time in force.
     Limit {

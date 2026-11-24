@@ -16,6 +16,7 @@ pub struct ScheduleCancel {
 /// A scheduled cancel the venue would refuse: under five seconds away.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("a scheduled cancel at {time} is under five seconds away; the earliest is {earliest}")]
+#[non_exhaustive]
 pub struct TooSoon {
     /// The time asked for, unix milliseconds.
     pub time: u64,

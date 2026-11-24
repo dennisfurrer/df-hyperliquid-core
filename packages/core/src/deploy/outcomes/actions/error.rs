@@ -4,6 +4,7 @@
 /// Why an action could not be made: what the venue would refuse, or what
 /// would pay out the wrong way, before anything is signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum DeployError {
     /// A venue name that is not 2 to 4 lower case letters; holds the name.
     #[error("`{0}` is no venue name: a venue is 2 to 4 lower case letters")]

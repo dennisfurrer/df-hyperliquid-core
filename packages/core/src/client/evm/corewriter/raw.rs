@@ -11,6 +11,7 @@ use crate::utils::Address;
 
 /// A `RawAction` log: who sent it, and what it carried.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct RawAction {
     /// `msg.sender` of `sendRawAction`, the account HyperCore acts for.
     pub user: Address,

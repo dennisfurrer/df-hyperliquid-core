@@ -82,6 +82,7 @@ pub struct VaultShare {
 
 /// What an account is worth, by where it sits.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Worth {
     /// Every perp dex's account value.
     pub perps: Dec,

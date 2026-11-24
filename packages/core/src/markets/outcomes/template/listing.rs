@@ -12,6 +12,7 @@ use serde::{
 
 /// What a template makes, as `outcomeTemplates` says in its `role`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TemplateRole {
     /// `{"standaloneOutcome":{"sideNames"}}`: one outcome and its two sides.
     Standalone {
@@ -31,6 +32,7 @@ pub enum TemplateRole {
 
 /// One keyword a template declares, and the kind of value it takes.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Keyword {
     /// The keyword, as it appears in braces in the title and rules.
     pub name: String,
@@ -49,6 +51,7 @@ impl Keyword {
 /// A template as `outcomeTemplates` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawTemplate")]
+#[non_exhaustive]
 pub struct OutcomeTemplate {
     /// The template's id, such as `binaryPrice`.
     pub id: String,
@@ -97,6 +100,7 @@ impl OutcomeTemplate {
 
 /// How the venue writes a row made from a template.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct OnChain {
     /// The row's name: `template:<id>`.
     pub name: String,

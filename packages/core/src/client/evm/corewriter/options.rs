@@ -4,6 +4,7 @@
 
 /// A limit order's time in force.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Tif {
     /// Add liquidity only (post only), code 1.
     Alo,
@@ -41,6 +42,7 @@ impl Tif {
 
 /// How the deployer of an ERC-20 proves it to finalize the link (action 8).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum FinalizeVariant {
     /// The deploying address, with the nonce it deployed at.
     Create,
@@ -80,6 +82,7 @@ impl FinalizeVariant {
 /// chain (observed 2026-08-21), 2 routes as borrow and 3 as repay, and 4, 5
 /// and 255 are discarded.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum BorrowLendOp {
     /// Supply the token to lending, code 0.
     Supply,
@@ -121,6 +124,7 @@ impl BorrowLendOp {
 
 /// An account mode (action 16), for the master account or a subaccount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Abstraction {
     /// No account abstraction, code 1.
     Disabled,
@@ -160,6 +164,7 @@ impl Abstraction {
 /// drops the payload without a word: split and merge ignore `question`,
 /// merge question ignores `outcome`, negate uses both.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OutcomeOp {
     /// Quote tokens into as many of each side of an outcome, code 0.
     SplitOutcome,

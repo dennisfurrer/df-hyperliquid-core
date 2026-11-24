@@ -34,6 +34,7 @@ fn wrap(method: &str, subscription: &Subscription) -> String {
 /// whole `/exchange` body. Either is kept as written, key order and digits, since an action's
 /// signature is over exactly what was built.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Post {
     /// An info read, the body `/info` would take.
     Info(Json),

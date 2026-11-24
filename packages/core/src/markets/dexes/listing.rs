@@ -30,6 +30,7 @@ pub async fn dexes(transport: &impl Transport) -> Result<Dexes, ApiError> {
 
 /// Why `perpDexs` and `allPerpMetas` do not line up.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Misaligned {
     /// The two reads list a different number of dexes.
     #[error("{dexes} dexes and {metas} metas, which should line up one for one")]
@@ -51,6 +52,7 @@ pub enum Misaligned {
 
 /// Every perp dex with its meta.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Dexes {
     /// Every dex as `perpDexs` lists it.
     pub list: PerpDexs,

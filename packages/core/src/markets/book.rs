@@ -57,6 +57,7 @@ pub async fn l2_book(transport: &impl Transport, coin: &str, precision: Precisio
 
 /// One price level: `n` orders resting at `px` for `sz` in all.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct Level {
     /// The price.
     pub px: Dec,
@@ -70,6 +71,7 @@ pub struct Level {
 /// or frame replaces the last.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "Raw")]
+#[non_exhaustive]
 pub struct Book {
     /// The coin, as asked for.
     pub coin: String,

@@ -4,6 +4,7 @@
 /// Which way a policy rate moves, for the three named outcomes of a rate decision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum RateMove {
     /// `increase`: the rate goes up.
     Increase,
@@ -15,6 +16,7 @@ pub enum RateMove {
 
 /// What kind of market a template makes, read from its id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
 pub enum Family {
     /// `binaryPrice`: whether a perp's price is above a threshold at a time.
     BinaryPrice,

@@ -8,6 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Why a figure is not a holding.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadSignedQty {
     /// Not whole contracts.
     #[error(transparent)]

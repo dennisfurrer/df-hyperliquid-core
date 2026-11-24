@@ -13,6 +13,7 @@ use serde_json::value::RawValue;
 
 /// `userEvents`, on the channel `user`: one kind of event a frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum UserEvent {
     /// `fills`: fills of the account's orders.
     Fills(Vec<Fill>),
@@ -73,6 +74,7 @@ impl<'de> Deserialize<'de> for UserEvent {
 
 /// A liquidation the account took part in. The venue writes these keys in snake case.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct Liquidation {
     /// The liquidation's id.
     pub lid: u64,
@@ -88,6 +90,7 @@ pub struct Liquidation {
 
 /// An order the venue canceled.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct Cancel {
     /// The coin the order was on.
     pub coin: String,

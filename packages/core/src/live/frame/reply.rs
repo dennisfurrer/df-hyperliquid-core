@@ -5,6 +5,7 @@ use crate::client::ExchangeResponse;
 
 /// The answer to a post, by the id it was sent with.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Reply {
     /// The id the post was sent with.
     pub id: u64,
@@ -14,6 +15,7 @@ pub struct Reply {
 
 /// What came back for a post, by the `type` of the response.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Answer {
     /// What `/info` would have answered, as written (`null` for an unknown coin's book), for a
     /// read's own type to deserialize.

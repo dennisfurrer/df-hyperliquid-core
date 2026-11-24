@@ -7,6 +7,7 @@ use crate::utils::Address;
 
 /// Why an address may not be approved as an agent.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Reused {
     /// The address is already among the account's agents (`extraAgents`).
     #[error("this address is one of the account's agents already")]

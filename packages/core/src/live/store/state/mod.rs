@@ -24,6 +24,7 @@ use crate::utils::Address;
 
 /// A typed `/info` answer for the store to fold.
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 pub enum Read<'a> {
     /// `l2Book`, ungrouped.
     Book(&'a Book),
@@ -118,6 +119,7 @@ pub enum Read<'a> {
 
 /// What a frame or a read did to the store.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Folded {
     /// Something a view reads changed.
     Changed,
@@ -129,6 +131,7 @@ pub enum Folded {
 
 /// What [`Store::sync`] gives the socket's owner.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Synced {
     /// The frames to send, in order.
     pub frames: Vec<String>,
@@ -139,6 +142,7 @@ pub struct Synced {
 /// A store and a session on two networks: one store is one network and never feeds a session on another.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("this store is on {store} and the session on {session}; one store is one network")]
+#[non_exhaustive]
 pub struct OtherNetwork {
     /// The store's network.
     pub store: Network,

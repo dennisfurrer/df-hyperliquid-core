@@ -33,6 +33,7 @@ fn is_udecimal(text: &str) -> bool {
 /// How a template says a keyword's value is written, by the name
 /// `outcomeTemplates` gives next to each keyword.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Hint {
     /// `YYYYMMDD-HHMM` in UTC, after now and within a year of it.
     DateTime,

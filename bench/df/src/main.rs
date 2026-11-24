@@ -175,7 +175,7 @@ async fn live(secs: u64) -> Result<Value> {
                 _ => tally.other_frames += 1,
             },
             Event::Unreadable(_) => tally.unreadable += 1,
-            Event::Closed { .. } => {}
+            _ => {}
         }
     }
     feed.close();

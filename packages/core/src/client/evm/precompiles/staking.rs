@@ -7,6 +7,7 @@ use crate::utils::Address;
 
 /// One stake delegation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Delegation {
     /// The validator the stake is delegated to.
     pub validator: Address,
@@ -40,6 +41,7 @@ pub fn delegations(user: Address) -> Read<Vec<Delegation>> {
 
 /// Staking totals, HYPE at 1e8.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct DelegatorSummary {
     /// HYPE delegated to validators.
     pub delegated: u64,

@@ -9,6 +9,7 @@ use crate::utils::dec::{Dec, MAX_SCALE};
 
 /// Why text did not read as a [`Dec`]. Each variant holds the text given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadDec {
     /// Empty, an exponent, a second point, or any character other than a
     /// leading sign, digits and one point.

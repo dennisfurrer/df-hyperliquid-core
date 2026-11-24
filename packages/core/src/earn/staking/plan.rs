@@ -10,6 +10,7 @@ use crate::utils::{Address, BadUnits, Dec};
 
 /// A figure a read back checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Balance {
     /// The staking balance free to delegate or withdraw:
     /// `delegatorSummary`'s `undelegated`.
@@ -22,6 +23,7 @@ pub enum Balance {
 
 /// How the figure moves once the action lands: by exactly the amount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Change {
     /// Rises by exactly this much HYPE.
     Up(Dec),
@@ -36,6 +38,7 @@ pub enum Change {
 /// moves by exactly the amount. The other side moves too: spot HYPE for a
 /// deposit, the delegation for a delegate, the queue for a withdrawal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Effect {
     /// The balance that changes.
     pub balance: Balance,
@@ -56,6 +59,7 @@ impl Effect {
 
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Plan<A> {
     /// The network the action is signed for.
     pub network: Network,
@@ -74,6 +78,7 @@ pub struct Plan<A> {
 
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refused {
     /// An amount over what the staking balance or the delegation holds.
     #[error("{amount} HYPE is more than the {held} there is")]

@@ -18,6 +18,7 @@ pub enum ExchangeResponse {
 /// An accepted action. `kind` is `response.type`: `"default"` for a transfer,
 /// `"order"` and the like for actions that answer per item.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Accepted {
     /// `response.type`; empty when the venue gave none.
     pub kind: String,

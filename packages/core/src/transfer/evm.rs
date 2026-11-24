@@ -49,6 +49,7 @@ pub fn system_token(address: Address) -> Option<u64> {
 /// A spot token as it is linked to HyperEVM. Its contract can hold arbitrary code; nothing here
 /// checks its supply or what its `transfer` does.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Linked {
     /// The token's index in `spotMeta`.
     pub index: u64,
@@ -123,6 +124,7 @@ impl Linked {
 
 /// How `destinationRecipient` is written.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum AddressEncoding {
     /// `0x` and hex: an EVM address.
     Hex,

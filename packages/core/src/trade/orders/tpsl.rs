@@ -10,6 +10,7 @@ use crate::utils::rounding::MINIMUM_ORDER_VALUE;
 
 /// How much of a position a take profit or stop loss closes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Covers {
     /// A fixed size.
     Size(Amount),

@@ -10,6 +10,7 @@ pub const MAX_VALUE_LEN: usize = 100;
 
 /// What is wrong with one keyword's value, in words for the person typing it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Problem {
     /// A declared keyword with no value, or an empty value.
     Missing,
@@ -71,6 +72,7 @@ impl fmt::Display for Problem {
 /// A keyword's value the venue would refuse, and why.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{keyword} {problem}")]
+#[non_exhaustive]
 pub struct BadValue {
     /// The keyword whose value is refused.
     pub keyword: String,

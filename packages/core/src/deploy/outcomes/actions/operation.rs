@@ -9,6 +9,7 @@ use crate::utils::sign::{Map, Value};
 
 /// What an `outcomeDeploy` does, under the key naming it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Operation {
     /// `registerStandaloneOutcomeFromTemplate`: one outcome with two sides.
     RegisterStandalone {

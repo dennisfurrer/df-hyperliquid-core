@@ -21,6 +21,7 @@ pub async fn outcome_meta(transport: &impl Transport) -> Result<OutcomeMeta, Api
 /// What `outcomeMeta` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct OutcomeMeta {
     /// Every live outcome.
     #[serde(default)]
@@ -40,6 +41,7 @@ pub struct OutcomeMeta {
 /// character.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Outcome {
     /// The outcome's id.
     pub outcome: u32,
@@ -65,6 +67,7 @@ pub struct Outcome {
 
 /// One side of an outcome as `outcomeMeta` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct SideSpec {
     /// The side's name, such as `Yes`.
     #[serde(default)]
@@ -99,6 +102,7 @@ impl Outcome {
 /// A question: named outcomes, one of which settles at 1, and a fallback.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Question {
     /// The question's id.
     pub question: u32,
@@ -129,6 +133,7 @@ impl Question {
 /// A venue's deployer, and who it lets send each operation.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Deployer {
     /// The deployer's address.
     pub deployer: Address,

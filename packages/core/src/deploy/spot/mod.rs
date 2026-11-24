@@ -22,6 +22,7 @@ use crate::utils::{Address, Dec};
 /// and [`RegisterHyperliquidity`](SpotDeploy::RegisterHyperliquidity). The
 /// rest are optional. Wei amounts are integers in the token's wei decimals.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum SpotDeploy {
     /// `registerToken2`: claims a token index, paying the token auction up
     /// to `max_gas`. `fullName` is left out when `None`.

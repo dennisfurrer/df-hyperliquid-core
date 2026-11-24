@@ -22,6 +22,7 @@ pub const TICKS_PER_UNIT: u32 = 100_000;
 
 /// Why a figure is not a price.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadPx {
     /// Not a decimal, or a negative one; holds the text.
     #[error("`{0}` is not a decimal number")]

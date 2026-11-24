@@ -14,6 +14,7 @@ use crate::utils::Dec;
 /// when set.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct OpenOrder {
     /// `BTC`, `xyz:XYZ100` on a HIP-3 dex, `@107` or `PURR/USDC` for a pair, `#14730`.
     pub coin: String,
@@ -39,6 +40,7 @@ pub struct OpenOrder {
 
 /// What kind of order a `frontendOpenOrders` row is, in the venue's words.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OrderKind {
     /// A limit order (`Limit`).
     Limit,
@@ -114,6 +116,7 @@ impl<'de> Deserialize<'de> for OrderKind {
 /// trigger and what kind of order it is.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FrontendOrder {
     /// `BTC`, `xyz:XYZ100` on a HIP-3 dex, `@107` or `PURR/USDC` for a pair, `#14730`.
     pub coin: String,
@@ -183,6 +186,7 @@ impl FrontendOrder {
 /// a cancel or a rejection: `marginCanceled`, `scheduledCancel` (the dead man's switch),
 /// `minTradeNtlRejected`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OrderState {
     /// Resting on the book, or a trigger waiting to fire (`open`).
     Open,
@@ -236,6 +240,7 @@ impl fmt::Display for OrderState {
 /// `historicalOrders` row, and each order `userHistoricalOrders` sends.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct OrderRecord {
     /// The order as placed.
     pub order: FrontendOrder,

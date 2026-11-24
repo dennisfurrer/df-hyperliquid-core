@@ -10,6 +10,7 @@ use crate::utils::Json;
 /// One perp's annotation, as `perpAnnotation` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PerpAnnotation {
     /// The deployer's category, kept as sent: `indices`, `stocks`, `preipo`.
     pub category: String,
@@ -26,6 +27,7 @@ pub struct PerpAnnotation {
 /// One perp's annotation in `perpConciseAnnotations`: [`PerpAnnotation`] without the description.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ConciseAnnotation {
     /// The deployer's category, kept as sent.
     pub category: String,

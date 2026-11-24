@@ -11,6 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Why a figure is not a size.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadQty {
     /// Not a number of contracts: a sign other than `+`, a character that is not a digit, or too many
     /// contracts to count; holds the text.

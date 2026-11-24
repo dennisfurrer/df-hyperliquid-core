@@ -36,6 +36,7 @@ pub struct DeployerFee {
 /// docs rule out and take each per-coin list in any order, refusing a coin
 /// given twice; the lists go out sorted by coin, as the venue requires.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum PerpDeploy {
     /// `registerAsset2`: an asset with a margin mode. With a schema it also
     /// creates the dex. `max_gas` is in HYPE wei, 8 decimals; `None` (sent as

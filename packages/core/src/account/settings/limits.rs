@@ -103,6 +103,7 @@ pub async fn rate_limit(transport: &impl Transport, user: Address) -> Result<Rat
 
 /// `userRateLimit`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct RateLimit {
     /// USDC traded since the address began: what buys its cap.
     #[serde(rename = "cumVlm")]

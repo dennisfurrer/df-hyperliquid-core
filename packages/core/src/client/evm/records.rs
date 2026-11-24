@@ -11,6 +11,7 @@ use serde::{Deserialize, Deserializer, de};
 /// What `eth_getTransactionReceipt` answers once a transaction is mined.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Receipt {
     /// The hash of the transaction this receipt is for (`transactionHash`).
     pub transaction_hash: B256,
@@ -61,6 +62,7 @@ impl Receipt {
 /// What `eth_getTransactionByHash` answers, mined or still pending.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Transaction {
     /// The transaction hash: `keccak256` of its signed bytes.
     pub hash: B256,
@@ -150,6 +152,7 @@ impl Transaction {
 /// What `eth_getBlockByNumber` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Block {
     /// The block number.
     #[serde(deserialize_with = "quantity")]
@@ -179,6 +182,7 @@ pub struct Block {
 /// A block's transactions: their hashes, or the whole records when asked for.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(untagged)]
+#[non_exhaustive]
 pub enum BlockTransactions {
     /// Only the hashes, when the block is asked for without full transactions.
     Hashes(Vec<B256>),
@@ -189,6 +193,7 @@ pub enum BlockTransactions {
 /// One log, from a receipt or `eth_getLogs`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Log {
     /// The contract that emitted it.
     pub address: Address,
@@ -220,6 +225,7 @@ pub struct Log {
 /// What `eth_feeHistory` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FeeHistory {
     /// The number of the first block in the answer (`oldestBlock`).
     #[serde(deserialize_with = "quantity")]

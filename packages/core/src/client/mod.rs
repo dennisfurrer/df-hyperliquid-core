@@ -35,6 +35,7 @@ pub type Clock = fn() -> u64;
 /// Why an action was not taken. An action whose answer never came
 /// ([`TransportError::Unreachable`]) may have landed, so it is never resent.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum SendError {
     /// Signing failed, or the signature did not recover to the signer. Nothing was sent.
     #[error(transparent)]

@@ -36,6 +36,7 @@ pub async fn candle_snapshot(
 
 /// A candle's width; every interval the venue accepts.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
 pub enum Interval {
     /// `1m`: one minute.
     OneMinute,
@@ -166,6 +167,7 @@ impl<'de> Deserialize<'de> for Interval {
 
 /// One candle, `t` to `T` inclusive. The feed resends it as it forms.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct Candle {
     /// Open time, milliseconds.
     #[serde(rename = "t")]

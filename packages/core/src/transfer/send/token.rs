@@ -13,6 +13,7 @@ pub const HYPE_EVM_DECIMALS: u32 = 18;
 /// One token of `spotMeta`'s `tokens`, the fields a transfer reads.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotToken {
     /// The token's name, `HYPE` or `PURR`.
     pub name: String,
@@ -30,6 +31,7 @@ pub struct SpotToken {
 
 /// A token's ERC-20 on HyperEVM. The venue spells this key in snake case.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct EvmContract {
     /// The ERC-20's address on HyperEVM.
     pub address: Address,

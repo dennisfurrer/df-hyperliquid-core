@@ -70,6 +70,7 @@ pub async fn referral(transport: &impl Transport, user: Address) -> Result<Refer
 /// Reward history is left unread.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Referral {
     /// Who referred the account (`referredBy`); `None` when no one did.
     #[serde(default)]
@@ -93,6 +94,7 @@ pub struct Referral {
 /// What an account traded and was paid in one quote token.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TokenRewards {
     /// The account's own volume in this token (`cumVlm`).
     pub cum_vlm: Dec,
@@ -106,6 +108,7 @@ pub struct TokenRewards {
 
 /// Who referred an account, and under which code.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct ReferredBy {
     /// The address that owns the code.
     pub referrer: Address,
@@ -116,6 +119,7 @@ pub struct ReferredBy {
 /// `stage` is `needToTrade` (with `required`, the volume still to trade),
 /// `needToCreateCode`, or `ready` (with the account's own `code`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct ReferrerState {
     /// `needToTrade`, `needToCreateCode` or `ready`.
     pub stage: String,
@@ -127,6 +131,7 @@ pub struct ReferrerState {
 /// What a [`ReferrerState`] stage carries: the code once made, or the volume still to trade.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ReferrerData {
     /// The account's own code (`code`); `None` until it has made one.
     #[serde(default)]
@@ -146,6 +151,7 @@ pub struct ReferrerData {
 /// One account referred under the code. Per-token figures are left unread.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ReferralState {
     /// The referred account's address.
     pub user: Address,

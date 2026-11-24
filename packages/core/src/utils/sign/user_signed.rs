@@ -15,6 +15,7 @@ use crate::utils::sign::msgpack::Map;
 /// What an action calls its nonce. The older actions (`usdSend`, `spotSend`,
 /// `withdraw3`) say `time`; the number is the same.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum NonceKey {
     /// `nonce`, used by the newer actions.
     Nonce,

@@ -105,6 +105,7 @@ pub async fn delegator_history(transport: &impl Transport, user: Address) -> Res
 /// One validator, as `validatorSummaries` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ValidatorSummary {
     /// The validator's address.
     pub validator: Address,
@@ -140,6 +141,7 @@ pub struct ValidatorSummary {
 /// A validator's figures over one window.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ValidatorStats {
     /// The share of the window the validator was up (`uptimeFraction`), as a fraction.
     pub uptime_fraction: Dec,
@@ -167,6 +169,7 @@ impl ValidatorSummary {
 /// An account's staking totals, as `delegatorSummary` answers them. HYPE.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DelegatorSummary {
     /// Everything delegated to validators.
     pub delegated: Dec,
@@ -181,6 +184,7 @@ pub struct DelegatorSummary {
 /// One delegation, as `delegations` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Delegation {
     /// The validator delegated to.
     pub validator: Address,
@@ -201,6 +205,7 @@ impl Delegation {
 /// One reward credit, as `delegatorRewards` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Reward {
     /// When it was credited, milliseconds.
     pub time: u64,
@@ -213,6 +218,7 @@ pub struct Reward {
 
 /// One row of `delegatorHistory`.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct StakeEvent {
     /// When it happened, milliseconds.
     pub time: u64,
@@ -226,6 +232,7 @@ pub struct StakeEvent {
 /// What a history row did, keyed by its one field's name.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum StakeDelta {
     /// `delegate`: staking balance to a validator, or back.
     #[serde(rename_all = "camelCase")]

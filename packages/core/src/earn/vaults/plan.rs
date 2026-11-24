@@ -10,6 +10,7 @@ use crate::utils::{Address, BadUnits, Dec, USDC_DECIMALS, cut_units};
 
 /// A figure a read back checks.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Balance {
     /// The account's equity in a vault: its `userVaultEquities` row. The perp
     /// USDC on the other side moves by exactly the amount.
@@ -19,6 +20,7 @@ pub enum Balance {
 /// How the equity moves once the action lands. The vault's profit and loss
 /// moves it too, so a read back shows the direction, by about the amount.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Change {
     /// Rises by about this much USDC.
     Rises(Dec),
@@ -28,6 +30,7 @@ pub enum Change {
 
 /// The equity an action changes, and what reading it back should show.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Effect {
     /// The equity that changes.
     pub balance: Balance,
@@ -48,6 +51,7 @@ impl Effect {
 
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Plan<A> {
     /// The network the action is signed for.
     pub network: Network,
@@ -65,6 +69,7 @@ pub struct Plan<A> {
 
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refused {
     /// The vault is closed or takes no deposits; holds its address.
     #[error("{0} takes no deposits")]

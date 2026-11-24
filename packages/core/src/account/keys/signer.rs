@@ -32,6 +32,7 @@ pub struct Signature {
 
 /// Why a signature could not be made, read or checked, or a key could not be read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum SignError {
     /// The key failed to sign the digest.
     #[error("the key could not sign this digest")]

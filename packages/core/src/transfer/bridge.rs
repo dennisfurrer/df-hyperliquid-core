@@ -59,6 +59,7 @@ pub const fn rpc_url(network: Network) -> &'static str {
 
 /// A deposit amount refused before any calldata is made.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadDeposit {
     /// More than six decimal places, which USDC does not count.
     #[error("{0} USDC has more than six decimal places")]

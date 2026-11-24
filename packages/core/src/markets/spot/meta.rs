@@ -31,6 +31,7 @@ pub async fn spot_meta_and_asset_ctxs(transport: &impl Transport) -> Result<Spot
 /// Tokens and pairs. Indexes are the venue's, not places in the list, and differ between networks
 /// (HYPE is 150 on mainnet and 1105 on testnet).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct SpotMeta {
     /// Every token.
     pub tokens: Vec<SpotToken>,
@@ -41,6 +42,7 @@ pub struct SpotMeta {
 /// One token as `spotMeta` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotToken {
     /// The token's name.
     pub name: String,
@@ -80,6 +82,7 @@ impl SpotToken {
 
 /// A token's ERC-20 on HyperEVM. The venue spells this key in snake case.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct EvmContract {
     /// The ERC-20's address on HyperEVM.
     pub address: Address,
@@ -91,6 +94,7 @@ pub struct EvmContract {
 /// One pair as `spotMeta` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotPair {
     /// What the book and fills call it: `PURR/USDC`, or `@107`.
     pub name: String,
@@ -125,6 +129,7 @@ impl SpotPair {
 
 /// A pair with both its tokens: what an order on it needs.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct SpotMarket<'a> {
     /// The pair.
     pub pair: &'a SpotPair,
@@ -243,6 +248,7 @@ pub use crate::markets::context::SpotCtx;
 /// place: they outnumber the pairs.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "(SpotMeta, Vec<SpotCtx>)")]
+#[non_exhaustive]
 pub struct SpotMetaAndAssetCtxs {
     /// Every token and pair.
     pub meta: SpotMeta,

@@ -21,6 +21,7 @@ pub async fn portfolio(transport: &impl Transport, user: Address) -> Result<Port
 
 /// A span the venue samples over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Span {
     /// The last day (`day`).
     Day,
@@ -106,6 +107,7 @@ impl<'de> Deserialize<'de> for Span {
 /// One span's samples, each `(milliseconds, figure)`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct History {
     /// What the account was worth at each sample (`accountValueHistory`), in USDC.
     #[serde(default)]
@@ -121,6 +123,7 @@ pub struct History {
 /// `portfolio`: every span, in the order the venue sends them.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(transparent)]
+#[non_exhaustive]
 pub struct Portfolio {
     /// Each span with its samples, as `(span, samples)`.
     pub spans: Vec<(Span, History)>,

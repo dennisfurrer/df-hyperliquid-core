@@ -50,6 +50,7 @@ impl PerpDexs {
 /// One HIP-3 dex as `perpDexs` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PerpDex {
     /// 2 to 4 lower case letters, the `dex:` of its coins.
     pub name: String,

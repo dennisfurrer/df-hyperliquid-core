@@ -7,6 +7,7 @@ use crate::utils::sign::Map;
 /// A `perpDeploy` variant, by the key it travels under: what a
 /// sub-deployer grant names.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum PerpKind {
     /// `registerAsset2`.
     RegisterAsset2,

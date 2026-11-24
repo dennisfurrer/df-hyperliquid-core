@@ -62,6 +62,7 @@ impl FromIterator<(String, u32)> for Collateral {
 
 /// Where an order's money comes from: the kind of market it is on.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Surface<'a> {
     /// A perp dex, `""` the main one.
     Perps {
@@ -91,6 +92,7 @@ impl Surface<'_> {
 
 /// What a balance pays for.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Pays {
     /// One perp dex's orders, `""` the main dex.
     Perps {
@@ -108,6 +110,7 @@ pub enum Pays {
 /// One balance an order can draw on: a perp dex's margin, a spot token, or
 /// a pooled account's one balance of a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Balance {
     /// The token's index.
     pub token: u32,
@@ -138,6 +141,7 @@ pub fn payer<'a>(balances: &'a [Balance], surface: Surface<'_>, collateral: &Col
 
 /// Where usable money sits.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Source {
     /// One perp dex's own margin.
     Perps {
@@ -156,6 +160,7 @@ pub enum Source {
 
 /// What an account can put on a surface, and where that sits.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Usable {
     /// How much, in `token`, borrowing included.
     pub amount: Dec,

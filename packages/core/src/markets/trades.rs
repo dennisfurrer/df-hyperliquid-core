@@ -23,6 +23,7 @@ pub async fn recent_trades(transport: &impl Transport, coin: &str) -> Result<Vec
 /// One trade on a market's tape.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "Raw")]
+#[non_exhaustive]
 pub struct Trade {
     /// The coin traded.
     pub coin: String,

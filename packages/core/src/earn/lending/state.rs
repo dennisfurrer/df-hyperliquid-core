@@ -44,6 +44,7 @@ pub async fn user_state(transport: &impl Transport, user: Address) -> Result<Use
 /// One token's reserve.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ReserveState {
     /// What a borrower pays a year.
     pub borrow_yearly_rate: Dec,
@@ -74,6 +75,7 @@ pub fn reserve(reserves: &[(u32, ReserveState)], token: u32) -> Option<&ReserveS
 /// health.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct UserState {
     /// `[token index, position]` pairs; zero rows stay listed.
     #[serde(default)]
@@ -88,6 +90,7 @@ pub struct UserState {
 
 /// How near liquidation the venue says an account's lending is.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Risk {
     /// `healthy`.
     Safe,
@@ -150,6 +153,7 @@ impl UserState {
 
 /// One token's position: what is borrowed and what is supplied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[non_exhaustive]
 pub struct Position {
     /// What is borrowed; zero when the venue leaves it out.
     #[serde(default)]
@@ -162,6 +166,7 @@ pub struct Position {
 /// `value` is what is held or owed now, in the token; `basis` what went in.
 /// A live portfolio-margin account wrote positions with no `basis`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[non_exhaustive]
 pub struct Basis {
     /// What went in, in the token; zero when the venue leaves it out.
     #[serde(default)]

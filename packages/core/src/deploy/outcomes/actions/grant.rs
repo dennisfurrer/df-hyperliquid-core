@@ -7,6 +7,7 @@ use crate::utils::sign::Map;
 /// What a sub-deployer may do for a venue: a `setSubDeployers` grant's
 /// `variant`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Permission {
     /// `registerStandaloneOutcomeFromTemplate`.
     RegisterStandalone,

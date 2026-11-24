@@ -33,6 +33,7 @@ impl<T> Read<T> {
 
 /// Why a precompile read failed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum ReadError {
     #[error(transparent)]
     /// The `eth_call` failed.

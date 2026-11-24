@@ -98,6 +98,7 @@ pub fn merge_rates(start_ms: u64, end_ms: u64, windows: Vec<Vec<FundingRate>>) -
 /// One settlement of one perp.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FundingRate {
     /// The perp: `BTC`, or `xyz:XYZ100` on a HIP-3 dex.
     pub coin: String,
@@ -173,6 +174,7 @@ pub fn next_page(start_ms: u64, page: &[UserFunding]) -> Option<u64> {
 
 /// One settlement on one of an account's positions.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct UserFunding {
     /// Unix milliseconds, just past the hour.
     pub time: u64,
@@ -185,6 +187,7 @@ pub struct UserFunding {
 /// One funding settlement on one position.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FundingDelta {
     /// `funding`.
     #[serde(rename = "type")]
@@ -250,6 +253,7 @@ impl PredictedFundings {
 /// One venue's next funding for one perp.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PredictedFunding {
     /// Over the venue's own interval, never rescaled to an hour.
     pub funding_rate: Dec,

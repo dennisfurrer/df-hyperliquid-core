@@ -5,7 +5,7 @@
 
 use df_hyperliquid_core::account::settings::{INITIAL_REQUESTS, OPEN_ORDERS, open_order_cap};
 use df_hyperliquid_core::account::{
-    self, Abstraction, AbstractionMode, AccountRef, ActionKind, CreateSubAccount, Keeping, Key, Refused, SetReferrer,
+    self, Abstraction, AbstractionMode, AccountRef, ActionKind, CreateSubAccount, Keeping, Key, SetReferrer,
     SubAccountSpotTransfer, SubAccountTransfer, SubRefusal, UserSetAbstraction, Why, abstraction, may_sign, rate_limit,
     referral, sub_accounts,
 };
@@ -76,8 +76,12 @@ async fn a_master_opens_a_subaccount_reads_it_where_it_lives_and_funds_it() {
         ]
     );
     assert!(client.http().actions().iter().all(|sent| sent.signer == Some(owner) && sent.vault.is_none()));
-    let wrong = Refused { kind: ActionKind::SubAccountTransfer, why: Why::WrongAccount };
-    assert_eq!(may_sign(ActionKind::SubAccountTransfer, Key::Agent), Err(wrong), "the master's own key moves money");
+    let wrong = may_sign(ActionKind::SubAccountTransfer, Key::Agent).unwrap_err();
+    assert_eq!(
+        (wrong.kind, wrong.why),
+        (ActionKind::SubAccountTransfer, Why::WrongAccount),
+        "the master's own key moves money"
+    );
     assert_eq!(desk.refuses(ActionKind::Order, Some(AssetKind::Spot)), Some(SubRefusal::Spot));
     assert_eq!(desk.refuses(ActionKind::Order, Some(AssetKind::Perp)), None, "its perps trade as the vault");
     assert_eq!(desk.vault_address(), Some(sub));

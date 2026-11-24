@@ -12,6 +12,7 @@ use crate::utils::{Address, Dec, Json};
 /// USDC, or on a spot buy the token bought.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Fill {
     /// `BTC`, `xyz:XYZ100`, `@107`, `#14730`.
     pub coin: String,
@@ -60,6 +61,7 @@ pub struct Fill {
 /// On a fill that was part of a liquidation, on either side of it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FillLiquidation {
     /// The account that was liquidated (`liquidatedUser`); `None` when the venue leaves it out.
     #[serde(default)]
@@ -73,6 +75,7 @@ pub struct FillLiquidation {
 /// A fill of one of a TWAP's slices.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TwapSliceFill {
     /// The slice's fill, in the same shape as any other fill.
     pub fill: Fill,
@@ -85,6 +88,7 @@ pub struct TwapSliceFill {
 /// A figure left out reads as zero.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct UserFees {
     /// The days the tier is read over, today last.
     #[serde(default)]
@@ -124,6 +128,7 @@ impl UserFees {
 /// One day's volume: the account's taking and making, and the venue's.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DailyVolume {
     /// `2026-09-24`.
     pub date: String,
@@ -141,6 +146,7 @@ pub struct DailyVolume {
 /// The base tier every account starts from, and the tiers volume and making earn.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FeeSchedule {
     /// The base rate for taking on perps.
     #[serde(default)]
@@ -168,6 +174,7 @@ pub struct FeeSchedule {
 
 /// The fee tiers: by volume, and by share of the venue's maker volume.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct FeeTiers {
     /// The tiers by fourteen days' volume (`vip`), lowest first.
     pub vip: Vec<VolumeTier>,
@@ -178,6 +185,7 @@ pub struct FeeTiers {
 /// A rate by fourteen days' volume.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct VolumeTier {
     /// The fourteen days' volume, in USDC, from which this tier applies (`ntlCutoff`).
     pub ntl_cutoff: Dec,
@@ -194,6 +202,7 @@ pub struct VolumeTier {
 /// A maker rebate by share of the venue's maker volume.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct MakerTier {
     /// The fraction of the venue's maker volume from which this tier applies
     /// (`makerFractionCutoff`).
@@ -205,6 +214,7 @@ pub struct MakerTier {
 /// A fee discount for staking HYPE: how much stake earns it and how much it takes off.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct StakingDiscount {
     /// The stake needed, in basis points of HYPE's maximum supply (`bpsOfMaxSupply`).
     #[serde(default)]

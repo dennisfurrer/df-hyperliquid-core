@@ -4,6 +4,7 @@
 /// Why a `spotDeploy`, `perpDeploy`, `validatorL1Stream` or `requestEvmContract` action could not
 /// be made: a value outside what the venue's docs allow, caught before anything is signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadDeploy {
     /// A dex name or deployer label that is not 2 to 4 lower case letters.
     #[error("`{0}` is no dex name or deployer label: those are 2 to 4 lower case letters")]

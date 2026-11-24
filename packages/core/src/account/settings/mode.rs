@@ -23,6 +23,7 @@ pub async fn abstraction(transport: &impl Transport, user: Address) -> Result<Ab
 
 /// How an account's balances are kept, as `userAbstraction` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Abstraction {
     /// What a new account answers, never set. Standard: perp and spot apart.
     Default,
@@ -110,6 +111,7 @@ impl<'de> Deserialize<'de> for Abstraction {
 
 /// A mode an account can be set to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum AbstractionMode {
     /// Standard: perp and spot apart.
     Disabled,

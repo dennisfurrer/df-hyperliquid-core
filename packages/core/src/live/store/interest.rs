@@ -14,6 +14,7 @@ use crate::utils::Address;
 /// What a reader needs kept live. A coin is spelled as the venue spells it: `BTC`, `xyz:XYZ100`
 /// (HIP-3), `@107` or `PURR/USDC` (spot), `#14720` (an outcome side).
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Interest {
     /// A market's whole book, ungrouped: its frames name no grouping, so one book a coin.
     Book {
@@ -146,6 +147,7 @@ impl Drop for Handle {
 /// What to tell the socket: what nothing needs any more, then what is newly needed, each in the
 /// order it was first wanted.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Changes {
     /// Subscriptions to drop, sent first.
     pub unsubscribe: Vec<Subscription>,

@@ -26,6 +26,7 @@ pub async fn standing(transport: &impl Transport, user: Address, dexes: &[Dex<'_
 
 /// One perp dex's clearinghouse, by the dex's name.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct DexState {
     /// `""` for the main dex.
     pub dex: String,
@@ -35,6 +36,7 @@ pub struct DexState {
 
 /// One account as last read: its mode, each dex it was read on, and spot.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Standing {
     /// `None` until a read or the socket says.
     pub mode: Option<Abstraction>,

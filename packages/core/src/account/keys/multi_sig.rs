@@ -14,6 +14,7 @@ pub const MOST_SIGNERS: usize = 10;
 
 /// A set of signers the venue would not take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadSigners {
     /// Fewer than one signer, or more than [`MOST_SIGNERS`], once repeats are counted once.
     #[error("a multi-sig account has 1 to {MOST_SIGNERS} signers, not {0}")]

@@ -9,6 +9,7 @@ use crate::utils::dec::{Dec, Round};
 /// market with no book.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PerpCtx {
     /// The mark price (`markPx`).
     pub mark_px: Dec,
@@ -63,6 +64,7 @@ impl PerpCtx {
 /// interest is its circulating supply.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotCtx {
     /// The book name: `PURR/USDC`, `@107` or `#14730`.
     pub coin: String,

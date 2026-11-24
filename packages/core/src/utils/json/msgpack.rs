@@ -6,6 +6,7 @@ use crate::utils::sign::msgpack::{Map, Value};
 
 /// Why a JSON value has no msgpack form the venue would hash the same way.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Unpackable {
     /// A number with a point or an exponent; holds its digits.
     #[error("{0} is not a whole number; the venue hashes decimals as strings, so write it in quotes")]

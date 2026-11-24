@@ -25,6 +25,7 @@ pub trait Transport {
 
 /// Why a read or action through a [`Transport`] gave no usable answer.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum ApiError {
     /// The request got no answer, a non-2xx status, or was rate limited.
     #[error(transparent)]

@@ -28,6 +28,7 @@ pub async fn active_asset_data(
 /// The account on one perp: the leverage in force and what an order on each side may take.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ActiveAssetData {
     /// The account's address.
     pub user: Address,

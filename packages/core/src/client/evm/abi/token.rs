@@ -6,6 +6,7 @@ use crate::utils::Address;
 
 /// A value of some [`Kind`](crate::client::evm::abi::Kind).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Token {
     /// A value of a `uintN`.
     Uint(U256),

@@ -36,6 +36,7 @@ pub async fn perp_dex_status(transport: &impl Transport, dex: Dex<'_>) -> Result
 /// What a HIP-3 dex may hold, as `perpDexLimits` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DexLimits {
     /// Open interest across the dex, in its collateral.
     pub total_oi_cap: Dec,
@@ -59,6 +60,7 @@ impl DexLimits {
 /// What a HIP-3 dex holds, as `perpDexStatus` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DexStatus {
     /// What has come into the dex less what has left, in its collateral.
     pub total_net_deposit: Dec,

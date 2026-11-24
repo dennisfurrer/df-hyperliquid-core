@@ -4,6 +4,7 @@ use std::fmt;
 
 /// Which block a read is at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum BlockTag {
     #[default]
     /// The newest block (`latest`).

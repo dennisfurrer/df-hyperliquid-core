@@ -6,6 +6,7 @@ use crate::utils::Dec;
 
 /// A HIP-4 outcome as the chain sees it, the only HIP-4 read on HyperEVM.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct OutcomeStatus {
     /// The raw status byte; [`OutcomeStatus::state`] reads it.
     pub status: u8,
@@ -17,6 +18,7 @@ pub struct OutcomeStatus {
 
 /// What [`OutcomeStatus::status`] says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OutcomeState {
     /// Status 0: the outcome id was never created.
     NeverExisted,

@@ -109,8 +109,12 @@ async fn a_book_and_the_mids_subscribed_through_the_feed_are_read_from_the_store
     }
     assert_eq!(folded, [Folded::Dropped, Folded::Dropped, Folded::Changed, Folded::Changed], "acks are not state");
 
-    let level = |px: &str, sz: &str, n: u32| Level { px: dec(px), sz: dec(sz), n };
-    assert_eq!(store.best("BTC"), (Some(level("80459.0", "16.87185", 49)), Some(level("80460.0", "4.21967", 21))));
+    let level = |level: Option<Level>| level.map(|level| (level.px, level.sz, level.n));
+    let (bid, ask) = store.best("BTC");
+    assert_eq!(
+        (level(bid), level(ask)),
+        (Some((dec("80459.0"), dec("16.87185"), 49)), Some((dec("80460.0"), dec("4.21967"), 21)))
+    );
     assert_eq!(store.book("BTC").map(|book| (book.time, book.heard)), Some((1_791_480_444_439, NOW)));
     assert_eq!(store.mid("BTC"), Some(dec("80459.5")), "halfway across the held book");
     assert_eq!(store.mid("@107"), Some(dec("82.897")), "a spot pair from the first dex's mids");

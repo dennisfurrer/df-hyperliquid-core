@@ -5,6 +5,7 @@ use crate::utils::Address;
 
 /// One precompile as `L1Read.sol` declares it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Spec {
     /// The low two bytes of its address.
     pub at: u16,

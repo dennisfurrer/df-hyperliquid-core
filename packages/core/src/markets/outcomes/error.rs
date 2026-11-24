@@ -6,6 +6,7 @@ use crate::utils::Dec;
 
 /// What would be refused before anything is signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum OutcomeError {
     /// The side's outcome is too large to have an asset id; holds the coin.
     #[error("outcome {0} has no asset id")]

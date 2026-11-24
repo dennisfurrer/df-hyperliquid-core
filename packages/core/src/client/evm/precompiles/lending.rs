@@ -7,6 +7,7 @@ use crate::utils::Address;
 
 /// One side of an account's lending position in a token, in the token's `weiDecimals`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct BasisAndValue {
     /// What went in: the amount supplied or borrowed.
     pub basis: u64,
@@ -16,6 +17,7 @@ pub struct BasisAndValue {
 
 /// An account's lending position in one token, as [`borrow_lend_user_state`] answers it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct BorrowLendUserState {
     /// What the account borrows.
     pub borrow: BasisAndValue,
@@ -41,6 +43,7 @@ pub fn borrow_lend_user_state(user: Address, token: u64) -> Read<BorrowLendUserS
 
 /// A token's lending pool, as [`borrow_lend_reserve_state`] answers it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct BorrowLendReserveState {
     /// `borrowYearlyRateBps`: the yearly borrow rate in basis points (500 is 5%).
     pub borrow_yearly_rate_bps: u64,

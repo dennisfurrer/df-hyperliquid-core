@@ -10,8 +10,8 @@
 use df_hyperliquid_core::account::{Keeping, LocalKey, Signers, recover};
 use df_hyperliquid_core::client::Network;
 use df_hyperliquid_core::transfer::{
-    AgentSendAsset, Amount, Balance, Change, Ctx, EvmContract, HYPE_SYSTEM, PERP_DEX, SPOT_DEX, SendAsset, SpotOut,
-    SpotSend, SpotToken, UsdClassTransfer, UsdSend, Withdraw3,
+    AgentSendAsset, Amount, Balance, Change, Ctx, HYPE_SYSTEM, PERP_DEX, SPOT_DEX, SendAsset, SpotOut, SpotSend,
+    SpotToken, UsdClassTransfer, UsdSend, Withdraw3,
 };
 use df_hyperliquid_core::utils::sign::{L1Action, UserAction, digest_of_wallet_json};
 use df_hyperliquid_core::utils::{Address, Json, hex};
@@ -124,13 +124,10 @@ fn the_plans_make_the_nktkas_actions() {
     let nonce = file.get("nonce").and_then(Json::as_u64).unwrap();
     for network in Network::ALL {
         let ctx = Ctx { network, account: address(OWN), keeping: Keeping::Apart, nonce };
-        let hype = SpotToken {
-            name: "HYPE".to_owned(),
-            index: 150,
-            token_id: "0x0d01dc56dcaaca66ad901c959b4011ec".to_owned(),
-            wei_decimals: 8,
-            evm_contract: None,
-        };
+        let hype: SpotToken = serde_json::from_str(
+            r#"{"name":"HYPE","index":150,"tokenId":"0x0d01dc56dcaaca66ad901c959b4011ec","weiDecimals":8,"evmContract":null}"#,
+        )
+        .unwrap();
         let class = ctx.class_transfer(amount("12.50"), true).unwrap();
         assert_eq!(class.action.wire(network), built("usdClassTransfer", nonce).wire(network));
         let send = ctx.usd_send(address(FRIEND), amount("7")).unwrap();
@@ -206,23 +203,21 @@ fn crossing(case: &Json) -> SpotToken {
     let token = case.get("token").unwrap();
     let name = text(token, "name");
     let (wei_decimals, evm_contract) = match name {
-        "HYPE" => (8, None),
+        "HYPE" => (8, serde_json::Value::Null),
         "UBTC" => (
             10,
-            Some(EvmContract {
-                address: address("0x9fdbda0a5e284c32744d2f17ee5c74b284993463"),
-                extra_wei_decimals: -2,
-            }),
+            serde_json::json!({ "address": "0x9fdbda0a5e284c32744d2f17ee5c74b284993463", "evm_extra_wei_decimals": -2 }),
         ),
         other => panic!("no such token {other}"),
     };
-    SpotToken {
-        name: name.to_owned(),
-        index: u32::try_from(token.get("index").and_then(Json::as_u64).unwrap()).unwrap(),
-        token_id: text(token, "tokenId").to_owned(),
-        wei_decimals,
-        evm_contract,
-    }
+    serde_json::from_value(serde_json::json!({
+        "name": name,
+        "index": token.get("index").and_then(Json::as_u64).unwrap(),
+        "tokenId": text(token, "tokenId"),
+        "weiDecimals": wei_decimals,
+        "evmContract": evm_contract,
+    }))
+    .unwrap()
 }
 
 /// A pooled account crosses by `sendAsset` from spot to spot, a separate one by `spotSend`, each

@@ -84,7 +84,7 @@ impl Tapped {
                 Event::Frame(frame) => *frame,
                 Event::Unreadable(bad) => return Err(bad.to_string()),
                 Event::Closed { reason, .. } => return Err(format!("the socket closed: {reason}")),
-                Event::Opened => continue,
+                _ => continue,
             };
             let text =
                 timeout(CHANNEL, self.kept.recv()).await.ok().flatten().ok_or("the tap kept no text for a frame")?;

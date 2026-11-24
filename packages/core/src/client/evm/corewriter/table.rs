@@ -29,6 +29,7 @@ pub const SPOT_DEX: u32 = u32::MAX;
 
 /// One row of the docs' action table.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Spec {
     /// The action id, 1 to 17.
     pub id: u32,

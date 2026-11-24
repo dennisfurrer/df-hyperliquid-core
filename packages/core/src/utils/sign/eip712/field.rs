@@ -10,6 +10,7 @@ use crate::utils::sign::msgpack::Value;
 
 /// A typed struct field's value, tagged with its Solidity type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Field<'a> {
     /// `string`, hashed as the keccak of its UTF-8 bytes.
     String(&'a str),

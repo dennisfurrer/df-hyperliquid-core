@@ -13,6 +13,7 @@ pub fn deployer_limits_request(venue: &str) -> String {
 /// What `outcomeDeployerLimits` answers: how many more a venue may register today and how many
 /// more it may hold live. Neither cap is documented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[non_exhaustive]
 pub struct Remaining {
     /// How many more outcomes the venue may register today (`nDailyOutcomesRemaining`).
     #[serde(default, rename = "nDailyOutcomesRemaining")]

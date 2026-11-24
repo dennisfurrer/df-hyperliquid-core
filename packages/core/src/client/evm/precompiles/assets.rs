@@ -8,6 +8,7 @@ use crate::utils::Address;
 
 /// A perp's asset info, as [`perp_asset_info`] answers it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct PerpAssetInfo {
     /// The perp's name, such as `BTC`.
     pub coin: String,
@@ -39,6 +40,7 @@ pub fn perp_asset_info(perp: u32) -> Read<PerpAssetInfo> {
 
 /// A spot pair, as [`spot_info`] answers it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct SpotInfo {
     /// The pair's name, such as `PURR/USDC` or `@107`.
     pub name: String,
@@ -61,6 +63,7 @@ pub fn spot_info(spot: u32) -> Read<SpotInfo> {
 
 /// A token, as [`token_info`] answers it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct TokenInfo {
     /// The token's name, such as `HYPE`.
     pub name: String,
@@ -101,6 +104,7 @@ pub fn token_info(token: u32) -> Read<TokenInfo> {
 
 /// An account holding non-circulating supply.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct UserBalance {
     /// The holding account.
     pub user: Address,
@@ -110,6 +114,7 @@ pub struct UserBalance {
 
 /// A token's supply, as [`token_supply`] answers it, in the token's `weiDecimals`.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct TokenSupply {
     /// `maxSupply`: the most there can ever be.
     pub max_supply: u64,

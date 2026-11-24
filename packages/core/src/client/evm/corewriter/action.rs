@@ -14,6 +14,7 @@ use crate::utils::{Address, BadUnits, Dec, HYPE_DECIMALS, USDC_DECIMALS, exact_u
 
 /// Every action in the docs' table, its fields in their units.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Action {
     /// Action 1. `cloid` 0 is none.
     LimitOrder {

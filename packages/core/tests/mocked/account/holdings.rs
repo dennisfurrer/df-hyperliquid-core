@@ -82,10 +82,7 @@ async fn a_unified_account_draws_every_market_on_spot_and_counts_its_perps_once(
     );
     // Spot USDC less its hold: the main dex's own `withdrawable` (7046.148664) is no balance of its own.
     let free = dec("736222.0525745799");
-    assert_eq!(
-        standing.balances(&collateral()),
-        [Balance { token: USDC, total: dec("1279260.79987858"), available: free, pays: Pays::Any }]
-    );
+    assert_eq!(rows(&standing.balances(&collateral())), [(USDC, dec("1279260.79987858"), free, Pays::Any)]);
     for surface in
         [Surface::Perps { dex: "" }, Surface::Perps { dex: "xyz" }, Surface::Spot { quote: USDC }, Surface::Outcomes]
     {
@@ -132,11 +129,11 @@ async fn a_standard_account_draws_each_ledger_on_its_own_and_counts_its_vaults_b
     assert_eq!(bodies(client.http())[5], read("userVaultEquities", LEADER, ""));
     let perps = |dex: &str| Pays::Perps { dex: dex.to_owned() };
     assert_eq!(
-        standing.balances(&collateral()),
+        rows(&standing.balances(&collateral())),
         [
-            Balance { token: USDC, total: dec("463.943191"), available: dec("463.943191"), pays: perps("") },
-            Balance { token: USDC, total: Dec::ZERO, available: Dec::ZERO, pays: perps("xyz") },
-            Balance { token: USDC, total: dec("246.63995144"), available: dec("246.63995144"), pays: Pays::Spot },
+            (USDC, dec("463.943191"), dec("463.943191"), perps("")),
+            (USDC, Dec::ZERO, Dec::ZERO, perps("xyz")),
+            (USDC, dec("246.63995144"), dec("246.63995144"), Pays::Spot),
         ]
     );
     let on = |dex: &str| Source::Perps { dex: dex.to_owned() };
@@ -176,4 +173,9 @@ async fn a_long_is_read_with_what_a_sell_closing_it_may_take() {
     assert_eq!(active.leverage, btc.leverage, "the leverage in force is the position's");
     assert!(active.max_size(Side::Sell) > btc.size());
     assert!(active.available(Side::Sell) > active.available(Side::Buy), "a sell closes the long first");
+}
+
+/// Each balance as `(token, total, available, pays)`.
+fn rows(balances: &[Balance]) -> Vec<(u32, Dec, Dec, Pays)> {
+    balances.iter().map(|balance| (balance.token, balance.total, balance.available, balance.pays.clone())).collect()
 }

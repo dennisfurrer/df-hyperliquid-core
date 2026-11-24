@@ -15,6 +15,7 @@ pub const LIQUIDATOR_DECIMALS: u32 = 6;
 
 /// Why an amount is not one the backstop liquidator takes.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadLiquidatorTransfer {
     /// An empty dex name, which would mean the main dex.
     #[error("the main dex has no backstop liquidator; name a HIP-3 dex")]

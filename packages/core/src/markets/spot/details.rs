@@ -19,6 +19,7 @@ pub async fn token_details(transport: &impl Transport, token_id: &str) -> Result
 /// One token, as `tokenDetails` answers it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TokenDetails {
     /// The token's name.
     pub name: String,
@@ -65,6 +66,7 @@ pub struct TokenDetails {
 /// What a token was deployed with.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Genesis {
     /// What each address was given at genesis (`userBalances`).
     pub user_balances: Vec<(Address, Dec)>,

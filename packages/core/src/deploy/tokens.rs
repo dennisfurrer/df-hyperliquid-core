@@ -31,6 +31,7 @@ pub async fn spot_pair_deploy_auction(transport: &impl Transport) -> Result<GasA
 /// What `spotDeployState` answers for one account.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotDeployState {
     /// The account's deployments that have not finished, each until it does.
     #[serde(default)]
@@ -47,6 +48,7 @@ pub struct SpotDeployState {
 /// against testnet deploys in progress and the `userGenesis` actions behind them.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct DeployingToken {
     /// Its index, claimed by the first step.
     pub token: u32,

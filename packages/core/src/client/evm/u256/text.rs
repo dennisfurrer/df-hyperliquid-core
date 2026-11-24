@@ -9,6 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 /// Why text does not read as a [`U256`]. Each variant holds the text as given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadQuantity {
     /// Not `0x` and hex digits.
     #[error("`{0}` is not a hex quantity; expected 0x and hex digits")]

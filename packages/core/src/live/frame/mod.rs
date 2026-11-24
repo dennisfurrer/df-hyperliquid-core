@@ -22,6 +22,7 @@ use crate::utils::Json;
 
 /// One frame, by channel.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Frame {
     /// `pong`: the answer to a ping.
     Pong,

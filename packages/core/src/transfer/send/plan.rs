@@ -30,6 +30,7 @@ pub fn key(kind: &str) -> Option<Signers> {
 
 /// A figure a read back checks.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Balance {
     /// What a perp dex lets move out, `clearinghouseState`'s `withdrawable`;
     /// `""` is the main dex.
@@ -41,6 +42,7 @@ pub enum Balance {
 
 /// How the figure moves once the action lands.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Change {
     /// Up by exactly this much.
     Up(Dec),
@@ -53,6 +55,7 @@ pub enum Change {
 
 /// The balance an action changes, and what reading it back should show.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Effect {
     /// The figure to read back.
     pub balance: Balance,
@@ -75,6 +78,7 @@ impl Effect {
 
 /// Exactly what is signed, and what to check once it lands.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Plan<A> {
     /// The network the action is signed for.
     pub network: Network,
@@ -90,6 +94,7 @@ pub struct Plan<A> {
 
 /// Why a move is not signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refused {
     /// A pooled account has one balance, so there is nothing to move between the two named.
     #[error("a pooled account holds USDC in one balance, so there is nothing to move between {0}")]

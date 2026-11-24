@@ -9,6 +9,7 @@ use crate::utils::sign::{L1Action, Map, Value};
 /// What a `borrowLend` does to a reserve, as the action and the ledger row spell it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum Operation {
     /// `supply`: lends the token to the reserve.
     Supply,
@@ -38,6 +39,7 @@ impl Operation {
 
 /// Why a [`BorrowLend`] could not be made.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadLend {
     /// An amount of zero or less; holds the amount given.
     #[error("{0} is not an amount above zero")]

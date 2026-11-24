@@ -19,6 +19,7 @@ pub async fn role(transport: &impl Transport, user: Address) -> Result<Role, Api
 /// What the venue knows an address as.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawRole")]
+#[non_exhaustive]
 pub enum Role {
     /// An ordinary account (`user`).
     User,

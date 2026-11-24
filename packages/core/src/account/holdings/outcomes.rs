@@ -13,6 +13,7 @@ use crate::utils::{Dec, Round};
 
 /// What a fill was, by its `dir`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
 pub enum Direction {
     /// A buy that crossed a book (`Buy`).
     Buy,
@@ -111,6 +112,7 @@ impl serde::Serialize for Direction {
 /// One outcome fill, read from a `userFills` or `userFillsByTime` row. Perp and spot rows come in
 /// the same answer; [`Fill::read`] skips them.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Fill {
     /// The outcome side.
     pub coin: Coin,
@@ -198,6 +200,7 @@ impl Fill {
 
 /// An outcome order resting on the book, read from an `openOrders` row.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct OpenOrder {
     /// The outcome side.
     pub coin: Coin,
@@ -245,6 +248,7 @@ impl OpenOrder {
 
 /// One outcome side held, as the spot side reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Holding {
     /// The outcome side.
     pub coin: Coin,

@@ -10,6 +10,7 @@ use crate::utils::Address;
 
 /// Why bytes are not a CoreWriter action this reads.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadAction {
     /// A log that is not a `RawAction` log from the CoreWriter address, or whose data is not one `bytes` value.
     #[error("not a RawAction log of CoreWriter's")]

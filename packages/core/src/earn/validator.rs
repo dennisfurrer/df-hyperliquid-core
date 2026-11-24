@@ -92,6 +92,7 @@ impl ProfileChange {
 /// `{"type":"CValidatorAction",<variant>:..}`, sent by the validator's own
 /// key.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CValidatorAction {
     /// `register`: a new validator with its profile, whether it starts
     /// unjailed, and its initial self-stake in HYPE wei (8 decimals, as
@@ -128,6 +129,7 @@ impl L1Action for CValidatorAction {
 /// `{"type":"CSignerAction",<variant>:null}`, sent by a validator's signer
 /// key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CSignerAction {
     /// `jailSelf`.
     JailSelf,

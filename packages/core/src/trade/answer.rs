@@ -11,6 +11,7 @@ use serde_json::Value;
 
 /// What the venue said of one order.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum OrderAnswer {
     /// On the book.
     Resting {
@@ -122,6 +123,7 @@ impl OrderAnswer {
 
 /// What the venue said of one cancel, or of a TWAP's cancel.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum CancelAnswer {
     /// `success`: the order or TWAP is cancelled.
     Cancelled,
@@ -144,6 +146,7 @@ impl CancelAnswer {
 
 /// What the venue said of a TWAP.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TwapAnswer {
     /// Running under this id, which `twapCancel` names.
     Running {

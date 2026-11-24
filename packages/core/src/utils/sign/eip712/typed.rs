@@ -18,6 +18,7 @@ use crate::utils::{Address, hex};
 
 /// Why typed data could not be hashed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadTypedData {
     /// The text is not JSON.
     #[error("not JSON: {0}")]
@@ -35,6 +36,7 @@ fn shape(what: impl Into<String>) -> BadTypedData {
 /// Typed data read for a confirm: its primary type, where it is signed, its
 /// message's fields as text, and the digest a signature over it signs.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct TypedData {
     /// `primaryType`: the name of the message's struct type.
     pub primary: String,

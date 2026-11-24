@@ -6,6 +6,7 @@ use crate::utils::json::Json;
 /// Where the text stopped being JSON, counted from one as an editor counts.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("line {line}, column {column}: {message}")]
+#[non_exhaustive]
 pub struct BadJson {
     /// The line, from 1.
     pub line: usize,

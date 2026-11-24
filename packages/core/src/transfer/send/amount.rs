@@ -10,6 +10,7 @@ pub const MAX_DECIMALS: u32 = 8;
 
 /// Why an amount is refused.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadAmount {
     /// Nothing, or only spaces, was given.
     #[error("no amount given")]

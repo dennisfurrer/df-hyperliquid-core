@@ -3,7 +3,7 @@
 //! 2026-10-18, trimmed to the 2026/2027 Premier League question and a recurring one.
 
 use df_hyperliquid_core::markets::outcomes::{
-    self, Book, Family, Fields, Mid, Px, Qty, Remaining, Template, TemplateRole, fill, label,
+    self, Book, Family, Fields, Mid, Px, Qty, Template, TemplateRole, fill, label,
 };
 use df_hyperliquid_core::markets::{Dex, Precision, book, mids};
 use df_hyperliquid_core::trade::{self, OrderAnswer, PlaceOrder, Side};
@@ -142,5 +142,5 @@ async fn a_venue_s_deployer_reads_how_many_more_outcomes_it_may_list() {
     assert_eq!(bodies(&client), [r#"{"type":"outcomeMeta"}"#, r#"{"type":"outcomeDeployerLimits","venue":"out"}"#]);
     assert_eq!(deployer.deployer.to_hex(), "0x0c46eb73fae2816f219fcf11f50d6d3c59b5819e");
     assert_eq!(deployer.sub_deployers.len(), 5);
-    assert_eq!(remaining, Remaining { daily: 793, active: 3 });
+    assert_eq!((remaining.daily, remaining.active), (793, 3));
 }

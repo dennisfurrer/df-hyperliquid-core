@@ -6,6 +6,7 @@ use std::ops::Deref;
 /// (`changed`). Staleness is read from `heard`: a book nobody trades stays the same while it is
 /// still being sent, and is not stale.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Stamped<T> {
     /// The state itself.
     pub value: T,

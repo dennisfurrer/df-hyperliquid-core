@@ -105,6 +105,7 @@ impl Builder {
 /// A builder fee over what the venue lets a builder take on these orders.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("the builder fee of {} is over the {} {} order allows ({})", .fee.tenths(), .cap.tenths(), .kind.one(), .cap)]
+#[non_exhaustive]
 pub struct OverCap {
     /// The fee asked for.
     pub fee: BuilderFee,

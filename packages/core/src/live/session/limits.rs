@@ -41,6 +41,7 @@ impl Default for Limits {
 
 /// Why nothing was sent.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refused {
     /// The session already holds as many subscriptions as its limits allow.
     #[error("{limit} subscriptions is the most this session holds; the venue allows an IP 1000")]

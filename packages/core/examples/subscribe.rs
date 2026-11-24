@@ -47,6 +47,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             },
             Event::Unreadable(bad) => println!("unreadable frame: {bad}"),
             Event::Closed { reason, retry } => println!("closed ({reason}), dialling again in {} ms", retry.after_ms),
+            _ => {}
         }
     }
     feed.close();

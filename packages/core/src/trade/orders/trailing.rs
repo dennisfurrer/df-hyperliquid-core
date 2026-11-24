@@ -11,6 +11,7 @@ use crate::utils::{Asset, Dec};
 
 /// How far the price may fall back from its best before the stop fires.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Retracement {
     /// A percent of the best price: `1.5` is 1.5%, posted as `{"pct":"1.5%"}`.
     Percent(Dec),
@@ -37,6 +38,7 @@ impl Retracement {
 
 /// Why a trailing stop is not one the venue would take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum BadTrailingStop {
     /// The size is not positive; the size given.
     #[error("a trailing stop's size is positive, not {0}")]

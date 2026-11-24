@@ -7,6 +7,7 @@ use crate::account::settings::mode::Abstraction;
 
 /// How an account keeps its balances.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Keeping {
     /// Standard (`default`, `disabled`): each perp dex and spot keep their own.
     Apart,

@@ -10,6 +10,7 @@ use crate::utils::hex;
 
 /// A JSON-RPC error object, as the node wrote it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct NodeError {
     /// The error code; [`NodeError::kind`] says what it means.
     pub code: i64,
@@ -21,6 +22,7 @@ pub struct NodeError {
 
 /// What a [`NodeError`]'s code says, per JSON-RPC and the Ethereum nodes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum ErrorKind {
     /// -32700: the body was not JSON.
     Parse,
@@ -77,6 +79,7 @@ impl fmt::Display for NodeError {
 
 /// What a revert's data says.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Revert {
     /// `Error(string)`, from `require` and `revert("...")`.
     Message(String),
@@ -113,6 +116,7 @@ pub fn read_revert(data: &[u8]) -> Revert {
 
 /// Why a JSON-RPC query failed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum RpcError {
     /// No answer, a rate limit, or an HTTP status with no JSON-RPC error in it.
     #[error(transparent)]

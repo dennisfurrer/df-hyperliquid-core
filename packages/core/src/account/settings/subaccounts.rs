@@ -24,6 +24,7 @@ pub struct AccountRef {
 
 /// What a subaccount does not do, and why.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, thiserror::Error)]
+#[non_exhaustive]
 pub enum SubRefusal {
     /// A spot order.
     #[error("a subaccount places no spot orders here")]
@@ -239,6 +240,7 @@ pub async fn sub_accounts(transport: &impl Transport, master: Address) -> Result
 /// so its figures are never added to its master's.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SubAccount {
     /// The subaccount's name; empty when the venue leaves it out.
     #[serde(default)]

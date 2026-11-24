@@ -41,6 +41,7 @@ impl Default for Timing {
 
 /// What a tick asks of the socket's owner.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Tick {
     /// Nothing to do yet.
     Wait,
@@ -53,6 +54,7 @@ pub enum Tick {
 
 /// What a closed socket leaves behind.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Retry {
     /// Wait this long, then connect again.
     pub after_ms: u64,

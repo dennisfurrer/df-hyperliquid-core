@@ -5,6 +5,7 @@ use crate::live::{BadFrame, Frame, Refused, Retry};
 
 /// What a feed hands back, in the order it happened.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Event {
     /// The socket opened and everything wanted was subscribed again.
     Opened,
@@ -25,6 +26,7 @@ pub enum Event {
 
 /// Why a feed would not send something, or stopped.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum FeedError {
     /// The session refused it; nothing was sent.
     #[error(transparent)]

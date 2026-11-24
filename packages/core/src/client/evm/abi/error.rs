@@ -2,6 +2,7 @@
 
 /// Why an ABI type, signature, value or encoded word is refused.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum AbiError {
     /// A type name that does not parse, as written.
     #[error("`{0}` is not a type this reads")]

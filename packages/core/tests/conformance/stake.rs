@@ -46,12 +46,10 @@ fn built(name: &str, nonce: u64) -> Box<dyn UserAction> {
 /// The plans make the same actions, from a staking balance that holds enough.
 fn planned(name: &str, network: Network, nonce: u64) -> Box<dyn UserAction> {
     let ctx = Ctx { network, nonce, now_ms: nonce };
-    let summary = DelegatorSummary {
-        delegated: Dec::ZERO,
-        undelegated: dec("1000"),
-        total_pending_withdrawal: Dec::ZERO,
-        n_pending_withdrawals: 0,
-    };
+    let summary: DelegatorSummary = serde_json::from_str(
+        r#"{"delegated":"0.0","undelegated":"1000.0","totalPendingWithdrawal":"0.0","nPendingWithdrawals":0}"#,
+    )
+    .unwrap();
     let plan_key = |key: Signers| assert_eq!(key, Signers::Main, "{name}: user-signed");
     match name {
         "cDeposit" => {

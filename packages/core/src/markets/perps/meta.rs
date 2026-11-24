@@ -51,6 +51,7 @@ pub async fn perps_at_open_interest_cap(transport: &impl Transport, dex: Dex<'_>
 /// One dex's perps, in the order their asset ids count.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Meta {
     /// Every perp, in asset id order, delisted ones included.
     pub universe: Vec<PerpAsset>,
@@ -65,6 +66,7 @@ pub struct Meta {
 /// One perp as `meta` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PerpAsset {
     /// What the order book, fills and positions call it: `BTC`, or `xyz:TSLA` on a HIP-3 dex.
     pub name: String,
@@ -157,6 +159,7 @@ pub use crate::markets::context::PerpCtx;
 /// `metaAndAssetCtxs`: `[meta, [ctx, ...]]`, one context per perp, in order.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "(Meta, Vec<PerpCtx>)")]
+#[non_exhaustive]
 pub struct MetaAndAssetCtxs {
     /// The dex's perps.
     pub meta: Meta,

@@ -23,6 +23,7 @@ pub async fn spot_state(transport: &impl Transport, user: Address) -> Result<Spo
 /// no token).
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotState {
     /// Every row, tokens and outcome sides alike.
     pub balances: Vec<SpotBalance>,
@@ -85,6 +86,7 @@ impl SpotState {
 /// One token's row. `total` already includes `hold`.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpotBalance {
     /// The token's name, `USDC` or `HYPE`, or an outcome row's `+92260`, `#92260`, `o458`.
     pub coin: String,
@@ -137,6 +139,7 @@ impl SpotBalance {
 /// How near liquidation a portfolio-margin account stands, by its ratio; the venue liquidates past
 /// 0.95.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Risk {
     /// Below 0.85, or no ratio said.
     #[default]

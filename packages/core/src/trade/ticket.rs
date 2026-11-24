@@ -81,6 +81,7 @@ impl Market {
 /// How much: a size in the base, or a notional in the quote that is cut to
 /// a size at the order's price.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Amount {
     /// A size in the base asset.
     Size(Dec),
@@ -103,6 +104,7 @@ impl Amount {
 
 /// Why the ticket sends nothing.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum Refusal {
     /// A check on the action itself failed.
     #[error(transparent)]

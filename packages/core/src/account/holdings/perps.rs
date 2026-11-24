@@ -35,6 +35,7 @@ pub async fn clearinghouse_state(
 /// How a position is margined.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum MarginMode {
     /// Shares the account's perp balance.
     Cross,
@@ -46,6 +47,7 @@ pub enum MarginMode {
 /// size zero; [`ClearinghouseState::positions`] leaves it out.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ClearinghouseState {
     /// Every position, cross and isolated.
     pub margin_summary: MarginSummary,
@@ -85,6 +87,7 @@ impl ClearinghouseState {
 /// What a set of positions is worth and uses, in the dex's collateral.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct MarginSummary {
     /// What the account is worth on this dex (`accountValue`): collateral plus unrealized profit.
     pub account_value: Dec,
@@ -99,6 +102,7 @@ pub struct MarginSummary {
 
 /// One `assetPositions` row: a position and how the venue nets it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[non_exhaustive]
 pub struct AssetPosition {
     /// `oneWay`: the venue nets a coin's longs and shorts into one position.
     #[serde(rename = "type")]
@@ -110,6 +114,7 @@ pub struct AssetPosition {
 /// One position.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Position {
     /// `BTC` on the main dex, `xyz:XYZ100` on a HIP-3 one.
     pub coin: String,
@@ -183,6 +188,7 @@ impl Position {
 /// never read as none put up.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
+#[non_exhaustive]
 pub enum Leverage {
     /// Margined from the account's shared perp balance.
     Cross {
@@ -231,6 +237,7 @@ impl Leverage {
 /// Funding on one position: positive is paid, negative received.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CumFunding {
     /// Since the account first held the coin.
     pub all_time: Dec,

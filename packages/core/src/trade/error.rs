@@ -6,6 +6,7 @@ use crate::utils::{BadUnits, Dec};
 /// What would be refused, or would trade the wrong way, before anything is
 /// signed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum TradeError {
     /// The slippage is not a fraction from 0 to 0.5; the slippage given.
     #[error("a slippage is a fraction from 0 to 0.5, which {0} is not")]

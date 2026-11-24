@@ -1,7 +1,7 @@
 //! HLP's leader's ledger, read by window as mainnet answers it: the day he made HLP, his early
 //! liquidations, and nothing since his last row.
 
-use df_hyperliquid_core::account::history::{Delta, LedgerUpdate, LiquidatedPosition, ledger};
+use df_hyperliquid_core::account::history::{Delta, LedgerUpdate, ledger};
 use df_hyperliquid_core::{Client, Dec, Network};
 
 use super::{LEADER, address, bodies, dec};
@@ -89,14 +89,17 @@ async fn the_ledger_is_read_window_by_window_liquidations_and_all() {
     assert_eq!((sent_in, deposited), (dec("37945"), dec("37992.216076")), "what three accounts sent in, into HLP");
 
     assert_eq!(kinds(&liquidated), ["liquidation", "deposit", "liquidation"]);
+    let Delta::Liquidation { liquidated_ntl_pos, account_value, leverage_type, liquidated_positions } =
+        &liquidated[0].delta
+    else {
+        panic!("not a liquidation: {:?}", liquidated[0].delta);
+    };
     assert_eq!(
-        liquidated[0].delta,
-        Delta::Liquidation {
-            liquidated_ntl_pos: dec("356.80015"),
-            account_value: dec("2.956494"),
-            leverage_type: "Cross".to_owned(),
-            liquidated_positions: vec![LiquidatedPosition { coin: "ATOM".to_owned(), szi: dec("29.21") }],
-        }
+        (*liquidated_ntl_pos, *account_value, leverage_type.as_str()),
+        (dec("356.80015"), dec("2.956494"), "Cross")
     );
+    let positions: Vec<(&str, Dec)> =
+        liquidated_positions.iter().map(|position| (position.coin.as_str(), position.szi)).collect();
+    assert_eq!(positions, [("ATOM", dec("29.21"))]);
     assert!(since.is_empty());
 }

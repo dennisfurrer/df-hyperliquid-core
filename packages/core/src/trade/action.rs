@@ -11,6 +11,7 @@ use crate::utils::sign::{L1Action, Map};
 
 /// One trading action of any kind, signed as the action it holds.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum TradeAction {
     /// `order`: one or more orders.
     Place(PlaceOrder),

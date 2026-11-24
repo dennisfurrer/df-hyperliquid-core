@@ -6,6 +6,7 @@ use std::fmt;
 
 /// An action, by the `type` the venue knows it as.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[non_exhaustive]
 pub enum ActionKind {
     /// `order`: place orders.
     Order,
@@ -87,6 +88,7 @@ pub enum ActionKind {
 
 /// Which key signs: the one in hand.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Key {
     /// The account's own wallet.
     Main,
@@ -97,6 +99,7 @@ pub enum Key {
 /// Who may sign one kind of action. [`ActionKind::why`] says why an action
 /// takes the main key alone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Signers {
     /// The account's own key only.
     Main,
@@ -114,6 +117,7 @@ impl Signers {
 
 /// Why an action takes the main key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum Why {
     /// User-signed: the signature recovers to the agent, which holds nothing.
     UserSigned,
@@ -135,6 +139,7 @@ impl Why {
 /// An action the key in hand may not sign.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("{kind} is signed by the account's own key: {}", why.words())]
+#[non_exhaustive]
 pub struct Refused {
     /// The action refused.
     pub kind: ActionKind,

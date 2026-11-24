@@ -7,6 +7,7 @@ use crate::client::evm::abi::{AbiError, LONGEST, WORD};
 
 /// A Solidity ABI type.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
 pub enum Kind {
     /// `uintN`, with N the width in bits: 8 to 256 in steps of 8. `uint` reads as `uint256`.
     Uint(u16),

@@ -13,6 +13,7 @@ pub const FLAT_TABLES_BELOW: u32 = 50;
 /// A margin table, as a meta's `marginTables` lists it: the most leverage by position notional.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct MarginTable {
     /// `tiered 40x`; empty on some.
     pub description: String,
@@ -23,6 +24,7 @@ pub struct MarginTable {
 /// From `lower_bound` of notional on, at most `max_leverage`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct MarginTier {
     /// In the dex's collateral.
     pub lower_bound: Dec,
@@ -79,6 +81,7 @@ impl MarginTable {
 
 /// Why a leverage is not one the perp allows.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[non_exhaustive]
 pub enum LeverageError {
     /// Over the perp's `maxLeverage`.
     #[error("{name} allows at most {max}x, not {asked}x")]
