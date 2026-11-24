@@ -6,6 +6,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
 
 mod base;
+mod deploy;
 mod hip4;
 mod lend;
 mod stake;

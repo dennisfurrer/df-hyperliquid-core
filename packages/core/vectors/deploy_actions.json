@@ -1,0 +1,1383 @@
+{
+  "source": "Deploy, HyperEVM link and aligned quote actions, all L1, signed for mainnet with the key below at one nonce. Nothing was sent: each SDK's post was replaced by a recorder.",
+  "key": "0x0123456789012345678901234567890123456789012345678901234567890123",
+  "nonce": 1795000000000,
+  "nktkas": {
+    "source": "@nktkas/hyperliquid 0.33.3: its own spotDeploy, perpDeploy, finalizeEvmContract, validatorL1Stream and authorizeAqav2Role functions through a recording transport; hashes from its createL1ActionHash.",
+    "cases": [
+      {
+        "name": "registerToken2",
+        "action": {
+          "type": "spotDeploy",
+          "registerToken2": {
+            "spec": {
+              "name": "TEST",
+              "szDecimals": 2,
+              "weiDecimals": 8
+            },
+            "maxGas": 1000000000000,
+            "fullName": "Test token"
+          }
+        },
+        "actionHash": "0x637d526e13bf38a4318fbb12e608dac1e508d938daaed77b6388e5957d46f1bb",
+        "signature": {
+          "r": "0x0b4e1fcd504d0608c6a9727ef489181ce095ac3187ccade9ba35ce8ab5d2236c",
+          "s": "0x4addccdbaa548f059e301ec9b231f208b885204c9678129cea64d7b150dfd538",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerToken2NoFullName",
+        "action": {
+          "type": "spotDeploy",
+          "registerToken2": {
+            "spec": {
+              "name": "TEST",
+              "szDecimals": 2,
+              "weiDecimals": 8
+            },
+            "maxGas": 500
+          }
+        },
+        "actionHash": "0x674d18df0d4a05b14f810aaca01428be008114b4d5bf87df6196ceeef361c568",
+        "signature": {
+          "r": "0x9583ade6ec7b94d5300b288af39dbe694ea7ce4093cb505ace53aa92fd25300c",
+          "s": "0x0d83779fc35ce0d2b275cefd7797c135e142a5a6b705616358d9aa193f0211e1",
+          "v": 27
+        }
+      },
+      {
+        "name": "userGenesis",
+        "action": {
+          "type": "spotDeploy",
+          "userGenesis": {
+            "token": 1234,
+            "userAndWei": [
+              [
+                "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+                "100000000000000"
+              ],
+              [
+                "0x2222222222222222222222222222222222222222",
+                "5"
+              ]
+            ],
+            "existingTokenAndWei": [
+              [
+                1,
+                "100000000000000"
+              ]
+            ]
+          }
+        },
+        "actionHash": "0xe1bc4047b065d6a7b25b9abc1c209ac32bf2005477466376f9881afd0b00c20b",
+        "signature": {
+          "r": "0x16dba9fabddf7a4d0ba84264e0f9850bf39c1d05f13ede786bd6fb3cd4be8ccc",
+          "s": "0x377ddd9962a1e46911c1e718f30710e180438dbfeb1434c41e6baebff5c30f48",
+          "v": 28
+        }
+      },
+      {
+        "name": "userGenesisBlacklist",
+        "action": {
+          "type": "spotDeploy",
+          "userGenesis": {
+            "token": 1234,
+            "userAndWei": [],
+            "existingTokenAndWei": [],
+            "blacklistUsers": [
+              [
+                "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+                true
+              ],
+              [
+                "0x2222222222222222222222222222222222222222",
+                false
+              ]
+            ]
+          }
+        },
+        "actionHash": "0x3b5a5f5c0d70c97afeb47d74440ab32466faf2bc26ce64f0f34b2e2bfcf5b680",
+        "signature": {
+          "r": "0x09fa00fdfd4bcb3dfe6537cd3e603af7a01250772448d9430ee63170131250e9",
+          "s": "0x468078863a4a57335ee6ecbf6d7b18e9ae3060779277dcade6b4f0d644aeec9f",
+          "v": 27
+        }
+      },
+      {
+        "name": "genesis",
+        "action": {
+          "type": "spotDeploy",
+          "genesis": {
+            "token": 1234,
+            "maxSupply": "300000000000000"
+          }
+        },
+        "actionHash": "0x597f977116eaededd7f00c780f0b011a9ce105544c90c4e52c66781394bf280f",
+        "signature": {
+          "r": "0xba02d94ea4d0d3b4bc47ba43de6469542db0bdcbec64c75f7e76e602698c4cab",
+          "s": "0x63fe9e921b39f83c9c4e03992b907b72a5c956ce206d05fa1198978ed25d0f0f",
+          "v": 27
+        }
+      },
+      {
+        "name": "genesisNoHyperliquidity",
+        "action": {
+          "type": "spotDeploy",
+          "genesis": {
+            "token": 1234,
+            "maxSupply": "300000000000000",
+            "noHyperliquidity": true
+          }
+        },
+        "actionHash": "0x546943e2cc44b0c4738304a6f19c8ad8e21285f872b344aefea14194bea009f7",
+        "signature": {
+          "r": "0xeb13d31d7ef0ca7ec90a2e42e7209937ae2e90928bb96e7b63f38ceb3fe31f90",
+          "s": "0x3620e9b8329d99db68e77cb599326a5129c400f2a92ef2d1646295cac70dde30",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerSpot",
+        "action": {
+          "type": "spotDeploy",
+          "registerSpot": {
+            "tokens": [
+              1234,
+              0
+            ]
+          }
+        },
+        "actionHash": "0xea22de1c0b6fc3c1088d7b4cfc0f727718a627d417e18f8d1cd3ca6d8959cc6b",
+        "signature": {
+          "r": "0x0bed64f4f7aafe358025ad4b4b560a29faabdfd451a0a18259ec715fbc960bb1",
+          "s": "0x56fdac6543c0c317102fea815823aeeb7da1cf6499746eb6f7cfe159a977b5fe",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerHyperliquidity",
+        "action": {
+          "type": "spotDeploy",
+          "registerHyperliquidity": {
+            "spot": 210,
+            "startPx": "2.5",
+            "orderSz": "4",
+            "nOrders": 100
+          }
+        },
+        "actionHash": "0xce178bd5c9d130e66fa627c269ecbe93b61b4c10b03d6aae480e12480487e6d6",
+        "signature": {
+          "r": "0x09c9ef069642b13daddc8e5cb9be99884a43de4919a31c61ca30f842c8e9890c",
+          "s": "0x5a19c95ffa9a5aec5e35f7a9a767fc5ae618257d1d7d01569086e6802befdb7c",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerHyperliquiditySeeded",
+        "action": {
+          "type": "spotDeploy",
+          "registerHyperliquidity": {
+            "spot": 210,
+            "startPx": "0.0125",
+            "orderSz": "1000.5",
+            "nOrders": 20,
+            "nSeededLevels": 10
+          }
+        },
+        "actionHash": "0x9f09b7296094d6c0118338806634f907c3fd42a4919bf9ae4c67cb634e51005f",
+        "signature": {
+          "r": "0x76c6d7fb719117e3b3504c6ce0d7332399fbb2801f215c5e788b38656f9481d5",
+          "s": "0x71a3246d16f3da50641fac378dc9a529507c59debfc66f2c2a2d76ac574518c1",
+          "v": 28
+        }
+      },
+      {
+        "name": "setDeployerTradingFeeShare",
+        "action": {
+          "type": "spotDeploy",
+          "setDeployerTradingFeeShare": {
+            "token": 1234,
+            "share": "99.4%"
+          }
+        },
+        "actionHash": "0xc24c8450b7d0b67f70f6545dbc447d45588831596aa3d5bdc09ffb18ea12b550",
+        "signature": {
+          "r": "0x0b9d1b1d5eae33f2daa3bca10cc3bfc978652207a1b360067726289bcf571e5e",
+          "s": "0x31458880076f6a981a4e8db9091f88071ce31f15ad9f2b0ac21ac79134a9cd14",
+          "v": 27
+        }
+      },
+      {
+        "name": "enableQuoteToken",
+        "action": {
+          "type": "spotDeploy",
+          "enableQuoteToken": {
+            "token": 1234
+          }
+        },
+        "actionHash": "0x228565aa61c5ad9ec898849ab140189cfa2cda92ac8a862c10827d374ea61a33",
+        "signature": {
+          "r": "0xcc73514430bd18f88d1067e9b6acea9b936ffc5b9708596c08d2efecde428eed",
+          "s": "0x51d74a48565715369a8a9afa485f3834d015cb2e610169fad241fbfb99581dc8",
+          "v": 27
+        }
+      },
+      {
+        "name": "disableQuoteToken",
+        "action": {
+          "type": "spotDeploy",
+          "disableQuoteToken": {
+            "token": 1234
+          }
+        },
+        "actionHash": "0x7dc6bb9ee2bf4379fb85d34d70e3d732b7018cc4bd70f29a9832b2fb0e1fd90f",
+        "signature": {
+          "r": "0xf0615944b37deca802e099369a96412aa734327f952a568640bbfbac62e278ea",
+          "s": "0x14b70b479a425bad3bd666141d9c8dedaad2fa177141bc59adb794982c1e6ede",
+          "v": 27
+        }
+      },
+      {
+        "name": "requestEvmContract",
+        "action": {
+          "type": "spotDeploy",
+          "requestEvmContract": {
+            "token": 1234,
+            "address": "0x9b498c3c8a0b8cd8ba1d9851d40d186f1872b44e",
+            "evmExtraWeiDecimals": 13
+          }
+        },
+        "actionHash": "0x0b3fea33bbbc99cfa988e21eabae460439d567b501a4d9fefd2d53b44be4a21a",
+        "signature": {
+          "r": "0x91e7f68a167a817ab86535dd5c582364a553074e6d858fa21b14af4f28b50adb",
+          "s": "0x47fa0611e2920311e104ec0321a75e91c5aac0b7e87ec1e1ca3ef018f397951d",
+          "v": 27
+        }
+      },
+      {
+        "name": "requestEvmContractFewerDecimals",
+        "action": {
+          "type": "spotDeploy",
+          "requestEvmContract": {
+            "token": 1234,
+            "address": "0x9b498c3c8a0b8cd8ba1d9851d40d186f1872b44e",
+            "evmExtraWeiDecimals": -2
+          }
+        },
+        "actionHash": "0x2a94c26a5c76019b8344c231d743a60ba8da110085c275175b47d5135758ac15",
+        "signature": {
+          "r": "0x341e538c505f7bbcf20cad4b255f683d15a8d20d025706ae22259afaea7e5344",
+          "s": "0x484de18ec18a3894e40402650818ef86bed63070e8120ea67d6ea9ba7c71de1f",
+          "v": 27
+        }
+      },
+      {
+        "name": "finalizeEvmContractCreate",
+        "action": {
+          "type": "finalizeEvmContract",
+          "token": 1234,
+          "input": {
+            "create": {
+              "nonce": 4
+            }
+          }
+        },
+        "actionHash": "0xc87d31c52b4c19da04241de44b438b2ee157b9e9692dc21e085431f62546ef18",
+        "signature": {
+          "r": "0x4fd1f2f1f3024e31ea7d7362dc6481dd6ed39eab2a17bd914af00ac914b86adb",
+          "s": "0x18c69d2ccc2120b1f863277261eacab01058dd32ff4672058490c0bb3e30d201",
+          "v": 27
+        }
+      },
+      {
+        "name": "finalizeEvmContractFirstStorageSlot",
+        "action": {
+          "type": "finalizeEvmContract",
+          "token": 1234,
+          "input": "firstStorageSlot"
+        },
+        "actionHash": "0x37dc2529acf4c457a15c7308bb9e0f18277284cd1f38d64911f56d2d7f703df8",
+        "signature": {
+          "r": "0x0c34a8446d704a2c33cf1a34b4a892d11ca1390700ea555c32157860f0b1e60b",
+          "s": "0x1d66a2195d73d701d7e3a521f922c3bbe0e27202d1d0b3a8cb266bf6f2041aa7",
+          "v": 28
+        }
+      },
+      {
+        "name": "finalizeEvmContractCustomStorageSlot",
+        "action": {
+          "type": "finalizeEvmContract",
+          "token": 1234,
+          "input": "customStorageSlot"
+        },
+        "actionHash": "0x46fb5b86e2fdb0340c13ead37abaab238c8172b5ce0ac62e36a7cf81016749dc",
+        "signature": {
+          "r": "0x490eab4aea2fbb0316db548128d779c4d7091e38b17290d9f62231b38fb2457e",
+          "s": "0x2a9290c8900931bf417171f9cf89e8e16e2bdbda7f20b07bb97341e0ab5cfaa9",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerAsset2",
+        "action": {
+          "type": "perpDeploy",
+          "registerAsset2": {
+            "maxGas": 1000000000000,
+            "assetRequest": {
+              "coin": "xyz:TEST",
+              "szDecimals": 2,
+              "oraclePx": "12.5",
+              "marginTableId": 3,
+              "marginMode": "strictIsolated"
+            },
+            "dex": "xyz",
+            "schema": {
+              "fullName": "Test dex",
+              "collateralToken": 0,
+              "oracleUpdater": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            }
+          }
+        },
+        "actionHash": "0xe4a3af90785a2fea9a2675c034177511e98882ad78a6982c7ea426a85d43a00c",
+        "signature": {
+          "r": "0xb31cceb5971f6d3e40e1003b7453b6e4657a7719852e52201ca4d4052b6e2ddf",
+          "s": "0x1b6f7e287793768361e2df8fcf4f6a36a2fca1b491a56c4f9f3b6d59793f4a91",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerAsset2Bare",
+        "action": {
+          "type": "perpDeploy",
+          "registerAsset2": {
+            "maxGas": null,
+            "assetRequest": {
+              "coin": "xyz:TEST1",
+              "szDecimals": 0,
+              "oraclePx": "0.001",
+              "marginTableId": 10,
+              "marginMode": "noCross"
+            },
+            "dex": "xyz",
+            "schema": null
+          }
+        },
+        "actionHash": "0x9e9ed4c494117738729a4fd006db7965bab712c1032ac70e2e79a755220e6728",
+        "signature": {
+          "r": "0xda4d9c36ca6bd27e46ca49ed61eac38410e11aee20cb2f512775c0217f08ed10",
+          "s": "0x0c05463da89179a326eb92914caa8ee407d24639fc6aab240ec54f8541a7d32d",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerAsset",
+        "action": {
+          "type": "perpDeploy",
+          "registerAsset": {
+            "maxGas": 0,
+            "assetRequest": {
+              "coin": "xyz:TEST",
+              "szDecimals": 2,
+              "oraclePx": "12.5",
+              "marginTableId": 3,
+              "onlyIsolated": false
+            },
+            "dex": "xyz",
+            "schema": {
+              "fullName": "Test dex",
+              "collateralToken": 0,
+              "oracleUpdater": null
+            }
+          }
+        },
+        "actionHash": "0xa1a24b0e1cd612c57db85b6a2e73d68d217bd315e5b85b8db820e6bfbccb4a22",
+        "signature": {
+          "r": "0x76b0f7ba17c9a67e3d2f0c44f07ac53495cc26995376aa1865a648182f870228",
+          "s": "0x057466c3337387f70a88de56d3d4e37c9f987c93e96ff722055ae3602e5f5f87",
+          "v": 28
+        }
+      },
+      {
+        "name": "setOracle",
+        "action": {
+          "type": "perpDeploy",
+          "setOracle": {
+            "dex": "xyz",
+            "oraclePxs": [
+              [
+                "xyz:BTC",
+                "100000"
+              ],
+              [
+                "xyz:abc",
+                "0.5"
+              ]
+            ],
+            "markPxs": [
+              [
+                [
+                  "xyz:BTC",
+                  "100010"
+                ],
+                [
+                  "xyz:abc",
+                  "0.51"
+                ]
+              ],
+              [
+                [
+                  "xyz:BTC",
+                  "99990"
+                ]
+              ]
+            ],
+            "externalPerpPxs": [
+              [
+                "xyz:BTC",
+                "100001"
+              ],
+              [
+                "xyz:abc",
+                "0.5"
+              ]
+            ]
+          }
+        },
+        "actionHash": "0x9d7a30abe660a08bad354763a813ad2daca260023b2f6a26c3724e9275fa7c55",
+        "signature": {
+          "r": "0xf8233d0a0a303d98771235cdb8ff8987cf0ddb2a3e64f6a1245cf871995c16ec",
+          "s": "0x0799a47b7feb21cffb9d349ee318d7bcaa1c4d5e5df220aaaa7630c0058406f8",
+          "v": 28
+        }
+      },
+      {
+        "name": "setOracleNoMarks",
+        "action": {
+          "type": "perpDeploy",
+          "setOracle": {
+            "dex": "xyz",
+            "oraclePxs": [
+              [
+                "xyz:BTC",
+                "100000"
+              ]
+            ],
+            "markPxs": [],
+            "externalPerpPxs": [
+              [
+                "xyz:BTC",
+                "100000"
+              ]
+            ]
+          }
+        },
+        "actionHash": "0xbfa8a951ca312c5b758296c2388984aa46cafd7bf9acbde002dca3aad4164b05",
+        "signature": {
+          "r": "0x22d59e8eacebbe67494858aea5c7cdb9b592061f8382a7538531d22d04a0a2b0",
+          "s": "0x06b70a8d6bd390c8d312d4694b5fbad51c3ed331c2981646c3dfb39eafa31f6c",
+          "v": 28
+        }
+      },
+      {
+        "name": "setFundingMultipliers",
+        "action": {
+          "type": "perpDeploy",
+          "setFundingMultipliers": [
+            [
+              "xyz:BTC",
+              "0.5"
+            ],
+            [
+              "xyz:ETH",
+              "10"
+            ]
+          ]
+        },
+        "actionHash": "0xf9a7f8d00d080378b1174959a7a607a29c61ee154e0e4c96dcb3deb8d53d6e40",
+        "signature": {
+          "r": "0xc9d2b9ee82aa280fe1b0af88a63ea42d6790eaaa3d97e9ad97f862507a356b34",
+          "s": "0x0a3303c3da0a5739dfcb514e8e18aeb422c316c4bf24b835ff0095089edfc0a2",
+          "v": 28
+        }
+      },
+      {
+        "name": "setFundingInterestRates",
+        "action": {
+          "type": "perpDeploy",
+          "setFundingInterestRates": [
+            [
+              "xyz:BTC",
+              "-0.01"
+            ],
+            [
+              "xyz:ETH",
+              "0.0001"
+            ]
+          ]
+        },
+        "actionHash": "0x29009b35d9404b8a64629489bfffae75a0c9c535767085a268c217dc0dfcd9b1",
+        "signature": {
+          "r": "0x80c774912e0449737227f89738f6a9f3d9a0854364a9c176f9c19ce1467c2d6b",
+          "s": "0x0b2b3836dbb6d7ee58322f9a0d3589156c10a67c2611fb73d1760ebca9abd176",
+          "v": 28
+        }
+      },
+      {
+        "name": "haltTrading",
+        "action": {
+          "type": "perpDeploy",
+          "haltTrading": {
+            "coin": "xyz:BTC",
+            "isHalted": true
+          }
+        },
+        "actionHash": "0xd468512ea95479cf12f91aa6fc866fff35a10743752138d54454e770ded896ee",
+        "signature": {
+          "r": "0x974e35f5ffd3a14b137c389dc47f1d68cffd4e1fa79d518cd0346fbc533e57bb",
+          "s": "0x4480e2abd9d35b358ba6498cf06e36a5e523a9b831c3479dc2c64edca3db4a48",
+          "v": 28
+        }
+      },
+      {
+        "name": "insertMarginTable",
+        "action": {
+          "type": "perpDeploy",
+          "insertMarginTable": {
+            "dex": "xyz",
+            "marginTable": {
+              "description": "tiered 40x",
+              "marginTiers": [
+                {
+                  "lowerBound": 0,
+                  "maxLeverage": 40
+                },
+                {
+                  "lowerBound": 150000000,
+                  "maxLeverage": 20
+                }
+              ]
+            }
+          }
+        },
+        "actionHash": "0x3e31cc5fa5f36e52f1936552ab6768561499262b021c9d034f87c8654f2deef6",
+        "signature": {
+          "r": "0x0fcdc8a1b16e855688b74b794ba1fdc36e6343a761c8865ef8b4f7495e5833cc",
+          "s": "0x68dff49bfc5f10b1141becdac1af367ab7d3345cb9ec31f2dcac64c42a349578",
+          "v": 28
+        }
+      },
+      {
+        "name": "setMarginTableIds",
+        "action": {
+          "type": "perpDeploy",
+          "setMarginTableIds": [
+            [
+              "xyz:BTC",
+              1
+            ],
+            [
+              "xyz:ETH",
+              2
+            ]
+          ]
+        },
+        "actionHash": "0x86b9ce94142458ea4cdf38c2ddc3710ad611fecc2516f1705d47fe5cd43915dc",
+        "signature": {
+          "r": "0x11339469d7636f27e70560b13079e42f500de59cace857b64d57fec64f824199",
+          "s": "0x3c1e61fefb9e66405e7f9910981deced122086ac8e514658c2ee5e0660dfc2bb",
+          "v": 27
+        }
+      },
+      {
+        "name": "setFeeRecipient",
+        "action": {
+          "type": "perpDeploy",
+          "setFeeRecipient": {
+            "dex": "xyz",
+            "feeRecipient": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+          }
+        },
+        "actionHash": "0x742a9187f8d978aa0e17d09663441f7322d498e2a0c9b553f977de1fcfe5bef1",
+        "signature": {
+          "r": "0x1ca055b680481e8dd3ae0e56403f922ef9874897efc4eb3b6359a3f2e3358783",
+          "s": "0x72ebc9a5c871a9fd41ad07496f7c91f4ed8754898ea6cab3f40165a4cac99068",
+          "v": 28
+        }
+      },
+      {
+        "name": "setOpenInterestCaps",
+        "action": {
+          "type": "perpDeploy",
+          "setOpenInterestCaps": [
+            [
+              "xyz:BTC",
+              5000000
+            ],
+            [
+              "xyz:ETH",
+              10000000000
+            ]
+          ]
+        },
+        "actionHash": "0x7a940ddc270d194d7f555da4dd8e98d476a456fe81d9d1dfcfca2be07dab5e74",
+        "signature": {
+          "r": "0x3c18fa8e3446e2353364c302c7b3b2a28e0e031195e6f4fc10a1af52d6950e4a",
+          "s": "0x4540c01af027b9a9daf4b774fc8c54d98edf24aedd4d1218eee69f5d103a2c9b",
+          "v": 28
+        }
+      },
+      {
+        "name": "setSubDeployers",
+        "action": {
+          "type": "perpDeploy",
+          "setSubDeployers": {
+            "dex": "xyz",
+            "subDeployers": [
+              {
+                "variant": "setOracle",
+                "user": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+                "allowed": true
+              },
+              {
+                "variant": "haltTrading",
+                "user": "0x2222222222222222222222222222222222222222",
+                "allowed": false
+              }
+            ]
+          }
+        },
+        "actionHash": "0x96de4dedf544aa70f5de85a27d15c0d086701fc7a529f647ce24a5ca67ced89d",
+        "signature": {
+          "r": "0xad1bca6936aa8e8e0c5166eed75228d5969b82d0c662b9b96ab8d2bb04088f63",
+          "s": "0x03f0d1997b9d262968e3272c0ff90a06f61b17abbacfca3e09811930a1d30eb5",
+          "v": 28
+        }
+      },
+      {
+        "name": "setMarginModes",
+        "action": {
+          "type": "perpDeploy",
+          "setMarginModes": [
+            [
+              "xyz:BTC",
+              "strictIsolated"
+            ],
+            [
+              "xyz:ETH",
+              "noCross"
+            ]
+          ]
+        },
+        "actionHash": "0xb3d49194b6dff5b1a06dd00bbae05f7ca3da0667142cdbeb78ff0b33812fd773",
+        "signature": {
+          "r": "0x51f945c4bbc5e9af509466f120821eca1a1543a1301ded555a4e8f9a617906c2",
+          "s": "0x1752eb511fdaefdef5c06a4ae93583ec62d90a412fa7127547a4a8a1044c7512",
+          "v": 27
+        }
+      },
+      {
+        "name": "setPerpAnnotation",
+        "action": {
+          "type": "perpDeploy",
+          "setPerpAnnotation": {
+            "coin": "xyz:BTC",
+            "category": "crypto",
+            "description": "Bitcoin on xyz.",
+            "displayName": "BTC",
+            "keywords": [
+              "bitcoin",
+              "btc"
+            ]
+          }
+        },
+        "actionHash": "0x680dc0b22decd7303aa5e4832bd3b84e0887b7622d3e7aeb914b6e0131715d45",
+        "signature": {
+          "r": "0xc36b3a17483f47cb0bb6262b3dd74d921699caa1b2263e0cb9eb77e83474eaef",
+          "s": "0x01edf8657fbbca7713724e67e3915fa9a49fa6115138251bde9186bad9a32815",
+          "v": 28
+        }
+      },
+      {
+        "name": "setPerpAnnotationNoDisplayName",
+        "action": {
+          "type": "perpDeploy",
+          "setPerpAnnotation": {
+            "coin": "xyz:ETH",
+            "category": "crypto",
+            "description": "",
+            "displayName": null,
+            "keywords": []
+          }
+        },
+        "actionHash": "0x6b1c134ea98e4e95af2b9380d283a3df8f7dacb7bfe58f67d3eda7645fe263d9",
+        "signature": {
+          "r": "0x664f10fdec2df93caea6591b9b805c6dcd99bffb12dc5188dfe977058a1ae85c",
+          "s": "0x0bc426654f05e6d3b6753fafdae1a27ee046ce67b469f2651d7ac1cfe29ce3f2",
+          "v": 27
+        }
+      },
+      {
+        "name": "disableDex",
+        "action": {
+          "type": "perpDeploy",
+          "disableDex": "xyz"
+        },
+        "actionHash": "0x2035e9969710fbfdcc6febbd71b049eebd502092fc5b9e1d13a9f1d8c9e192cd",
+        "signature": {
+          "r": "0x47171f8508454c3f923623cf6464c98a0c158e2641ebd967dec3b9dedd16e5e6",
+          "s": "0x2c2293f9e8a480b2e4ff495ddd0fcbcabeecdc12f8387868b17856cdfa33414f",
+          "v": 27
+        }
+      },
+      {
+        "name": "validatorL1Stream",
+        "action": {
+          "type": "validatorL1Stream",
+          "riskFreeRate": "0.04"
+        },
+        "actionHash": "0x15e79cb5235e5a884898229897388bb0a005d7574e49c452376f9b055637a9ed",
+        "signature": {
+          "r": "0x7a84e5a5dd6ee1c97d66cb56f222ced9ecb80c651d9c39ef39422459b9522e2a",
+          "s": "0x2430b7d909a35611e44d34ba8334e408d26fe8d6dc4963116a8bcc882b079268",
+          "v": 27
+        }
+      },
+      {
+        "name": "authorizeAqav2RoleTechnical",
+        "action": {
+          "type": "authorizeAqav2Role",
+          "token": 0,
+          "role": "technical"
+        },
+        "actionHash": "0xdf0cb47c9a8a3f1a44a13f16aebefb5a167462b66c9ce1f3c52ef0b93203444d",
+        "signature": {
+          "r": "0x4ce6b03c32a878317cb7267b0a79cd073b5c34461a505d490dbbd45614113dc7",
+          "s": "0x3a3ddda585f61a410d7d44fbd12d3c93ffe1fde0ed12edd477042ef350f876bd",
+          "v": 28
+        }
+      },
+      {
+        "name": "authorizeAqav2RoleTreasury",
+        "action": {
+          "type": "authorizeAqav2Role",
+          "token": 1234,
+          "role": "treasury"
+        },
+        "actionHash": "0x9d1b6fc04dc25d38939d0becbb5d3b94b2170c63ec59977085be502551675e2c",
+        "signature": {
+          "r": "0x15e61ecb6c848cbc40217a4ff9b24df2cf378d9a30a60eaa6024cdcd67bcf07f",
+          "s": "0x776c1166f077fbe8c9c60d495113b885b09027c988d008d7eefab15cd8564af7",
+          "v": 27
+        }
+      }
+    ]
+  },
+  "python": {
+    "source": "Hyperliquid's Python SDK 0.24.0 (hyperliquid-python-sdk): its Exchange spot_deploy_* and perp_deploy_* methods with the post recorded, and the requestEvmContract and finalizeEvmContract actions its examples/evm_erc20.py writes by hand, signed with sign_l1_action. Prices are passed as strings. msgpack is msgpack.packb of the action.",
+    "cases": [
+      {
+        "name": "registerToken2",
+        "action": {
+          "type": "spotDeploy",
+          "registerToken2": {
+            "spec": {
+              "name": "TEST",
+              "szDecimals": 2,
+              "weiDecimals": 8
+            },
+            "maxGas": 1000000000000,
+            "fullName": "Test token"
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79ae7265676973746572546f6b656e3283a47370656383a46e616d65a454455354aa737a446563696d616c7302ab776569446563696d616c7308a66d6178476173cf000000e8d4a51000a866756c6c4e616d65aa5465737420746f6b656e",
+        "actionHash": "0x637d526e13bf38a4318fbb12e608dac1e508d938daaed77b6388e5957d46f1bb",
+        "signature": {
+          "r": "0xb4e1fcd504d0608c6a9727ef489181ce095ac3187ccade9ba35ce8ab5d2236c",
+          "s": "0x4addccdbaa548f059e301ec9b231f208b885204c9678129cea64d7b150dfd538",
+          "v": 28
+        }
+      },
+      {
+        "name": "userGenesis",
+        "action": {
+          "type": "spotDeploy",
+          "userGenesis": {
+            "token": 1234,
+            "userAndWei": [
+              [
+                "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+                "100000000000000"
+              ],
+              [
+                "0x2222222222222222222222222222222222222222",
+                "5"
+              ]
+            ],
+            "existingTokenAndWei": [
+              [
+                1,
+                "100000000000000"
+              ]
+            ]
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79ab7573657247656e6573697383a5746f6b656ecd04d2aa75736572416e645765699292d92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134af31303030303030303030303030303092d92a307832323232323232323232323232323232323232323232323232323232323232323232323232323232a135b36578697374696e67546f6b656e416e64576569919201af313030303030303030303030303030",
+        "actionHash": "0xe1bc4047b065d6a7b25b9abc1c209ac32bf2005477466376f9881afd0b00c20b",
+        "signature": {
+          "r": "0x16dba9fabddf7a4d0ba84264e0f9850bf39c1d05f13ede786bd6fb3cd4be8ccc",
+          "s": "0x377ddd9962a1e46911c1e718f30710e180438dbfeb1434c41e6baebff5c30f48",
+          "v": 28
+        }
+      },
+      {
+        "name": "enableFreezePrivilege",
+        "action": {
+          "type": "spotDeploy",
+          "enableFreezePrivilege": {
+            "token": 1234
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b5656e61626c65467265657a6550726976696c65676581a5746f6b656ecd04d2",
+        "actionHash": "0x19d1c562614c9bd65e9ec5802637c2edc33cea11847f72f7befecd2bc21b7299",
+        "signature": {
+          "r": "0x49a2203170cfc10c5bcdb1826a92d4991dee42a3ba5ba55f1f8b32056ec610bc",
+          "s": "0x725d055130d0aa07f07c4467b2c2fc9a559072a1e29961ad9d090126a20997ef",
+          "v": 28
+        }
+      },
+      {
+        "name": "freezeUser",
+        "action": {
+          "type": "spotDeploy",
+          "freezeUser": {
+            "token": 1234,
+            "user": "0x0d1d9635d0640821d15e323ac8adadfa9c111414",
+            "freeze": true
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79aa667265657a655573657283a5746f6b656ecd04d2a475736572d92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134a6667265657a65c3",
+        "actionHash": "0xb617740eab47890c1b6671ce8eb19eab8aa5d6fcad759466ce8140f95a18b643",
+        "signature": {
+          "r": "0x7a681edc4af79b57d55af8a3cd8d404c178cbdef1100f9547a3a8be6ab7370f",
+          "s": "0x5d86ca64ffcc70125f05fcef721231be8aeda1fffd5f5ebf8bbee5848e1530b0",
+          "v": 27
+        }
+      },
+      {
+        "name": "unfreezeUser",
+        "action": {
+          "type": "spotDeploy",
+          "freezeUser": {
+            "token": 1234,
+            "user": "0x2222222222222222222222222222222222222222",
+            "freeze": false
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79aa667265657a655573657283a5746f6b656ecd04d2a475736572d92a307832323232323232323232323232323232323232323232323232323232323232323232323232323232a6667265657a65c2",
+        "actionHash": "0x59de2283e2dfe28c634cb3f3d8bd3c8814df50fcf563b1fc51c52609a6ddccf8",
+        "signature": {
+          "r": "0xb77f0e81b29568afeb1758e7a0fe8c1e5dd647a6dcb6e0aaba01acd8dfc4f0aa",
+          "s": "0x5f94f4e94b6cc0cc59ce07921ba2c0794c40521dc35d5b6ef989abd4f02734c",
+          "v": 28
+        }
+      },
+      {
+        "name": "revokeFreezePrivilege",
+        "action": {
+          "type": "spotDeploy",
+          "revokeFreezePrivilege": {
+            "token": 1234
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b57265766f6b65467265657a6550726976696c65676581a5746f6b656ecd04d2",
+        "actionHash": "0x08febcba3ba34395eca1f32cd31273fd66742f447b870830f38d6ee285219fb0",
+        "signature": {
+          "r": "0x3a6a9674a62839dafcf65b543eb35827e938c2182e1ea02f0ee98d1f6437b499",
+          "s": "0x781572926a2fa43eedc87da89714bcd01ef255857256f43b55be59c1faafeb4e",
+          "v": 27
+        }
+      },
+      {
+        "name": "enableQuoteToken",
+        "action": {
+          "type": "spotDeploy",
+          "enableQuoteToken": {
+            "token": 1234
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b0656e61626c6551756f7465546f6b656e81a5746f6b656ecd04d2",
+        "actionHash": "0x228565aa61c5ad9ec898849ab140189cfa2cda92ac8a862c10827d374ea61a33",
+        "signature": {
+          "r": "0xcc73514430bd18f88d1067e9b6acea9b936ffc5b9708596c08d2efecde428eed",
+          "s": "0x51d74a48565715369a8a9afa485f3834d015cb2e610169fad241fbfb99581dc8",
+          "v": 27
+        }
+      },
+      {
+        "name": "genesis",
+        "action": {
+          "type": "spotDeploy",
+          "genesis": {
+            "token": 1234,
+            "maxSupply": "300000000000000"
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79a767656e6573697382a5746f6b656ecd04d2a96d6178537570706c79af333030303030303030303030303030",
+        "actionHash": "0x597f977116eaededd7f00c780f0b011a9ce105544c90c4e52c66781394bf280f",
+        "signature": {
+          "r": "0xba02d94ea4d0d3b4bc47ba43de6469542db0bdcbec64c75f7e76e602698c4cab",
+          "s": "0x63fe9e921b39f83c9c4e03992b907b72a5c956ce206d05fa1198978ed25d0f0f",
+          "v": 27
+        }
+      },
+      {
+        "name": "genesisNoHyperliquidity",
+        "action": {
+          "type": "spotDeploy",
+          "genesis": {
+            "token": 1234,
+            "maxSupply": "300000000000000",
+            "noHyperliquidity": true
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79a767656e6573697383a5746f6b656ecd04d2a96d6178537570706c79af333030303030303030303030303030b06e6f48797065726c6971756964697479c3",
+        "actionHash": "0x546943e2cc44b0c4738304a6f19c8ad8e21285f872b344aefea14194bea009f7",
+        "signature": {
+          "r": "0xeb13d31d7ef0ca7ec90a2e42e7209937ae2e90928bb96e7b63f38ceb3fe31f90",
+          "s": "0x3620e9b8329d99db68e77cb599326a5129c400f2a92ef2d1646295cac70dde30",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerSpot",
+        "action": {
+          "type": "spotDeploy",
+          "registerSpot": {
+            "tokens": [
+              1234,
+              0
+            ]
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79ac726567697374657253706f7481a6746f6b656e7392cd04d200",
+        "actionHash": "0xea22de1c0b6fc3c1088d7b4cfc0f727718a627d417e18f8d1cd3ca6d8959cc6b",
+        "signature": {
+          "r": "0xbed64f4f7aafe358025ad4b4b560a29faabdfd451a0a18259ec715fbc960bb1",
+          "s": "0x56fdac6543c0c317102fea815823aeeb7da1cf6499746eb6f7cfe159a977b5fe",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerHyperliquidity",
+        "action": {
+          "type": "spotDeploy",
+          "registerHyperliquidity": {
+            "spot": 210,
+            "startPx": "2.5",
+            "orderSz": "4",
+            "nOrders": 100
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b6726567697374657248797065726c697175696469747984a473706f74ccd2a773746172745078a3322e35a76f72646572537aa134a76e4f726465727364",
+        "actionHash": "0xce178bd5c9d130e66fa627c269ecbe93b61b4c10b03d6aae480e12480487e6d6",
+        "signature": {
+          "r": "0x9c9ef069642b13daddc8e5cb9be99884a43de4919a31c61ca30f842c8e9890c",
+          "s": "0x5a19c95ffa9a5aec5e35f7a9a767fc5ae618257d1d7d01569086e6802befdb7c",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerHyperliquiditySeeded",
+        "action": {
+          "type": "spotDeploy",
+          "registerHyperliquidity": {
+            "spot": 210,
+            "startPx": "0.0125",
+            "orderSz": "1000.5",
+            "nOrders": 20,
+            "nSeededLevels": 10
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b6726567697374657248797065726c697175696469747985a473706f74ccd2a773746172745078a6302e30313235a76f72646572537aa6313030302e35a76e4f726465727314ad6e5365656465644c6576656c730a",
+        "actionHash": "0x9f09b7296094d6c0118338806634f907c3fd42a4919bf9ae4c67cb634e51005f",
+        "signature": {
+          "r": "0x76c6d7fb719117e3b3504c6ce0d7332399fbb2801f215c5e788b38656f9481d5",
+          "s": "0x71a3246d16f3da50641fac378dc9a529507c59debfc66f2c2a2d76ac574518c1",
+          "v": 28
+        }
+      },
+      {
+        "name": "setDeployerTradingFeeShare",
+        "action": {
+          "type": "spotDeploy",
+          "setDeployerTradingFeeShare": {
+            "token": 1234,
+            "share": "99.4%"
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79ba7365744465706c6f79657254726164696e67466565536861726582a5746f6b656ecd04d2a57368617265a539392e3425",
+        "actionHash": "0xc24c8450b7d0b67f70f6545dbc447d45588831596aa3d5bdc09ffb18ea12b550",
+        "signature": {
+          "r": "0xb9d1b1d5eae33f2daa3bca10cc3bfc978652207a1b360067726289bcf571e5e",
+          "s": "0x31458880076f6a981a4e8db9091f88071ce31f15ad9f2b0ac21ac79134a9cd14",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerAssetBare",
+        "action": {
+          "type": "perpDeploy",
+          "registerAsset": {
+            "maxGas": null,
+            "assetRequest": {
+              "coin": "xyz:TEST",
+              "szDecimals": 2,
+              "oraclePx": "12.5",
+              "marginTableId": 3,
+              "onlyIsolated": true
+            },
+            "dex": "xyz",
+            "schema": null
+          }
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79ad7265676973746572417373657484a66d6178476173c0ac61737365745265717565737485a4636f696ea878797a3a54455354aa737a446563696d616c7302a86f7261636c655078a431322e35ad6d617267696e5461626c65496403ac6f6e6c7949736f6c61746564c3a3646578a378797aa6736368656d61c0",
+        "actionHash": "0xea45ef8003279dda0a740d9b19ebfdee6666dd1e483b9e310e268fbb4abe6f3b",
+        "signature": {
+          "r": "0x936c0e2a664e6da641b9dbf6ed2753f66e3956e7c0ec8978479a522d1486296c",
+          "s": "0x7465a7c1f2255b4215854f36e54a15aba92a061999a6868ce26e3b15b48d1f11",
+          "v": 28
+        }
+      },
+      {
+        "name": "registerAssetNewDex",
+        "action": {
+          "type": "perpDeploy",
+          "registerAsset": {
+            "maxGas": 1000000000000,
+            "assetRequest": {
+              "coin": "xyz:TEST",
+              "szDecimals": 2,
+              "oraclePx": "12.5",
+              "marginTableId": 3,
+              "onlyIsolated": false
+            },
+            "dex": "xyz",
+            "schema": {
+              "fullName": "Test dex",
+              "collateralToken": 0,
+              "oracleUpdater": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            }
+          }
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79ad7265676973746572417373657484a66d6178476173cf000000e8d4a51000ac61737365745265717565737485a4636f696ea878797a3a54455354aa737a446563696d616c7302a86f7261636c655078a431322e35ad6d617267696e5461626c65496403ac6f6e6c7949736f6c61746564c2a3646578a378797aa6736368656d6183a866756c6c4e616d65a85465737420646578af636f6c6c61746572616c546f6b656e00ad6f7261636c6555706461746572d92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134",
+        "actionHash": "0x0b9dbb73d7d1a4c475a7da059bce11ce1171b93cc476206a34d1f1d9d1f58d7b",
+        "signature": {
+          "r": "0x62f5ae9c8fad2c999d06cb34c4f413b28dfc228b5a9062a20ce54f64b1c18f10",
+          "s": "0x256d3be8c9151b444bcc92ee55c430deed3b8fa7e0bb447b2e9bf9ba8375f585",
+          "v": 27
+        }
+      },
+      {
+        "name": "setOracle",
+        "action": {
+          "type": "perpDeploy",
+          "setOracle": {
+            "dex": "xyz",
+            "oraclePxs": [
+              [
+                "xyz:BTC",
+                "100000"
+              ],
+              [
+                "xyz:abc",
+                "0.5"
+              ]
+            ],
+            "markPxs": [
+              [
+                [
+                  "xyz:BTC",
+                  "100010"
+                ],
+                [
+                  "xyz:abc",
+                  "0.51"
+                ]
+              ],
+              [
+                [
+                  "xyz:BTC",
+                  "99990"
+                ]
+              ]
+            ],
+            "externalPerpPxs": [
+              [
+                "xyz:BTC",
+                "100001"
+              ],
+              [
+                "xyz:abc",
+                "0.5"
+              ]
+            ]
+          }
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79a97365744f7261636c6584a3646578a378797aa96f7261636c655078739292a778797a3a425443a631303030303092a778797a3a616263a3302e35a76d61726b507873929292a778797a3a425443a631303030313092a778797a3a616263a4302e35319192a778797a3a425443a53939393930af65787465726e616c506572705078739292a778797a3a425443a631303030303192a778797a3a616263a3302e35",
+        "actionHash": "0x9d7a30abe660a08bad354763a813ad2daca260023b2f6a26c3724e9275fa7c55",
+        "signature": {
+          "r": "0xf8233d0a0a303d98771235cdb8ff8987cf0ddb2a3e64f6a1245cf871995c16ec",
+          "s": "0x799a47b7feb21cffb9d349ee318d7bcaa1c4d5e5df220aaaa7630c0058406f8",
+          "v": 28
+        }
+      },
+      {
+        "name": "requestEvmContract",
+        "action": {
+          "type": "spotDeploy",
+          "requestEvmContract": {
+            "token": 1234,
+            "address": "0x9b498c3c8a0b8cd8ba1d9851d40d186f1872b44e",
+            "evmExtraWeiDecimals": 13
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b27265717565737445766d436f6e747261637483a5746f6b656ecd04d2a761646472657373d92a307839623439386333633861306238636438626131643938353164343064313836663138373262343465b365766d4578747261576569446563696d616c730d",
+        "actionHash": "0x0b3fea33bbbc99cfa988e21eabae460439d567b501a4d9fefd2d53b44be4a21a",
+        "signature": {
+          "r": "0x91e7f68a167a817ab86535dd5c582364a553074e6d858fa21b14af4f28b50adb",
+          "s": "0x47fa0611e2920311e104ec0321a75e91c5aac0b7e87ec1e1ca3ef018f397951d",
+          "v": 27
+        }
+      },
+      {
+        "name": "finalizeEvmContractCreate",
+        "action": {
+          "type": "finalizeEvmContract",
+          "token": 1234,
+          "input": {
+            "create": {
+              "nonce": 4
+            }
+          }
+        },
+        "msgpack": "0x83a474797065b366696e616c697a6545766d436f6e7472616374a5746f6b656ecd04d2a5696e70757481a663726561746581a56e6f6e636504",
+        "actionHash": "0xc87d31c52b4c19da04241de44b438b2ee157b9e9692dc21e085431f62546ef18",
+        "signature": {
+          "r": "0x4fd1f2f1f3024e31ea7d7362dc6481dd6ed39eab2a17bd914af00ac914b86adb",
+          "s": "0x18c69d2ccc2120b1f863277261eacab01058dd32ff4672058490c0bb3e30d201",
+          "v": 27
+        }
+      },
+      {
+        "name": "finalizeEvmContractFirstStorageSlot",
+        "action": {
+          "type": "finalizeEvmContract",
+          "token": 1234,
+          "input": "firstStorageSlot"
+        },
+        "msgpack": "0x83a474797065b366696e616c697a6545766d436f6e7472616374a5746f6b656ecd04d2a5696e707574b0666972737453746f72616765536c6f74",
+        "actionHash": "0x37dc2529acf4c457a15c7308bb9e0f18277284cd1f38d64911f56d2d7f703df8",
+        "signature": {
+          "r": "0xc34a8446d704a2c33cf1a34b4a892d11ca1390700ea555c32157860f0b1e60b",
+          "s": "0x1d66a2195d73d701d7e3a521f922c3bbe0e27202d1d0b3a8cb266bf6f2041aa7",
+          "v": 28
+        }
+      }
+    ]
+  },
+  "docs": {
+    "source": "Shapes written from the API docs that neither SDK builds (aligned quote tokens, token annotation, deployer label, funding clamps, deployer fees, the normal margin mode, a removed open interest cap). Each signed by both SDKs' L1 signers, @nktkas/hyperliquid 0.33.3 signL1Action and the Python SDK 0.24.0 sign_l1_action, which agree on the msgpack, hash and signature; the shape itself rests on the docs alone.",
+    "cases": [
+      {
+        "name": "enableAlignedQuoteToken",
+        "action": {
+          "type": "spotDeploy",
+          "enableAlignedQuoteToken": {
+            "token": 1234
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b7656e61626c65416c69676e656451756f7465546f6b656e81a5746f6b656ecd04d2",
+        "actionHash": "0x084426c9a512d026f7a285a5224b669348d6d9d6e3ba9a036bd32cbfbf3737f3",
+        "signature": {
+          "r": "0xb259b0dd3201aa9b372d55d08b424167ce24ba1b345e85df97c627c98a0e2b14",
+          "s": "0x7312b8c833e90252dffaeb905d3355d0fba9ff3398a271d576f014f93848ac5c",
+          "v": 27
+        }
+      },
+      {
+        "name": "disableAlignedQuoteToken",
+        "action": {
+          "type": "spotDeploy",
+          "disableAlignedQuoteToken": {
+            "token": 1234
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b864697361626c65416c69676e656451756f7465546f6b656e81a5746f6b656ecd04d2",
+        "actionHash": "0xdcc333593b9ba621f8abb757b4cd209b7e9a47de5c67846cdb127ed82ea8bd64",
+        "signature": {
+          "r": "0xdad884134f633795007c877a948d8321c06698916f3f88bbfd5febde14a2c764",
+          "s": "0x35642af95e1f6cdb7126c55e35e3d31ed246baf9354a8b90616fdadff106a88a",
+          "v": 28
+        }
+      },
+      {
+        "name": "setTokenAnnotation",
+        "action": {
+          "type": "spotDeploy",
+          "setTokenAnnotation": {
+            "token": 1234,
+            "annotation": {
+              "category": "meme",
+              "description": "A cat.",
+              "displayName": "PURR",
+              "keywords": [
+                "cat",
+                "meme"
+              ]
+            }
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b2736574546f6b656e416e6e6f746174696f6e82a5746f6b656ecd04d2aa616e6e6f746174696f6e84a863617465676f7279a46d656d65ab6465736372697074696f6ea641206361742eab646973706c61794e616d65a450555252a86b6579776f72647392a3636174a46d656d65",
+        "actionHash": "0x5041283da6c09503c28f62082b2c0b7e3d61e402b28f8b1d6de8f05b8cbbc5ee",
+        "signature": {
+          "r": "0xdc455181b8c7119643dacaab6419f9d1520742629565e7c4f839d7f5b969335d",
+          "s": "0x64057dddf293dceb06a432c28472c733857c3b5ed01e1670fbdf1bb7d56ee4d8",
+          "v": 28
+        }
+      },
+      {
+        "name": "setTokenAnnotationNoDisplayName",
+        "action": {
+          "type": "spotDeploy",
+          "setTokenAnnotation": {
+            "token": 1234,
+            "annotation": {
+              "category": "",
+              "description": "",
+              "displayName": null,
+              "keywords": []
+            }
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b2736574546f6b656e416e6e6f746174696f6e82a5746f6b656ecd04d2aa616e6e6f746174696f6e84a863617465676f7279a0ab6465736372697074696f6ea0ab646973706c61794e616d65c0a86b6579776f72647390",
+        "actionHash": "0x837ef450e6dc4e8598c85de19728608a269bb2165129d81192ef1eece45bbb78",
+        "signature": {
+          "r": "0xfb3fdbe6138a38a29db4666ea11d59177cdccdfcb9ace28d4700fa7eb3e25cf8",
+          "s": "0x418ebba9cfd6291009f49fdcddb70aa9da106718edde88314cb2fab657b83341",
+          "v": 27
+        }
+      },
+      {
+        "name": "setDeployerLabel",
+        "action": {
+          "type": "spotDeploy",
+          "setDeployerLabel": {
+            "label": "dfu"
+          }
+        },
+        "msgpack": "0x82a474797065aa73706f744465706c6f79b07365744465706c6f7965724c6162656c81a56c6162656ca3646675",
+        "actionHash": "0xc716042db8a932495400edee00c305a28dc498e5f2e94f320d5d6afa2f7a9e8a",
+        "signature": {
+          "r": "0x41666f47a8d3f5e1fd9432de3c1780098a55dc205b5b0d0003201d199ab9b359",
+          "s": "0x61eeedc9eaf2c6a5fd95cbfa9d9f5f4483c293f2affd21cf3062eca35ac63088",
+          "v": 27
+        }
+      },
+      {
+        "name": "setFundingClamps",
+        "action": {
+          "type": "perpDeploy",
+          "setFundingClamps": [
+            [
+              "xyz:BTC",
+              "0.0003"
+            ],
+            [
+              "xyz:ETH",
+              "0.01"
+            ]
+          ]
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79b073657446756e64696e67436c616d70739292a778797a3a425443a6302e3030303392a778797a3a455448a4302e3031",
+        "actionHash": "0x91adc89d97d6991e9abf8f86c7b9eb3283f76395b409f5cacecac65ddba35561",
+        "signature": {
+          "r": "0x27ed80224a60f42b2305542f01face7f2925b6106c9231d258a50ffa4e8500d3",
+          "s": "0x14ec028665218f8a3bf0b07883ebdd0d1eb4eaa48b40ca005c6b6e589adab80d",
+          "v": 28
+        }
+      },
+      {
+        "name": "setDeployerFees",
+        "action": {
+          "type": "perpDeploy",
+          "setDeployerFees": [
+            [
+              "xyz:BTC",
+              {
+                "scale": "3",
+                "growthMode": false
+              }
+            ],
+            [
+              "xyz:ETH",
+              {
+                "scale": "9.99",
+                "growthMode": true
+              }
+            ]
+          ]
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79af7365744465706c6f796572466565739292a778797a3a42544382a57363616c65a133aa67726f7774684d6f6465c292a778797a3a45544882a57363616c65a4392e3939aa67726f7774684d6f6465c3",
+        "actionHash": "0xcb1134676a5a5588bafed9e571c3a1f76cd5bf9c28b23f97e21786fa8fc42aa4",
+        "signature": {
+          "r": "0x2e17c64f38d68e9b070e49e13f758a1f2767cc35df1c950f5322be56491a169b",
+          "s": "0x49f947e169dd30c31b30c57cd8048657f7b3084b9a0ffb7bef6cc93ceca018bf",
+          "v": 27
+        }
+      },
+      {
+        "name": "setMarginModesNormal",
+        "action": {
+          "type": "perpDeploy",
+          "setMarginModes": [
+            [
+              "xyz:BTC",
+              "normal"
+            ]
+          ]
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79ae7365744d617267696e4d6f6465739192a778797a3a425443a66e6f726d616c",
+        "actionHash": "0x2bd4c4f9e9cc7905077c110cc60c7e74fa68efd79b6b4c4a6229196af36888d3",
+        "signature": {
+          "r": "0xc10e3c2dc485c624fc45fb3389d6ad0ccefbfe40ee702176ba8cc479311dc1df",
+          "s": "0x5310b1b6dde8914b0f159a314cc30d03de0b3a4b435909065a9a2cc5fb0dc5d5",
+          "v": 28
+        }
+      },
+      {
+        "name": "setOpenInterestCapsRemoved",
+        "action": {
+          "type": "perpDeploy",
+          "setOpenInterestCaps": [
+            [
+              "xyz:BTC",
+              null
+            ],
+            [
+              "xyz:ETH",
+              5000000
+            ]
+          ]
+        },
+        "msgpack": "0x82a474797065aa706572704465706c6f79b37365744f70656e496e746572657374436170739292a778797a3a425443c092a778797a3a455448ce004c4b40",
+        "actionHash": "0x638e08c2714e5d9c6a0117f2e9adb85697cfaafcc87fbf2f1240fb0deabc1d57",
+        "signature": {
+          "r": "0x58f9abf4a29f1d3c323ccdcb566d3d5d29773460af612a70dcb03763acdf556c",
+          "s": "0x60f7788df7170e2e80f0117f2fe28c5d8d0ffae557e17dc1fc6fa7cbec0789c1",
+          "v": 27
+        }
+      }
+    ]
+  }
+}
