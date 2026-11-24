@@ -30,25 +30,39 @@ pub struct Signature {
     v: u8,
 }
 
+/// Why a signature could not be made, read or checked, or a key could not be read.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 pub enum SignError {
+    /// The key failed to sign the digest.
     #[error("the key could not sign this digest")]
     Sign,
+    /// The text is not `0x` and 65 bytes of hex.
     #[error("a signature is 65 bytes of hex")]
     NotASignature,
+    /// `r` and `s` do not form a valid secp256k1 signature.
     #[error("the signature components are not a valid curve point")]
     Malformed,
+    /// No public key recovers from the signature and digest.
     #[error("no public key recovers from this signature")]
     Unrecoverable,
+    /// The recovery byte `v` is not 0, 1, 27 or 28.
     #[error("`{0}` is not an Ethereum recovery parameter; expected 27 or 28")]
     BadV(u8),
+    /// The signature recovered to another address than the one required.
     #[error("the signature is from {recovered}, not {expected}")]
-    WrongSigner { expected: Address, recovered: Address },
+    WrongSigner {
+        /// The address the signature had to come from.
+        expected: Address,
+        /// The address it recovered to.
+        recovered: Address,
+    },
+    /// The bytes are not a valid secp256k1 private key.
     #[error("the key is not a valid secp256k1 private key")]
     NotAKey,
 }
 
 impl Signature {
+    /// From `r`, `s` and `v` as they are; nothing is checked or normalised.
     #[must_use]
     pub const fn from_parts(r: [u8; 32], s: [u8; 32], v: u8) -> Self {
         Signature { r, s, v }
@@ -81,11 +95,13 @@ impl Signature {
         })
     }
 
+    /// The 32-byte `r`.
     #[must_use]
     pub const fn r(&self) -> &[u8; 32] {
         &self.r
     }
 
+    /// The 32-byte `s`.
     #[must_use]
     pub const fn s(&self) -> &[u8; 32] {
         &self.s
@@ -97,21 +113,25 @@ impl Signature {
         self.v
     }
 
+    /// The recovery id, `v - 27`; `None` when `v` is below 27.
     #[must_use]
     pub const fn recovery_id(&self) -> Option<u8> {
         self.v.checked_sub(V_OFFSET)
     }
 
+    /// `r` as `0x` and 64 hex digits.
     #[must_use]
     pub fn r_hex(&self) -> String {
         crate::utils::hex::encode_prefixed(&self.r)
     }
 
+    /// `s` as `0x` and 64 hex digits.
     #[must_use]
     pub fn s_hex(&self) -> String {
         crate::utils::hex::encode_prefixed(&self.s)
     }
 
+    /// `r || s`, 64 bytes, without `v`.
     #[must_use]
     pub fn to_compact(&self) -> [u8; 64] {
         let mut bytes = [0u8; 64];
@@ -183,8 +203,10 @@ pub fn address_of_public_key(key: &VerifyingKey) -> Address {
 /// [`TypedStruct::wallet_json`]; in tests and native tools, a [`LocalKey`].
 /// No `Send` bound: the browser is single-threaded.
 pub trait Signer {
+    /// The address the signatures recover to.
     fn address(&self) -> Address;
 
+    /// Signs `data` under `domain` as EIP-712 typed data.
     fn sign_typed(&self, domain: &Domain, data: &TypedStruct<'_>)
     -> impl Future<Output = Result<Signature, SignError>>;
 }
@@ -206,6 +228,7 @@ pub struct LocalKey {
 
 #[cfg(feature = "sign")]
 impl LocalKey {
+    /// From the 32 secret bytes; [`SignError::NotAKey`] when they are not a valid key.
     pub fn from_bytes(secret: &[u8; 32]) -> Result<Self, SignError> {
         let key = SigningKey::from_bytes(secret.into()).map_err(|_| SignError::NotAKey)?;
         let address = address_of_public_key(key.verifying_key());
@@ -219,6 +242,7 @@ impl LocalKey {
         LocalKey::from_bytes(&bytes)
     }
 
+    /// The key's address.
     #[must_use]
     pub const fn address(&self) -> Address {
         self.address

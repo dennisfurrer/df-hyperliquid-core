@@ -15,10 +15,17 @@ pub const MOST_SIGNERS: usize = 10;
 /// A set of signers the venue would not take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadSigners {
+    /// Fewer than one signer, or more than [`MOST_SIGNERS`], once repeats are counted once.
     #[error("a multi-sig account has 1 to {MOST_SIGNERS} signers, not {0}")]
     Count(usize),
+    /// A threshold of zero, or more than there are signers.
     #[error("a threshold is 1 to the number of signers ({signers}), not {threshold}")]
-    Threshold { threshold: u8, signers: usize },
+    Threshold {
+        /// The threshold asked for.
+        threshold: u8,
+        /// How many distinct signers there are.
+        signers: usize,
+    },
 }
 
 /// `convertToMultiSigUser`, signed by the account's own key while it is a normal account.

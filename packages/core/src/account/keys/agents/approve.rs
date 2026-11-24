@@ -15,7 +15,9 @@ pub const MAX_AGENT_VALIDITY_MS: u64 = 180 * 86_400_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("an agent's approval ends ahead of now ({now}) and within 180 days, which {until} does not")]
 pub struct BadExpiry {
+    /// The expiry asked for, in milliseconds.
     pub until: u64,
+    /// The time it was checked against, in milliseconds.
     pub now: u64,
 }
 
@@ -67,6 +69,7 @@ impl ApproveAgent {
         }
     }
 
+    /// The agent's address.
     #[must_use]
     pub const fn agent(&self) -> Address {
         self.agent

@@ -8,8 +8,10 @@ use crate::utils::Address;
 /// Why an address may not be approved as an agent.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Reused {
+    /// The address is already among the account's agents (`extraAgents`).
     #[error("this address is one of the account's agents already")]
     Listed,
+    /// The caller retired the address as an agent before.
     #[error("this address was an agent before, and what it signed then could be replayed")]
     Retired,
     /// The venue knows the address already, as this.

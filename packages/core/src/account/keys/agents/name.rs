@@ -13,11 +13,13 @@ pub(super) const VALID_UNTIL: &str = " valid_until ";
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct AgentName(String);
 
+/// A name [`AgentName::new`] refused, kept as given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("an agent's name is 1 to {LONGEST_AGENT_NAME} characters and not a valid_until form, which `{0}` is not")]
 pub struct BadAgentName(pub String);
 
 impl AgentName {
+    /// Checks `name`: 1 to 16 characters, not blank, and without `valid_until` anywhere in it.
     pub fn new(name: &str) -> Result<AgentName, BadAgentName> {
         let fits = !name.trim().is_empty() && name.chars().count() <= LONGEST_AGENT_NAME;
         match fits && !name.contains("valid_until") {
@@ -26,6 +28,7 @@ impl AgentName {
         }
     }
 
+    /// The name as given.
     #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0

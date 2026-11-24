@@ -11,6 +11,7 @@ pub fn role_request(user: Address) -> String {
     user_request("userRole", user)
 }
 
+/// Reads `userRole`; see [`role_request`].
 pub async fn role(transport: &impl Transport, user: Address) -> Result<Role, ApiError> {
     info(transport, role_request(user)).await
 }
@@ -19,16 +20,20 @@ pub async fn role(transport: &impl Transport, user: Address) -> Result<Role, Api
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawRole")]
 pub enum Role {
+    /// An ordinary account (`user`).
     User,
     /// An address the venue has never seen.
     Missing,
+    /// A vault (`vault`).
     Vault,
     /// An agent, and the account it signs for.
     Agent {
+        /// The account the agent signs for.
         user: Address,
     },
     /// A subaccount, and its master.
     SubAccount {
+        /// The subaccount's master.
         master: Address,
     },
     /// A role this build does not know, or a known one whose data did not

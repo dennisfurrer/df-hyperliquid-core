@@ -29,6 +29,7 @@ pub struct ApproveBuilderFee {
 }
 
 impl ApproveBuilderFee {
+    /// Lets `builder` charge up to `max_fee`, signed at `nonce`.
     #[must_use]
     pub fn new(builder: Address, max_fee: BuilderFee, nonce: u64) -> ApproveBuilderFee {
         ApproveBuilderFee { max_fee_rate: max_fee.percent(), builder, nonce }
@@ -46,6 +47,7 @@ impl ApproveBuilderFee {
         BuilderFee::from_percent(&self.max_fee_rate)
     }
 
+    /// The builder approved.
     #[must_use]
     pub const fn builder(&self) -> Address {
         self.builder
@@ -91,12 +93,14 @@ pub async fn approved_builders(transport: &impl Transport, user: Address) -> Res
 /// Whether a builder can be paid now.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Readiness {
+    /// The builder can be paid.
     Ready,
     /// Not ready, and every reason.
     NotReady(Vec<NotReady>),
 }
 
 impl Readiness {
+    /// Whether the builder can be paid now.
     #[must_use]
     pub const fn is_ready(&self) -> bool {
         matches!(self, Readiness::Ready)
@@ -106,8 +110,13 @@ impl Readiness {
 /// One reason a builder is not ready.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum NotReady {
+    /// The builder's main-dex perps account value is under [`BUILDER_MINIMUM`].
     #[error("{value} USDC perps account value, under the {BUILDER_MINIMUM} a builder needs")]
-    TooLittle { value: Dec },
+    TooLittle {
+        /// The account value, in USDC.
+        value: Dec,
+    },
+    /// The builder's account is not in [`BUILDER_MODE`]; the mode it is in.
     #[error("its account abstraction is {0}, and a builder needs standard")]
     NotStandard(Abstraction),
 }

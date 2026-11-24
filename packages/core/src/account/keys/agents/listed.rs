@@ -17,11 +17,14 @@ pub async fn extra_agents(transport: &impl Transport, user: Address) -> Result<V
     Ok(agents.unwrap_or_default())
 }
 
+/// One `extraAgents` row: a named agent and when it lapses.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Agent {
+    /// The agent's name; empty when the venue leaves it out.
     #[serde(default)]
     pub name: String,
+    /// The agent's address.
     pub address: Address,
     /// Milliseconds; from it on the agent signs nothing.
     #[serde(default)]
