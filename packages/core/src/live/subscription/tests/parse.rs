@@ -1,7 +1,7 @@
 //! Reading a subscription back as the venue echoes it, and refusing what is none by name.
 
 use super::*;
-use crate::live::fixtures::{FIRST, SECOND, mainnet};
+use crate::live::fixtures::{FIRST, SECOND, compressed, mainnet};
 use crate::live::subscription::fixtures::{book, coin, user};
 use crate::live::{Frame, decode};
 
@@ -35,6 +35,17 @@ fn what_the_venue_echoes_reads_back_to_the_same_subscription() {
     ];
     for (name, expected) in cases {
         let Ok(Frame::Ack(ack)) = decode(&mainnet(name)) else { panic!("{name} is an ack") };
+        assert_eq!(ack.subscription(), Ok(expected), "{name}");
+    }
+    // `l2` is echoed with `s` and `m` as `null` when left out.
+    let cases = [
+        ("ack.l2", Subscription::L2 { coin: coin("BTC"), n_sig_figs: None, mantissa: None }),
+        ("ack.l2.sigFigs", Subscription::L2 { coin: coin("ETH"), n_sig_figs: Some(3), mantissa: None }),
+        ("ack.pac", Subscription::Pac),
+        ("ack.sac", Subscription::Sac),
+    ];
+    for (name, expected) in cases {
+        let Ok(Frame::Ack(ack)) = decode(&compressed(name)) else { panic!("{name} is an ack") };
         assert_eq!(ack.subscription(), Ok(expected), "{name}");
     }
 }

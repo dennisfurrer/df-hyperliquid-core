@@ -38,6 +38,15 @@ impl Subscription {
                     fields.push(("fast", Json::Bool(true)));
                 }
             }
+            Subscription::L2 { coin, n_sig_figs, mantissa } => {
+                fields.push(("c", text(coin)));
+                if let Some(figures) = n_sig_figs {
+                    fields.push(("s", Json::Number(figures.to_string())));
+                }
+                if let Some(mantissa) = mantissa {
+                    fields.push(("m", Json::Number(mantissa.to_string())));
+                }
+            }
             Subscription::Trades { coin } | Subscription::ActiveAssetCtx { coin } | Subscription::Bbo { coin } => {
                 fields.push(("coin", text(coin)));
             }
@@ -72,7 +81,9 @@ impl Subscription {
             | Subscription::AllDexsAssetCtxs
             | Subscription::OutcomeMetaUpdates
             | Subscription::FastAssetCtxs
-            | Subscription::SpotAssetCtxs => {}
+            | Subscription::SpotAssetCtxs
+            | Subscription::Pac
+            | Subscription::Sac => {}
         }
         Json::Object(fields.into_iter().map(|(key, value)| (key.to_owned(), value)).collect())
     }

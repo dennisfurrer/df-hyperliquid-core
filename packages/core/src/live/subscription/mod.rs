@@ -113,6 +113,19 @@ pub enum Subscription {
     UserHistoricalOrders {
         user: Address,
     },
+    /// The book as a snapshot of up to twenty levels a side, then diffs. `n_sig_figs` and
+    /// `mantissa` group levels as on [`Subscription::L2Book`]; on the wire they are `s` and `m`, and
+    /// the coin is `c`.
+    L2 {
+        coin: String,
+        n_sig_figs: Option<u8>,
+        mantissa: Option<u8>,
+    },
+    /// Every perp dex's contexts, base64 of raw DEFLATE: a snapshot, then only what changed.
+    Pac,
+    /// Every spot pair's and outcome side's context by coin, base64 of raw DEFLATE: a snapshot,
+    /// then only what changed.
+    Sac,
 }
 
 /// Why an object is not a subscription, or a subscription is not one the venue would take.
@@ -166,6 +179,9 @@ impl Subscription {
             Subscription::AssetCtxs { .. } => "assetCtxs",
             Subscription::SpotAssetCtxs => "spotAssetCtxs",
             Subscription::UserHistoricalOrders { .. } => "userHistoricalOrders",
+            Subscription::L2 { .. } => "l2",
+            Subscription::Pac => "pac",
+            Subscription::Sac => "sac",
         }
     }
 
@@ -212,6 +228,7 @@ impl Subscription {
         match self {
             Subscription::Candle { coin, .. }
             | Subscription::L2Book { coin, .. }
+            | Subscription::L2 { coin, .. }
             | Subscription::Trades { coin }
             | Subscription::ActiveAssetCtx { coin }
             | Subscription::ActiveAssetData { coin, .. }
@@ -227,7 +244,8 @@ impl Subscription {
         if self.coin().is_some_and(str::is_empty) {
             return Err(BadSubscription::EmptyCoin);
         }
-        if let Subscription::L2Book { n_sig_figs, mantissa, .. } = self {
+        if let Subscription::L2Book { n_sig_figs, mantissa, .. } | Subscription::L2 { n_sig_figs, mantissa, .. } = self
+        {
             if let Some(figures) = n_sig_figs.filter(|figures| !(2..=5).contains(figures)) {
                 return Err(BadSubscription::SigFigs(figures));
             }

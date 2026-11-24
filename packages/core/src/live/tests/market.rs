@@ -1,8 +1,9 @@
 //! The market frames as recorded on mainnet: books, prints, the best bid and offer, mids,
-//! candles and contexts, every price and size exact.
+//! candles and contexts, every price and size exact; and the `l2` book's snapshot and diffs, each
+//! recorded diff applied in order.
 
-use crate::live::Frame;
-use crate::live::fixtures::{address, dec, level, mainnet, read, testnet};
+use crate::live::fixtures::{address, compressed, dec, inflated, level, mainnet, read, testnet};
+use crate::live::{BadDiff, Frame, L2, L2Diff, L2Level};
 use crate::markets::{Interval, Side};
 
 #[test]
@@ -116,4 +117,86 @@ fn every_context_reads_exactly_on_its_own_channel() {
     let Frame::FastAssetCtxs(payload) = read(&mainnet("fastAssetCtxs")) else { panic!("fast contexts") };
     assert!(payload.starts_with("bVjLruM4Dv2X9LYg6C35"));
     assert!(payload.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'/' | b'=')), "base64");
+}
+
+fn base64(payload: &str) -> bool {
+    payload.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'/' | b'='))
+}
+
+/// `l2` opens with a snapshot as `l2Book` sends it, then sends each diff compressed. `pac` and `sac`
+/// are compressed whole and kept as sent.
+#[test]
+fn l2_opens_with_a_snapshot_then_sends_compressed_diffs_and_pac_and_sac_are_kept_as_sent() {
+    let Frame::L2(L2::Snapshot(book)) = read(&compressed("l2")) else { panic!("a snapshot") };
+    assert_eq!((book.coin.as_str(), book.time, book.spread), ("BTC", 1_795_489_962_741, None));
+    assert_eq!((book.bids.len(), book.asks.len()), (20, 20));
+    assert_eq!(book.bids[0], level("59963.0", "2.22088", 11));
+    let Frame::L2(L2::Snapshot(grouped)) = read(&compressed("l2.sigFigs")) else { panic!("a snapshot") };
+    assert_eq!((grouped.coin.as_str(), grouped.bids[0]), ("ETH", level("1680.0", "11205.2825", 504)));
+
+    for name in ["l2.diff", "l2.diff.sigFigs"] {
+        let Frame::L2(L2::Compressed(payload)) = read(&compressed(name)) else { panic!("{name} is compressed") };
+        assert!(base64(&payload), "{name}");
+    }
+    let Frame::Pac(pac) = read(&compressed("pac")) else { panic!("pac") };
+    let Frame::Sac(sac) = read(&compressed("sac")) else { panic!("sac") };
+    assert!(pac.starts_with("rV3LjiU3cv2X") && base64(&pac));
+    assert!(base64(&sac) && !sac.is_empty());
+}
+
+/// A diff sent as it is reads as one inflated from `c`; the docs' `u`. A grouped book's diff
+/// carries its spread.
+#[test]
+fn a_diff_reads_from_its_inflated_text_and_as_sent_whole() {
+    let first: L2Diff = serde_json::from_str(&inflated()[0]).unwrap();
+    assert_eq!((first.coin.as_str(), first.time), ("BTC", 1_795_489_963_277));
+    assert_eq!((first.bids.len(), first.asks.len()), (19, 14));
+    assert_eq!(first.bids[0], L2Level { px: dec("59963.0"), sz: dec("2.47796") });
+    assert_eq!(
+        (first.removed_bids.as_slice(), first.removed_asks.as_slice(), first.spread),
+        (&[19, 18, 1][..], &[][..], None)
+    );
+    let whole = format!(r#"{{"channel":"l2","data":{{"u":{}}}}}"#, inflated()[0]);
+    assert_eq!(read(&whole), Frame::L2(L2::Diff(first)));
+    let grouped: L2Diff =
+        serde_json::from_str(r#"{"c":"ETH","t":1,"l":[[{"p":"1680.0","s":"11555.0687"}],[]],"r":[[],[]],"s":"0.1"}"#)
+            .unwrap();
+    assert_eq!(grouped.spread, Some(dec("0.1")));
+}
+
+/// The ten diffs after the BTC snapshot, applied in order, keep twenty levels a side, best first,
+/// with the bid under the ask; each changed level has no order count.
+#[test]
+fn the_recorded_diffs_apply_in_order_and_keep_the_book_whole_and_uncrossed() {
+    let Frame::L2(L2::Snapshot(mut book)) = read(&compressed("l2")) else { panic!("a snapshot") };
+    let diffs: Vec<L2Diff> = inflated().iter().map(|text| serde_json::from_str(text).unwrap()).collect();
+    assert_eq!(diffs.len(), 10);
+    for diff in &diffs {
+        diff.apply(&mut book).unwrap();
+        assert_eq!((book.bids.len(), book.asks.len(), book.time), (20, 20, diff.time));
+        assert!(book.bids.windows(2).all(|pair| pair[0].px > pair[1].px), "bids fall away from the best");
+        assert!(book.asks.windows(2).all(|pair| pair[0].px < pair[1].px), "asks rise away from the best");
+        let (bid, ask) = book.touch();
+        assert!(bid < ask, "{bid:?} {ask:?}");
+        for level in diff.bids.iter().chain(&diff.asks) {
+            let side = if diff.bids.contains(level) { &book.bids } else { &book.asks };
+            assert!(side.contains(&crate::markets::Level { px: level.px, sz: level.sz, n: 0 }), "{level:?}");
+        }
+    }
+    assert_eq!(book.touch(), (Some(dec("59832.0")), Some(dec("59833.0"))));
+}
+
+/// A diff for another coin, or one that removes a level the book does not have, is refused and
+/// leaves the book as it was.
+#[test]
+fn a_diff_that_does_not_fit_the_book_is_refused_and_changes_nothing() {
+    let Frame::L2(L2::Snapshot(book)) = read(&compressed("l2")) else { panic!("a snapshot") };
+    let mut diff: L2Diff = serde_json::from_str(&inflated()[0]).unwrap();
+    let mut kept = book.clone();
+    diff.coin = "ETH".to_owned();
+    assert_eq!(diff.apply(&mut kept), Err(BadDiff::Coin { book: "BTC".to_owned(), diff: "ETH".to_owned() }));
+    diff.coin = "BTC".to_owned();
+    diff.removed_asks = vec![20];
+    assert_eq!(diff.apply(&mut kept), Err(BadDiff::Index { index: 20, levels: 20 }));
+    assert_eq!(kept, book);
 }

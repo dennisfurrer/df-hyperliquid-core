@@ -13,7 +13,7 @@ pub use reply::{Answer, Reply};
 
 use crate::account::ActiveAssetData;
 use crate::live::{
-    AllDexsState, Bbo, DexState, HistoricalOrders, Ledger, Mids, OpenOrders, OrderUpdate, SpotState, TwapHistory,
+    AllDexsState, Bbo, DexState, HistoricalOrders, L2, Ledger, Mids, OpenOrders, OrderUpdate, SpotState, TwapHistory,
     TwapSliceFills, TwapStates, UserEvent, UserFills, UserFundings, WebData3,
 };
 use crate::markets::context::{PerpCtx, SpotCtx};
@@ -82,6 +82,15 @@ pub enum Frame {
     FastAssetCtxs(String),
     /// `userHistoricalOrders`.
     HistoricalOrders(HistoricalOrders),
+    /// `l2`: the book's snapshot, or a diff to it.
+    L2(L2),
+    /// `pac`: every perp dex's contexts as `[dex, ctxs]` pairs, the first dex `""`, each `ctxs` in
+    /// the dex's universe order. After the snapshot, a context holds only the fields that changed,
+    /// or is `{}`. Base64 of raw DEFLATE (RFC 1951) over JSON, kept as sent.
+    Pac(String),
+    /// `sac`: every spot pair's and outcome side's context by coin; after the snapshot, only the
+    /// coins and fields that changed. Base64 of raw DEFLATE (RFC 1951) over JSON, kept as sent.
+    Sac(String),
     /// A channel this build does not read: its name, and its data as written (empty when the
     /// frame has none).
     Other {

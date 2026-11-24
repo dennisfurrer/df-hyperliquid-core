@@ -5,8 +5,8 @@ use crate::live::{BadSubscription, Subscription};
 use crate::markets::Interval;
 use crate::utils::{Address, Json};
 
-/// Every `type`, in the docs' order and then the SDK's.
-const KINDS: [&str; 27] = [
+/// Every `type`: the docs' list as it was, the SDK's, then the docs' newer ones.
+const KINDS: [&str; 30] = [
     "allMids",
     "notification",
     "webData3",
@@ -34,6 +34,9 @@ const KINDS: [&str; 27] = [
     "assetCtxs",
     "spotAssetCtxs",
     "userHistoricalOrders",
+    "l2",
+    "pac",
+    "sac",
 ];
 
 impl Subscription {
@@ -92,6 +95,13 @@ impl Subscription {
             "assetCtxs" => Subscription::AssetCtxs { dex: fields.dex()? },
             "spotAssetCtxs" => Subscription::SpotAssetCtxs,
             "userHistoricalOrders" => Subscription::UserHistoricalOrders { user: fields.user()? },
+            "l2" => Subscription::L2 {
+                coin: fields.string("c")?.to_owned(),
+                n_sig_figs: fields.small("s")?,
+                mantissa: fields.small("m")?,
+            },
+            "pac" => Subscription::Pac,
+            "sac" => Subscription::Sac,
             other => return Err(BadSubscription::UnknownType(other.to_owned())),
         })
     }

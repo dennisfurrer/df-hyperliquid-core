@@ -17,8 +17,8 @@ pub fn book(name: &str) -> Subscription {
     Subscription::L2Book { coin: coin(name), n_sig_figs: None, mantissa: None, fast: false }
 }
 
-/// Every subscription with the exact object sent for it on mainnet on 2026-10-08, each of which
-/// the venue acknowledged. Keys are in the order the docs' subscription messages write them,
+/// Every subscription with the exact object sent for it on mainnet on 2026-10-08 (`l2`, `pac` and
+/// `sac` on 2026-11-24), each of which the venue acknowledged. Keys are in the order the docs' subscription messages write them,
 /// optional ones last and only when set, as the Python SDK sends them.
 pub fn sent() -> Vec<(Subscription, String)> {
     let (a, b) = (user(FIRST), user(SECOND));
@@ -104,5 +104,15 @@ pub fn sent() -> Vec<(Subscription, String)> {
             Subscription::UserHistoricalOrders { user: a },
             format!(r#"{{"type":"userHistoricalOrders","user":"{FIRST}"}}"#),
         ),
+        (
+            Subscription::L2 { coin: coin("BTC"), n_sig_figs: None, mantissa: None },
+            r#"{"type":"l2","c":"BTC"}"#.to_owned(),
+        ),
+        (
+            Subscription::L2 { coin: coin("ETH"), n_sig_figs: Some(3), mantissa: None },
+            r#"{"type":"l2","c":"ETH","s":3}"#.to_owned(),
+        ),
+        (Subscription::Pac, r#"{"type":"pac"}"#.to_owned()),
+        (Subscription::Sac, r#"{"type":"sac"}"#.to_owned()),
     ]
 }

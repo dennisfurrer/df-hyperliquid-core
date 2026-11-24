@@ -11,7 +11,7 @@ use df_hyperliquid_core::account::{Abstraction, ClearinghouseState, L1Action, Le
 use df_hyperliquid_core::client::ExchangeResponse;
 use df_hyperliquid_core::client::native::Feed;
 use df_hyperliquid_core::live::store::{Folded, Interest, Read, Store};
-use df_hyperliquid_core::live::{Answer, Event, Frame, Post, Session, Timing};
+use df_hyperliquid_core::live::{Answer, Event, Frame, L2, L2Diff, Post, Session, Subscription, Timing};
 use df_hyperliquid_core::markets::Level;
 use df_hyperliquid_core::trade::{self, Amount, Asset, Market, OrderAnswer, OrderIntent, Side, Tif};
 use df_hyperliquid_core::utils::sign::l1_digest;
@@ -300,4 +300,41 @@ async fn a_read_and_a_signed_order_posted_on_the_socket_are_answered_by_their_id
     let Answer::Action(ExchangeResponse::Ok(accepted)) = reply.answer else { panic!("an accepted action") };
     assert_eq!(reply.id, id);
     assert_eq!(trade::answer::orders(&accepted, 1), Ok(vec![OrderAnswer::Resting { oid: 88_383, cloid: None }]));
+}
+
+/// `l2`, `pac` and `sac` (recorded 2026-11-24): each goes out as the docs write it, the venue's
+/// echo names the subscription sent, the book opens with a snapshot, a diff sent whole applies to
+/// it, and the compressed frames come through as sent.
+#[tokio::test]
+async fn the_l2_book_and_the_compressed_contexts_are_subscribed_and_read_through_the_feed() {
+    let (listener, url) = listen().await;
+    let mut feed = Feed::start_at(url, Session::new(Network::Mainnet));
+    let mut venue = accept(&listener).await;
+    let l2 = Subscription::L2 { coin: "BTC".to_owned(), n_sig_figs: None, mantissa: None };
+    for subscription in [l2.clone(), Subscription::Pac, Subscription::Sac] {
+        feed.subscribe(subscription).await.unwrap();
+    }
+    assert_eq!(venue.takes().await, r#"{"method":"subscribe","subscription":{"type":"l2","c":"BTC"}}"#);
+    assert_eq!(venue.takes().await, r#"{"method":"subscribe","subscription":{"type":"pac"}}"#);
+    assert_eq!(venue.takes().await, r#"{"method":"subscribe","subscription":{"type":"sac"}}"#);
+
+    let compressed = |name: &str| recorded("compressed", name);
+    let file: serde_json::Value = serde_json::from_str(&fixture("ws/compressed.json")).unwrap();
+    let inflated = file["inflated"][0].as_str().unwrap().to_owned();
+    let whole = format!(r#"{{"channel":"l2","data":{{"u":{inflated}}}}}"#);
+    for text in
+        [compressed("ack.l2"), compressed("l2"), whole, compressed("l2.diff"), compressed("pac"), compressed("sac")]
+    {
+        venue.sends(&text).await;
+    }
+    let Frame::Ack(ack) = frame(&mut feed).await else { panic!("an ack") };
+    assert_eq!(ack.subscription(), Ok(l2));
+    let Frame::L2(L2::Snapshot(mut book)) = frame(&mut feed).await else { panic!("a snapshot") };
+    let Frame::L2(L2::Diff(diff)) = frame(&mut feed).await else { panic!("a diff sent whole") };
+    assert_eq!(diff, serde_json::from_str::<L2Diff>(&inflated).unwrap());
+    diff.apply(&mut book).unwrap();
+    assert_eq!((book.time, book.bids[0].px, book.asks[0].px), (diff.time, dec("59963.0"), dec("59964.0")));
+    assert!(matches!(frame(&mut feed).await, Frame::L2(L2::Compressed(_))));
+    assert!(matches!(frame(&mut feed).await, Frame::Pac(_)));
+    assert!(matches!(frame(&mut feed).await, Frame::Sac(_)));
 }

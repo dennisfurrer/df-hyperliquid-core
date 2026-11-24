@@ -8,6 +8,8 @@
 //! - `docs.json`: the post-requests page's sample answer to an order.
 //! - `vault.json`: the HLP vault's frames, recorded 2026-10-18: the vaults it leads, deposits into it
 //!   and withdrawals from it, and its order history's snapshot.
+//! - `compressed.json`: `l2`, `pac` and `sac` from mainnet, recorded 2026-11-24, with the BTC book's
+//!   diffs inflated in order.
 
 use crate::account::history::Fill;
 use crate::live::{Frame, decode};
@@ -19,6 +21,7 @@ const TESTNET: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixture
 const PORTFOLIO: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/portfolio.json"));
 const DOCS: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/docs.json"));
 const VAULT: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/vault.json"));
+const COMPRESSED: &str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/fixtures/ws/compressed.json"));
 
 /// The two accounts the mainnet recording followed on 2026-10-08.
 pub const FIRST: &str = "0x42f1b36fb856769e075dfbf25938464fb3c92c70";
@@ -63,9 +66,20 @@ pub fn vault(name: &str) -> String {
     named(VAULT, name)
 }
 
+pub fn compressed(name: &str) -> String {
+    named(COMPRESSED, name)
+}
+
+/// The BTC book's diffs after its snapshot in `compressed.json`, inflated, in order.
+pub fn inflated() -> Vec<String> {
+    let manifest = Json::parse(COMPRESSED).unwrap();
+    let diffs = manifest.get("inflated").and_then(Json::as_array).unwrap();
+    diffs.iter().map(|diff| diff.as_str().unwrap().to_owned()).collect()
+}
+
 /// Every recorded frame, from every manifest.
 pub fn all() -> Vec<(String, String)> {
-    [MAINNET, TESTNET, PORTFOLIO, DOCS, VAULT].into_iter().flat_map(frames).collect()
+    [MAINNET, TESTNET, PORTFOLIO, DOCS, VAULT, COMPRESSED].into_iter().flat_map(frames).collect()
 }
 
 pub fn dec(text: &str) -> Dec {

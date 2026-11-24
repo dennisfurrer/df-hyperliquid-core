@@ -19,7 +19,7 @@ pub use account::{
 };
 pub use feed::{Event, FeedError};
 pub use frame::{Ack, Answer, BadFrame, Frame, Method, Refusal, Reply, decode};
-pub use market::{Bbo, Mids};
+pub use market::{BadDiff, Bbo, L2, L2Diff, L2Level, Mids};
 pub use request::{PING, Post, post, subscribe, unsubscribe};
 pub use session::{
     Limits, MAX_CONNECTIONS, MAX_INFLIGHT_POSTS, MAX_MESSAGES_PER_MINUTE, MAX_NEW_CONNECTIONS_PER_MINUTE,

@@ -143,6 +143,9 @@ pub fn decode(text: &str) -> Result<Frame, BadFrame> {
         }
         "fastAssetCtxs" => Frame::FastAssetCtxs(typed.read()?),
         "userHistoricalOrders" => Frame::HistoricalOrders(typed.read()?),
+        "l2" => Frame::L2(typed.read()?),
+        "pac" => Frame::Pac(typed.read()?),
+        "sac" => Frame::Sac(typed.read()?),
         other => Frame::Other { channel: other.to_owned(), data: data.unwrap_or_default().to_owned() },
     })
 }

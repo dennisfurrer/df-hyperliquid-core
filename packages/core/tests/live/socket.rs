@@ -50,7 +50,7 @@ enum Sends {
 #[ignore = "mainnet"]
 async fn every_market_channel_reads_and_keeps_its_recorded_shape() {
     let coin = |name: &str| name.to_owned();
-    let checks: [Check; 12] = [
+    let checks: [Check; 15] = [
         (
             Subscription::AllMids { dex: String::new() },
             "mainnet#allMids",
@@ -102,6 +102,14 @@ async fn every_market_channel_reads_and_keeps_its_recorded_shape() {
         ),
         (Subscription::SpotAssetCtxs, "mainnet#spotAssetCtxs", |f| matches!(f, Frame::SpotAssetCtxs(_)), Sends::AtOnce),
         (Subscription::FastAssetCtxs, "mainnet#fastAssetCtxs", |f| matches!(f, Frame::FastAssetCtxs(_)), Sends::AtOnce),
+        (
+            Subscription::L2 { coin: coin("BTC"), n_sig_figs: None, mantissa: None },
+            "compressed#l2",
+            |f| matches!(f, Frame::L2(_)),
+            Sends::AtOnce,
+        ),
+        (Subscription::Pac, "compressed#pac", |f| matches!(f, Frame::Pac(_)), Sends::AtOnce),
+        (Subscription::Sac, "compressed#sac", |f| matches!(f, Frame::Sac(_)), Sends::AtOnce),
         (
             Subscription::OutcomeMetaUpdates,
             "testnet#outcomeMetaUpdates",
