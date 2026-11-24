@@ -107,8 +107,10 @@ pub struct RateLimit {
     /// USDC traded since the address began: what buys its cap.
     #[serde(rename = "cumVlm")]
     pub volume: Dec,
+    /// Requests sent so far (`nRequestsUsed`), throttled ones included.
     #[serde(rename = "nRequestsUsed")]
     pub used: u64,
+    /// The requests the address may send before it is throttled (`nRequestsCap`).
     #[serde(rename = "nRequestsCap")]
     pub cap: u64,
     /// Bought with `reserveRequestWeight`.
@@ -124,6 +126,8 @@ impl RateLimit {
         self.cap.saturating_sub(self.used)
     }
 
+    /// Whether the address has used its cap, so it may send one request every
+    /// [`THROTTLED_EVERY_MS`].
     #[must_use]
     pub const fn is_throttled(&self) -> bool {
         self.remaining() == 0

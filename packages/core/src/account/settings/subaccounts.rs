@@ -25,17 +25,22 @@ pub struct AccountRef {
 /// What a subaccount does not do, and why.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum SubRefusal {
+    /// A spot order.
     #[error("a subaccount places no spot orders here")]
     Spot,
+    /// A HIP-4 order, split or merge.
     #[error("a subaccount places no HIP-4 orders and splits or merges nothing here")]
     Outcome,
     /// An order-like action that names no market cannot be told apart.
     #[error("a subaccount's order names its market, since its spot and HIP-4 orders are refused")]
     MarketUnknown,
+    /// A move between the subaccount's own balances: `usdClassTransfer` or `agentSendAsset`.
     #[error("a subaccount moves nothing between its own ledgers here")]
     LedgerMove,
+    /// An approval: `approveAgent` or `approveBuilderFee`.
     #[error("a subaccount approves nothing: its master's agent signs for it")]
     Approval,
+    /// Setting the dead man's switch (`scheduleCancel`).
     #[error("a subaccount schedules no cancel here")]
     ScheduleCancel,
     /// Opening a subaccount, and moving money in and out of one, is the
@@ -48,16 +53,19 @@ pub enum SubRefusal {
 }
 
 impl AccountRef {
+    /// The master's own account.
     #[must_use]
     pub const fn own(owner: Address) -> AccountRef {
         AccountRef { owner, sub: None }
     }
 
+    /// One of `owner`'s subaccounts.
     #[must_use]
     pub const fn sub(owner: Address, sub: Address) -> AccountRef {
         AccountRef { owner, sub: Some(sub) }
     }
 
+    /// Whether it acts for a subaccount.
     #[must_use]
     pub const fn is_sub(&self) -> bool {
         self.sub.is_some()
@@ -126,6 +134,7 @@ pub struct CreateSubAccount {
 }
 
 impl CreateSubAccount {
+    /// A subaccount named `name`.
     #[must_use]
     pub fn new(name: &str) -> CreateSubAccount {
         CreateSubAccount { name: name.to_owned() }
@@ -188,6 +197,8 @@ pub struct SubAccountSpotTransfer {
 }
 
 impl SubAccountSpotTransfer {
+    /// `amount` of `token` (`NAME:0x<tokenId>`) into the subaccount when `is_deposit`, else back to
+    /// the master; refused unless positive.
     pub fn new(
         sub_account: Address,
         is_deposit: bool,
@@ -229,12 +240,17 @@ pub async fn sub_accounts(transport: &impl Transport, master: Address) -> Result
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubAccount {
+    /// The subaccount's name; empty when the venue leaves it out.
     #[serde(default)]
     pub name: String,
+    /// The subaccount's address (`subAccountUser`).
     pub sub_account_user: Address,
+    /// The master's address.
     pub master: Address,
+    /// Its main dex's clearinghouse state (`clearinghouseState`); `None` when not sent.
     #[serde(default)]
     pub clearinghouse_state: Option<ClearinghouseState>,
+    /// Its spot balances (`spotState`); `None` when not sent.
     #[serde(default)]
     pub spot_state: Option<SpotState>,
 }
@@ -252,11 +268,13 @@ impl SubAccount {
         self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.margin_summary.account_value)
     }
 
+    /// Its main dex's positions' notional (`totalNtlPos`); nothing when it has no state.
     #[must_use]
     pub fn notional(&self) -> Dec {
         self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.margin_summary.total_ntl_pos)
     }
 
+    /// What can leave its main dex's balance now (`withdrawable`); nothing when it has no state.
     #[must_use]
     pub fn withdrawable(&self) -> Dec {
         self.clearinghouse_state.as_ref().map_or(Dec::ZERO, |state| state.withdrawable)

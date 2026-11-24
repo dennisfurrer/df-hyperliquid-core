@@ -40,6 +40,8 @@ pub enum Abstraction {
 }
 
 impl Abstraction {
+    /// From the venue's spelling: `unifiedAccount`. A mode this build does not know is kept as
+    /// [`Abstraction::Unknown`].
     #[must_use]
     pub fn parse(text: &str) -> Abstraction {
         match text {
@@ -52,6 +54,7 @@ impl Abstraction {
         }
     }
 
+    /// As the venue spells it: `unifiedAccount`.
     #[must_use]
     pub fn wire(&self) -> &str {
         match self {
@@ -112,10 +115,12 @@ pub enum AbstractionMode {
     Disabled,
     /// One balance, in spot.
     UnifiedAccount,
+    /// Unified, and an order may borrow against HYPE and BTC.
     PortfolioMargin,
 }
 
 impl AbstractionMode {
+    /// Every mode, standard first.
     pub const ALL: [AbstractionMode; 3] =
         [AbstractionMode::Disabled, AbstractionMode::UnifiedAccount, AbstractionMode::PortfolioMargin];
 
@@ -170,6 +175,7 @@ pub struct UserSetAbstraction {
 }
 
 impl UserSetAbstraction {
+    /// Sets `user`'s mode to `mode`, signed at `nonce`.
     #[must_use]
     pub const fn new(user: Address, mode: AbstractionMode, nonce: u64) -> UserSetAbstraction {
         UserSetAbstraction { user, mode, nonce }
@@ -193,6 +199,7 @@ pub struct AgentSetAbstraction {
 }
 
 impl AgentSetAbstraction {
+    /// Sets the master's mode to `mode`.
     #[must_use]
     pub const fn new(mode: AbstractionMode) -> AgentSetAbstraction {
         AgentSetAbstraction { mode }

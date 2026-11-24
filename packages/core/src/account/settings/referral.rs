@@ -11,6 +11,7 @@ use serde::Deserialize;
 /// The longest code `setReferrer` takes.
 pub const LONGEST_CODE: usize = 20;
 
+/// A code [`SetReferrer::new`] refused, kept as given.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("a referral code is 1 to {LONGEST_CODE} characters, which `{0}` is not")]
 pub struct BadCode(pub String);
@@ -22,6 +23,7 @@ pub struct SetReferrer {
 }
 
 impl SetReferrer {
+    /// Refers the account under `code`: 1 to [`LONGEST_CODE`] characters.
     pub fn new(code: &str) -> Result<SetReferrer, BadCode> {
         match (1..=LONGEST_CODE).contains(&code.chars().count()) {
             true => Ok(SetReferrer { code: code.to_owned() }),
@@ -58,6 +60,7 @@ pub fn referral_request(user: Address) -> String {
     user_request("referral", user)
 }
 
+/// Reads `referral`; see [`referral_request`].
 pub async fn referral(transport: &impl Transport, user: Address) -> Result<Referral, ApiError> {
     info(transport, referral_request(user)).await
 }
@@ -68,13 +71,19 @@ pub async fn referral(transport: &impl Transport, user: Address) -> Result<Refer
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Referral {
+    /// Who referred the account (`referredBy`); `None` when no one did.
     #[serde(default)]
     pub referred_by: Option<ReferredBy>,
+    /// The account's own volume (`cumVlm`), in USDC.
     pub cum_vlm: Dec,
+    /// Referral rewards not yet claimed (`unclaimedRewards`), in USDC.
     pub unclaimed_rewards: Dec,
+    /// Referral rewards already claimed (`claimedRewards`), in USDC.
     pub claimed_rewards: Dec,
+    /// What the account has earned as a builder (`builderRewards`), in USDC; zero when left out.
     #[serde(default)]
     pub builder_rewards: Dec,
+    /// Where the account stands as a referrer (`referrerState`).
     pub referrer_state: ReferrerState,
     /// Each quote token's figures, by the token's index (`0` USDC); not always sent.
     #[serde(default)]
@@ -85,15 +94,22 @@ pub struct Referral {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TokenRewards {
+    /// The account's own volume in this token (`cumVlm`).
     pub cum_vlm: Dec,
+    /// Referral rewards in this token not yet claimed (`unclaimedRewards`).
     pub unclaimed_rewards: Dec,
+    /// Referral rewards in this token already claimed (`claimedRewards`).
     pub claimed_rewards: Dec,
+    /// What the account has earned in this token as a builder (`builderRewards`).
     pub builder_rewards: Dec,
 }
 
+/// Who referred an account, and under which code.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ReferredBy {
+    /// The address that owns the code.
     pub referrer: Address,
+    /// The code the account was referred under.
     pub code: String,
 }
 
@@ -101,18 +117,25 @@ pub struct ReferredBy {
 /// `needToCreateCode`, or `ready` (with the account's own `code`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ReferrerState {
+    /// `needToTrade`, `needToCreateCode` or `ready`.
     pub stage: String,
+    /// The stage's figures; `None` when the stage has none.
     #[serde(default)]
     pub data: Option<ReferrerData>,
 }
 
+/// What a [`ReferrerState`] stage carries: the code once made, or the volume still to trade.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReferrerData {
+    /// The account's own code (`code`); `None` until it has made one.
     #[serde(default)]
     pub code: Option<String>,
+    /// The volume still to trade before a code can be made (`required`), in USDC; `None` once
+    /// traded.
     #[serde(default)]
     pub required: Option<Dec>,
+    /// How many accounts were referred under the code (`nReferrals`); `None` when not sent.
     #[serde(default)]
     pub n_referrals: Option<u64>,
     /// The accounts referred under the code.
@@ -124,11 +147,17 @@ pub struct ReferrerData {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReferralState {
+    /// The referred account's address.
     pub user: Address,
+    /// The referred account's volume (`cumVlm`), in USDC.
     #[serde(default)]
     pub cum_vlm: Dec,
+    /// The referred account's fees counted for rewards since it was referred
+    /// (`cumRewardedFeesSinceReferred`), in USDC.
     #[serde(default)]
     pub cum_rewarded_fees_since_referred: Dec,
+    /// What the referred account's fees have paid the referrer (`cumFeesRewardedToReferrer`), in
+    /// USDC.
     #[serde(default)]
     pub cum_fees_rewarded_to_referrer: Dec,
     /// Milliseconds.
