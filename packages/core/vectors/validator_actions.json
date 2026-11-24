@@ -1,0 +1,292 @@
+{
+  "source": "CValidatorAction and CSignerAction, L1 actions, signed for mainnet with the key below at one nonce. Nothing was sent: each SDK's post was replaced by a recorder. The two SDKs agree on every hash and signature.",
+  "key": "0x0123456789012345678901234567890123456789012345678901234567890123",
+  "nonce": 1795000000000,
+  "nktkas": {
+    "source": "@nktkas/hyperliquid 0.33.3: its own cValidatorAction and cSignerAction functions through a recording transport; hashes from its createL1ActionHash. The register signer was typed in upper case; the SDK lowers it.",
+    "cases": [
+      {
+        "name": "register",
+        "action": {
+          "type": "CValidatorAction",
+          "register": {
+            "profile": {
+              "node_ip": {
+                "Ip": "1.2.3.4"
+              },
+              "name": "Test validator",
+              "description": "A test.",
+              "delegations_disabled": true,
+              "commission_bps": 500,
+              "signer": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            },
+            "unjailed": false,
+            "initial_wei": 1000000000000
+          }
+        },
+        "actionHash": "0x74ec40c3b4a82bfab7e5e6b6a72f6a05fed82e2900a582d0e53efeae195cf867",
+        "signature": {
+          "r": "0xc798046f038c75056f5b9ff1564b7d97e1b611424ab1ae60bc35f9cf2329e45b",
+          "s": "0x06d623e6ba3dc54e79f094937caed91c3325a46bbc52ddfc9d5b143b16c80e20",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerIpv6",
+        "action": {
+          "type": "CValidatorAction",
+          "register": {
+            "profile": {
+              "node_ip": {
+                "Ip": "2001:db8::1"
+              },
+              "name": "Test validator",
+              "description": "A test.",
+              "delegations_disabled": true,
+              "commission_bps": 500,
+              "signer": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            },
+            "unjailed": true,
+            "initial_wei": 0
+          }
+        },
+        "actionHash": "0xb0ac24b2dbb68396adcbbda05d2bc4078f4155ac734963c1a5176099647ddca4",
+        "signature": {
+          "r": "0xee8e2a0b4ee2ec63dc1abfdf9c9a1d04aa9e7f98ab927a6730e8216c56531160",
+          "s": "0x2c99f93f0dd8d486f06de2490edaf2f820a9ac70de47a7aa0d221cba75335e06",
+          "v": 28
+        }
+      },
+      {
+        "name": "changeProfileUnjailOnly",
+        "action": {
+          "type": "CValidatorAction",
+          "changeProfile": {
+            "node_ip": null,
+            "name": null,
+            "description": null,
+            "unjailed": true,
+            "disable_delegations": null,
+            "commission_bps": null,
+            "signer": null
+          }
+        },
+        "actionHash": "0x8f5d043a689253ce86f6ca74e008c8d32aec568624450ccbfcb368814101831a",
+        "signature": {
+          "r": "0xb3206c7c7bde4e2ebded267b6bda29a719bcf64449724cb0f5cd0dfa89e495f3",
+          "s": "0x1cd96404bd22e40f58fae15ba494561e8ad79dd8951767a129f9790d869c9c62",
+          "v": 27
+        }
+      },
+      {
+        "name": "changeProfileEverything",
+        "action": {
+          "type": "CValidatorAction",
+          "changeProfile": {
+            "node_ip": {
+              "Ip": "5.6.7.8"
+            },
+            "name": "Renamed",
+            "description": "",
+            "unjailed": false,
+            "disable_delegations": false,
+            "commission_bps": 1000,
+            "signer": "0x2222222222222222222222222222222222222222"
+          }
+        },
+        "actionHash": "0xe0012a0bb772a8950ddc5651bb869f29a9edafee8741f2e0ce486aab41726232",
+        "signature": {
+          "r": "0x36174efbdcacf14654c9fd6d0ce96bc14f21ec50adadb042b57c5bbc195fa418",
+          "s": "0x16113aec117d0f5135aa0252d146f31d33f33888e3462707b983dac242ff8175",
+          "v": 27
+        }
+      },
+      {
+        "name": "unregister",
+        "action": {
+          "type": "CValidatorAction",
+          "unregister": null
+        },
+        "actionHash": "0xb314b3166b73347a4a389943e2487ba5605314fc716b109504934c697092d384",
+        "signature": {
+          "r": "0xa2541b11e97b665d0fc67d7887819b9949f232553ed395fb12f91ac6c1aa1280",
+          "s": "0x2ccc38220ba87a60c3596b7a75bb6c97159739835555423b220494d72cac3c31",
+          "v": 28
+        }
+      },
+      {
+        "name": "jailSelf",
+        "action": {
+          "type": "CSignerAction",
+          "jailSelf": null
+        },
+        "actionHash": "0x9397ba4b9e71b3f62d11b858cacf74848efa32f49a85aa7a983e3b55b75e4cf5",
+        "signature": {
+          "r": "0xa0b220534327aff7b51c591bef7ca0e86d0a663341db2a601809070305f86ed2",
+          "s": "0x0e42cf1408184989b571227458091de88e9577a82888d1f5069ecf123b9d5bd9",
+          "v": 27
+        }
+      },
+      {
+        "name": "unjailSelf",
+        "action": {
+          "type": "CSignerAction",
+          "unjailSelf": null
+        },
+        "actionHash": "0x59605cf05c5afd4e04dd9284c8a03dcb018399b0314e06f16cfe33b91fe2a60e",
+        "signature": {
+          "r": "0x472d04ab3dea344e0ccec300e45e488769e85b51bb6137f9826bd05da41cfe7a",
+          "s": "0x34138e38074a31b57eea9e54e923c7a383a8c041d6cbd867a3efb2437891a041",
+          "v": 27
+        }
+      }
+    ]
+  },
+  "python": {
+    "source": "Hyperliquid's Python SDK 0.24.0 (hyperliquid-python-sdk): its Exchange c_validator_* and c_signer_* methods with the post recorded. The SDK sends the signer as given, so it was given in lower case. msgpack is msgpack.packb of the action.",
+    "cases": [
+      {
+        "name": "register",
+        "action": {
+          "type": "CValidatorAction",
+          "register": {
+            "profile": {
+              "node_ip": {
+                "Ip": "1.2.3.4"
+              },
+              "name": "Test validator",
+              "description": "A test.",
+              "delegations_disabled": true,
+              "commission_bps": 500,
+              "signer": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            },
+            "unjailed": false,
+            "initial_wei": 1000000000000
+          }
+        },
+        "msgpack": "0x82a474797065b04356616c696461746f72416374696f6ea8726567697374657283a770726f66696c6586a76e6f64655f697081a24970a7312e322e332e34a46e616d65ae546573742076616c696461746f72ab6465736372697074696f6ea74120746573742eb464656c65676174696f6e735f64697361626c6564c3ae636f6d6d697373696f6e5f627073cd01f4a67369676e6572d92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134a8756e6a61696c6564c2ab696e697469616c5f776569cf000000e8d4a51000",
+        "actionHash": "0x74ec40c3b4a82bfab7e5e6b6a72f6a05fed82e2900a582d0e53efeae195cf867",
+        "signature": {
+          "r": "0xc798046f038c75056f5b9ff1564b7d97e1b611424ab1ae60bc35f9cf2329e45b",
+          "s": "0x6d623e6ba3dc54e79f094937caed91c3325a46bbc52ddfc9d5b143b16c80e20",
+          "v": 27
+        }
+      },
+      {
+        "name": "registerIpv6",
+        "action": {
+          "type": "CValidatorAction",
+          "register": {
+            "profile": {
+              "node_ip": {
+                "Ip": "2001:db8::1"
+              },
+              "name": "Test validator",
+              "description": "A test.",
+              "delegations_disabled": true,
+              "commission_bps": 500,
+              "signer": "0x0d1d9635d0640821d15e323ac8adadfa9c111414"
+            },
+            "unjailed": true,
+            "initial_wei": 0
+          }
+        },
+        "msgpack": "0x82a474797065b04356616c696461746f72416374696f6ea8726567697374657283a770726f66696c6586a76e6f64655f697081a24970ab323030313a6462383a3a31a46e616d65ae546573742076616c696461746f72ab6465736372697074696f6ea74120746573742eb464656c65676174696f6e735f64697361626c6564c3ae636f6d6d697373696f6e5f627073cd01f4a67369676e6572d92a307830643164393633356430363430383231643135653332336163386164616466613963313131343134a8756e6a61696c6564c3ab696e697469616c5f77656900",
+        "actionHash": "0xb0ac24b2dbb68396adcbbda05d2bc4078f4155ac734963c1a5176099647ddca4",
+        "signature": {
+          "r": "0xee8e2a0b4ee2ec63dc1abfdf9c9a1d04aa9e7f98ab927a6730e8216c56531160",
+          "s": "0x2c99f93f0dd8d486f06de2490edaf2f820a9ac70de47a7aa0d221cba75335e06",
+          "v": 28
+        }
+      },
+      {
+        "name": "changeProfileUnjailOnly",
+        "action": {
+          "type": "CValidatorAction",
+          "changeProfile": {
+            "node_ip": null,
+            "name": null,
+            "description": null,
+            "unjailed": true,
+            "disable_delegations": null,
+            "commission_bps": null,
+            "signer": null
+          }
+        },
+        "msgpack": "0x82a474797065b04356616c696461746f72416374696f6ead6368616e676550726f66696c6587a76e6f64655f6970c0a46e616d65c0ab6465736372697074696f6ec0a8756e6a61696c6564c3b364697361626c655f64656c65676174696f6e73c0ae636f6d6d697373696f6e5f627073c0a67369676e6572c0",
+        "actionHash": "0x8f5d043a689253ce86f6ca74e008c8d32aec568624450ccbfcb368814101831a",
+        "signature": {
+          "r": "0xb3206c7c7bde4e2ebded267b6bda29a719bcf64449724cb0f5cd0dfa89e495f3",
+          "s": "0x1cd96404bd22e40f58fae15ba494561e8ad79dd8951767a129f9790d869c9c62",
+          "v": 27
+        }
+      },
+      {
+        "name": "changeProfileEverything",
+        "action": {
+          "type": "CValidatorAction",
+          "changeProfile": {
+            "node_ip": {
+              "Ip": "5.6.7.8"
+            },
+            "name": "Renamed",
+            "description": "",
+            "unjailed": false,
+            "disable_delegations": false,
+            "commission_bps": 1000,
+            "signer": "0x2222222222222222222222222222222222222222"
+          }
+        },
+        "msgpack": "0x82a474797065b04356616c696461746f72416374696f6ead6368616e676550726f66696c6587a76e6f64655f697081a24970a7352e362e372e38a46e616d65a752656e616d6564ab6465736372697074696f6ea0a8756e6a61696c6564c2b364697361626c655f64656c65676174696f6e73c2ae636f6d6d697373696f6e5f627073cd03e8a67369676e6572d92a307832323232323232323232323232323232323232323232323232323232323232323232323232323232",
+        "actionHash": "0xe0012a0bb772a8950ddc5651bb869f29a9edafee8741f2e0ce486aab41726232",
+        "signature": {
+          "r": "0x36174efbdcacf14654c9fd6d0ce96bc14f21ec50adadb042b57c5bbc195fa418",
+          "s": "0x16113aec117d0f5135aa0252d146f31d33f33888e3462707b983dac242ff8175",
+          "v": 27
+        }
+      },
+      {
+        "name": "unregister",
+        "action": {
+          "type": "CValidatorAction",
+          "unregister": null
+        },
+        "msgpack": "0x82a474797065b04356616c696461746f72416374696f6eaa756e7265676973746572c0",
+        "actionHash": "0xb314b3166b73347a4a389943e2487ba5605314fc716b109504934c697092d384",
+        "signature": {
+          "r": "0xa2541b11e97b665d0fc67d7887819b9949f232553ed395fb12f91ac6c1aa1280",
+          "s": "0x2ccc38220ba87a60c3596b7a75bb6c97159739835555423b220494d72cac3c31",
+          "v": 28
+        }
+      },
+      {
+        "name": "jailSelf",
+        "action": {
+          "type": "CSignerAction",
+          "jailSelf": null
+        },
+        "msgpack": "0x82a474797065ad435369676e6572416374696f6ea86a61696c53656c66c0",
+        "actionHash": "0x9397ba4b9e71b3f62d11b858cacf74848efa32f49a85aa7a983e3b55b75e4cf5",
+        "signature": {
+          "r": "0xa0b220534327aff7b51c591bef7ca0e86d0a663341db2a601809070305f86ed2",
+          "s": "0xe42cf1408184989b571227458091de88e9577a82888d1f5069ecf123b9d5bd9",
+          "v": 27
+        }
+      },
+      {
+        "name": "unjailSelf",
+        "action": {
+          "type": "CSignerAction",
+          "unjailSelf": null
+        },
+        "msgpack": "0x82a474797065ad435369676e6572416374696f6eaa756e6a61696c53656c66c0",
+        "actionHash": "0x59605cf05c5afd4e04dd9284c8a03dcb018399b0314e06f16cfe33b91fe2a60e",
+        "signature": {
+          "r": "0x472d04ab3dea344e0ccec300e45e488769e85b51bb6137f9826bd05da41cfe7a",
+          "s": "0x34138e38074a31b57eea9e54e923c7a383a8c041d6cbd867a3efb2437891a041",
+          "v": 27
+        }
+      }
+    ]
+  }
+}

@@ -12,4 +12,5 @@ mod lend;
 mod stake;
 mod trade;
 mod transfer;
+mod validator;
 mod vault;
