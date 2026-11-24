@@ -10,8 +10,11 @@ use serde::Deserialize;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DexState {
+    /// The dex, `""` for the first perp dex.
     pub dex: String,
+    /// The account the state belongs to.
     pub user: Address,
+    /// `clearinghouseState`: the dex's clearinghouse, as the `/info` read answers it.
     #[serde(rename = "clearinghouseState")]
     pub state: ClearinghouseState,
 }
@@ -20,7 +23,9 @@ pub struct DexState {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AllDexsState {
+    /// The account the states belong to.
     pub user: Address,
+    /// `clearinghouseStates`: each dex's name and clearinghouse, the first named `""`.
     #[serde(rename = "clearinghouseStates")]
     pub states: Vec<(String, ClearinghouseState)>,
 }
@@ -29,6 +34,7 @@ pub struct AllDexsState {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotState {
+    /// The account the balances belong to.
     pub user: Address,
     /// The shape `spotClearinghouseState` answers.
     #[serde(rename = "spotState")]

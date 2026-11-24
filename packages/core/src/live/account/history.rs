@@ -9,9 +9,12 @@ use serde::Deserialize;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserFills {
+    /// The account the fills are for.
     pub user: Address,
+    /// `isSnapshot`: true on the first frame, which carries past fills; false when not sent.
     #[serde(default)]
     pub is_snapshot: bool,
+    /// The fills in this frame.
     pub fills: Vec<Fill>,
 }
 
@@ -21,12 +24,15 @@ pub struct UserFills {
 pub struct Funding {
     /// Milliseconds.
     pub time: u64,
+    /// The perp the payment was on.
     pub coin: String,
     /// Paid out (negative) or received.
     pub usdc: Dec,
     /// The position it was paid on, signed.
     pub szi: Dec,
+    /// `fundingRate`: the rate the payment was charged at, per hour, as a fraction.
     pub funding_rate: Dec,
+    /// `nSamples`: how many premium samples the rate came from; `None` when not sent.
     #[serde(default)]
     pub n_samples: Option<u64>,
 }
@@ -35,9 +41,12 @@ pub struct Funding {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserFundings {
+    /// The account the payments are for.
     pub user: Address,
+    /// `isSnapshot`: true on the first frame, which carries past payments; false when not sent.
     #[serde(default)]
     pub is_snapshot: bool,
+    /// The payments in this frame.
     pub fundings: Vec<Funding>,
 }
 
@@ -46,9 +55,12 @@ pub struct UserFundings {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Ledger {
+    /// The account the rows are for.
     pub user: Address,
+    /// `isSnapshot`: true on the first frame, which carries past rows; false when not sent.
     #[serde(default)]
     pub is_snapshot: bool,
+    /// `nonFundingLedgerUpdates`: the ledger rows in this frame.
     #[serde(rename = "nonFundingLedgerUpdates")]
     pub updates: Vec<LedgerUpdate>,
 }

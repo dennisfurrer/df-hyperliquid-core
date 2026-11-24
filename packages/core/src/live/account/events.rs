@@ -14,16 +14,23 @@ use serde_json::value::RawValue;
 /// `userEvents`, on the channel `user`: one kind of event a frame.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum UserEvent {
+    /// `fills`: fills of the account's orders.
     Fills(Vec<Fill>),
+    /// `funding`: a funding payment, on the hour.
     Funding(Funding),
+    /// `liquidation`: a liquidation the account took part in.
     Liquidation(Liquidation),
     /// Orders the venue canceled, not the account.
     NonUserCancel(Vec<Cancel>),
+    /// `twapHistory`: TWAPs starting, finishing, being stopped or failing.
     TwapHistory(Vec<TwapEvent>),
+    /// `twapSliceFills`: fills of TWAP slices.
     TwapSliceFills(Vec<TwapSliceFill>),
     /// A kind this build does not read: its key, and its value as written.
     Other {
+        /// The event's key as sent.
         key: String,
+        /// The event's value, the JSON as written.
         data: String,
     },
 }
@@ -67,17 +74,24 @@ impl<'de> Deserialize<'de> for UserEvent {
 /// A liquidation the account took part in. The venue writes these keys in snake case.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Liquidation {
+    /// The liquidation's id.
     pub lid: u64,
+    /// The account that took over the liquidated position.
     pub liquidator: Address,
+    /// The account that was liquidated.
     pub liquidated_user: Address,
+    /// The notional of the liquidated position, USDC.
     pub liquidated_ntl_pos: Dec,
+    /// The liquidated account's value at the liquidation, USDC.
     pub liquidated_account_value: Dec,
 }
 
 /// An order the venue canceled.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Cancel {
+    /// The coin the order was on.
     pub coin: String,
+    /// The order's id.
     pub oid: u64,
 }
 

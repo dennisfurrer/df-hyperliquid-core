@@ -11,7 +11,9 @@ use serde::Deserialize;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderUpdate {
+    /// The order as it stands after the change.
     pub order: OpenOrder,
+    /// The new status, as the venue writes it: `open`, `filled`, `canceled` and so on.
     pub status: String,
     /// Milliseconds.
     pub status_timestamp: u64,
@@ -20,8 +22,11 @@ pub struct OrderUpdate {
 /// `openOrders`: every resting order on one dex, with its trigger and type.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct OpenOrders {
+    /// The dex, `""` for the first perp dex.
     pub dex: String,
+    /// The account the orders belong to.
     pub user: Address,
+    /// Every resting order on the dex.
     pub orders: Vec<FrontendOrder>,
 }
 
@@ -29,9 +34,12 @@ pub struct OpenOrders {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HistoricalOrders {
+    /// The account the orders belong to.
     pub user: Address,
+    /// `isSnapshot`: true on the first frame, which carries past orders; false when not sent.
     #[serde(default)]
     pub is_snapshot: bool,
+    /// `orderHistory`: the orders in this frame, each with its last status.
     #[serde(rename = "orderHistory")]
     pub orders: Vec<OrderRecord>,
 }
