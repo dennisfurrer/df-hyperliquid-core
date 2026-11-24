@@ -13,7 +13,9 @@ use serde_json::value::RawValue;
 /// A frame that did not read: the channel it named, when it got that far, and why.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BadFrame {
+    /// The channel the frame named; `None` when it did not get that far.
     pub channel: Option<String>,
+    /// Why it did not read.
     pub detail: String,
 }
 

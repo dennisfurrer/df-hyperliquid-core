@@ -15,11 +15,18 @@ pub enum Event {
     /// The socket closed, or could not open. The feed dials again after
     /// `retry.after_ms`; the posts in `retry.unanswered` may or may not have
     /// landed, so read the account to find out.
-    Closed { reason: String, retry: Retry },
+    Closed {
+        /// Why it closed or did not open, as the socket gave it.
+        reason: String,
+        /// When to dial again, and the posts left unanswered.
+        retry: Retry,
+    },
 }
 
+/// Why a feed would not send something, or stopped.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum FeedError {
+    /// The session refused it; nothing was sent.
     #[error(transparent)]
     Refused(#[from] Refused),
     /// The feed is gone for good. In the browser this also means the runtime gave no timer

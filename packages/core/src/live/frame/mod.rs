@@ -31,48 +31,70 @@ pub enum Frame {
     Error(Refusal),
     /// `post`: the answer to a post, by its id.
     Post(Reply),
+    /// `allMids`: every coin's mid on one perp dex.
     AllMids(Mids),
     /// `l2Book`.
     Book(Book),
+    /// `trades`: new prints on one coin.
     Trades(Vec<Trade>),
+    /// `bbo`: the best bid and offer of one coin.
     Bbo(Bbo),
+    /// `candle`: one candle, sent as it changes.
     Candle(Candle),
     /// `activeAssetCtx`: a perp's context.
     AssetCtx {
+        /// The perp's coin.
         coin: String,
+        /// The perp's context.
         ctx: PerpCtx,
     },
     /// `activeSpotAssetCtx`: what `activeAssetCtx` sends for a spot pair or an outcome side.
     SpotAssetCtx {
+        /// The spot pair's or outcome side's coin.
         coin: String,
+        /// The pair's or side's context.
         ctx: SpotCtx,
     },
     /// `activeAssetData`.
     AssetData(ActiveAssetData),
+    /// `userFills`: the account's fills.
     UserFills(UserFills),
+    /// `orderUpdates`: status changes of the account's orders.
     OrderUpdates(Vec<OrderUpdate>),
     /// `user`: what `userEvents` sends.
     UserEvent(UserEvent),
+    /// `userFundings`: the account's funding payments.
     UserFundings(UserFundings),
     /// `userNonFundingLedgerUpdates`.
     Ledger(Ledger),
+    /// `clearinghouseState`: the account's clearinghouse on one dex.
     ClearinghouseState(DexState),
+    /// `allDexsClearinghouseState`: the account's clearinghouse on every dex.
     AllDexsClearinghouseState(AllDexsState),
+    /// `openOrders`: the account's resting orders on one dex.
     OpenOrders(OpenOrders),
+    /// `spotState`: the account's spot balances.
     SpotState(SpotState),
+    /// `twapStates`: the account's running TWAPs on one dex.
     TwapStates(TwapStates),
     /// `userTwapSliceFills`.
     TwapSliceFills(TwapSliceFills),
     /// `userTwapHistory`.
     TwapHistory(TwapHistory),
+    /// `notification`: a short text for the account, as sent.
     Notification(String),
+    /// `webData3`: the account as Hyperliquid's own frontend reads it.
     WebData3(WebData3),
     /// Every perp dex's contexts, by dex name, the first `""`.
     AllDexsAssetCtxs(Vec<(String, Vec<PerpCtx>)>),
+    /// `assetCtxs`: one perp dex's contexts.
     AssetCtxs {
+        /// The dex, `""` for the first.
         dex: String,
+        /// The contexts, in the dex's universe order.
         ctxs: Vec<PerpCtx>,
     },
+    /// `spotAssetCtxs`: every spot pair's and outcome side's context.
     SpotAssetCtxs(Vec<SpotCtx>),
     /// What changed in `outcomeMeta`, kept as sent: `[{"outcomeSettled":23205}]`. Its arrival
     /// is the news; read `outcomeMeta` again for the whole.
@@ -94,7 +116,9 @@ pub enum Frame {
     /// A channel this build does not read: its name, and its data as written (empty when the
     /// frame has none).
     Other {
+        /// The channel's name.
         channel: String,
+        /// The frame's `data` as written JSON; empty when the frame has none.
         data: String,
     },
 }

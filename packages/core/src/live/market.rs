@@ -14,10 +14,13 @@ use serde::Deserialize;
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawBbo")]
 pub struct Bbo {
+    /// The coin.
     pub coin: String,
     /// Milliseconds.
     pub time: u64,
+    /// The best bid; `None` when no bid is resting.
     pub bid: Option<Level>,
+    /// The best ask; `None` when no ask is resting.
     pub ask: Option<Level>,
 }
 
@@ -39,6 +42,7 @@ impl From<RawBbo> for Bbo {
 /// also carries spot pairs (`@107`, `PURR/USDC`) and outcome sides (`#14720`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Mids {
+    /// The dex, `""` for the first perp dex and when not sent.
     #[serde(default)]
     pub dex: String,
     /// The map `allMids` answers.
@@ -73,8 +77,10 @@ pub enum L2 {
 /// order count.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct L2Level {
+    /// `p`: the price.
     #[serde(rename = "p")]
     pub px: Dec,
+    /// `s`: the size now resting at the price, in the coin's units.
     #[serde(rename = "s")]
     pub sz: Dec,
 }
@@ -85,6 +91,7 @@ pub struct L2Level {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawL2Diff")]
 pub struct L2Diff {
+    /// `c`: the coin.
     pub coin: String,
     /// Milliseconds.
     pub time: u64,
@@ -121,10 +128,22 @@ impl From<RawL2Diff> for L2Diff {
 /// An `l2` diff that does not fit the book it was applied to.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadDiff {
+    /// The diff is for another coin than the book.
     #[error("a diff for {diff} applied to the book of {book}")]
-    Coin { book: String, diff: String },
+    Coin {
+        /// The book's coin.
+        book: String,
+        /// The diff's coin.
+        diff: String,
+    },
+    /// The diff removes a level past the end of a side: a frame was missed.
     #[error("a diff removes level {index} of a side that has {levels}: a frame was missed")]
-    Index { index: usize, levels: usize },
+    Index {
+        /// The position the diff removes.
+        index: usize,
+        /// The levels the side has.
+        levels: usize,
+    },
 }
 
 impl L2Diff {

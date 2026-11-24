@@ -35,7 +35,9 @@ fn wrap(method: &str, subscription: &Subscription) -> String {
 /// signature is over exactly what was built.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Post {
+    /// An info read, the body `/info` would take.
     Info(Json),
+    /// A signed action, the body `/exchange` would take.
     Action(Json),
 }
 
@@ -61,6 +63,7 @@ impl Post {
         }
     }
 
+    /// The body it carries, as written.
     #[must_use]
     pub const fn payload(&self) -> &Json {
         match self {

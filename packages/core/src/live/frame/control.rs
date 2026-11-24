@@ -9,7 +9,9 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Method {
+    /// `subscribe`.
     Subscribe,
+    /// `unsubscribe`.
     Unsubscribe,
 }
 
@@ -17,7 +19,9 @@ pub enum Method {
 /// out options filled in, the user in lowercase.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Ack {
+    /// Whether a subscribe or an unsubscribe was taken.
     pub method: Method,
+    /// `subscription`: the subscription as the venue echoed it.
     pub echo: Json,
 }
 
@@ -32,6 +36,7 @@ impl Ack {
 /// `Error parsing JSON into valid websocket request: {...}` with what was sent.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Refusal {
+    /// The venue's message, as sent.
     pub message: String,
 }
 

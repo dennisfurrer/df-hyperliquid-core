@@ -14,87 +14,129 @@ use crate::utils::Address;
 pub enum Subscription {
     /// Every coin's mid on one perp dex. The first dex's also carries spot and outcome mids.
     AllMids {
+        /// The dex, `""` for the first.
         dex: String,
     },
     /// Short texts for the account: fills, liquidations.
     Notification {
+        /// The account.
         user: Address,
     },
     /// The account as Hyperliquid's own frontend reads it.
     WebData3 {
+        /// The account.
         user: Address,
     },
+    /// The account's running TWAPs on one dex, on the channel `twapStates`.
     TwapStates {
+        /// The account.
         user: Address,
+        /// The dex, `""` for the first.
         dex: String,
     },
+    /// The account's clearinghouse on one dex, on the channel `clearinghouseState`.
     ClearinghouseState {
+        /// The account.
         user: Address,
+        /// The dex, `""` for the first.
         dex: String,
     },
+    /// The account's resting orders on one dex, on the channel `openOrders`.
     OpenOrders {
+        /// The account.
         user: Address,
+        /// The dex, `""` for the first.
         dex: String,
     },
+    /// One coin's candles at one interval, on the channel `candle`.
     Candle {
+        /// The coin.
         coin: String,
+        /// The candle interval.
         interval: Interval,
     },
     /// `n_sig_figs` groups levels to 2 to 5 significant figures; `mantissa` (1, 2 or 5) groups
     /// further, with 5 figures only. `fast` gives 5 levels a side more often, not 20.
     L2Book {
+        /// The coin.
         coin: String,
+        /// `nSigFigs`: 2 to 5 significant figures; `None` for full precision.
         n_sig_figs: Option<u8>,
+        /// `mantissa`: 1, 2 or 5, with `n_sig_figs` 5 only; `None` when not grouped further.
         mantissa: Option<u8>,
+        /// `fast`: whether to get 5 levels a side more often instead of 20; sent only when true.
         fast: bool,
     },
+    /// One coin's prints, on the channel `trades`.
     Trades {
+        /// The coin.
         coin: String,
     },
+    /// Status changes of the account's orders, on the channel `orderUpdates`.
     OrderUpdates {
+        /// The account.
         user: Address,
     },
     /// Its data comes on the channel `user`.
     UserEvents {
+        /// The account.
         user: Address,
     },
     /// `aggregate_by_time` merges the partial fills of one crossing order.
     UserFills {
+        /// The account.
         user: Address,
+        /// `aggregateByTime`: whether to merge the partial fills of one crossing order; sent only when true.
         aggregate_by_time: bool,
     },
+    /// The account's funding payments, on the channel `userFundings`.
     UserFundings {
+        /// The account.
         user: Address,
     },
+    /// The account's ledger rows other than funding, on the channel `userNonFundingLedgerUpdates`.
     UserNonFundingLedgerUpdates {
+        /// The account.
         user: Address,
     },
     /// A perp's context; a spot pair's or an outcome side's comes on `activeSpotAssetCtx`.
     ActiveAssetCtx {
+        /// The coin.
         coin: String,
     },
     /// What the account may trade on a perp. Perps only.
     ActiveAssetData {
+        /// The account.
         user: Address,
+        /// The perp's coin.
         coin: String,
     },
+    /// Fills of the account's TWAP slices, on the channel `userTwapSliceFills`.
     UserTwapSliceFills {
+        /// The account.
         user: Address,
     },
+    /// The account's TWAP events, on the channel `userTwapHistory`.
     UserTwapHistory {
+        /// The account.
         user: Address,
     },
     /// The best bid and offer, sent only when one of them moves.
     Bbo {
+        /// The coin.
         coin: String,
     },
     /// The docs name the option `isPortfolioMargin`; the venue ignores that and echoes
     /// `ignorePortfolioMargin`, which is what it reads.
     SpotState {
+        /// The account.
         user: Address,
+        /// `ignorePortfolioMargin`, the option the venue reads; sent only when true.
         ignore_portfolio_margin: bool,
     },
+    /// The account's clearinghouse on every dex, on the channel `allDexsClearinghouseState`.
     AllDexsClearinghouseState {
+        /// The account.
         user: Address,
     },
     /// Every perp dex's contexts in one frame.
@@ -105,20 +147,25 @@ pub enum Subscription {
     FastAssetCtxs,
     /// One perp dex's contexts. In `@nktkas/hyperliquid`, not on the docs' list.
     AssetCtxs {
+        /// The dex, `""` for the first.
         dex: String,
     },
     /// Every spot and outcome context. In `@nktkas/hyperliquid`, not on the docs' list.
     SpotAssetCtxs,
     /// Orders and what became of them. In `@nktkas/hyperliquid`, not on the docs' list.
     UserHistoricalOrders {
+        /// The account.
         user: Address,
     },
     /// The book as a snapshot of up to twenty levels a side, then diffs. `n_sig_figs` and
     /// `mantissa` group levels as on [`Subscription::L2Book`]; on the wire they are `s` and `m`, and
     /// the coin is `c`.
     L2 {
+        /// `c`: the coin.
         coin: String,
+        /// `s`: 2 to 5 significant figures; `None` for full precision.
         n_sig_figs: Option<u8>,
+        /// `m`: 1, 2 or 5, with `n_sig_figs` 5 only; `None` when not grouped further.
         mantissa: Option<u8>,
     },
     /// Every perp dex's contexts, base64 of raw DEFLATE: a snapshot, then only what changed.
@@ -131,18 +178,37 @@ pub enum Subscription {
 /// Why an object is not a subscription, or a subscription is not one the venue would take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadSubscription {
+    /// The value is not a JSON object.
     #[error("a subscription is an object")]
     NotAnObject,
+    /// The `type` names no subscription the venue serves; the `type` as written.
     #[error("`{0}` is not a subscription the venue serves")]
     UnknownType(String),
+    /// A field the subscription needs is not there.
     #[error("`{kind}` needs `{field}`")]
-    Missing { kind: &'static str, field: &'static str },
+    Missing {
+        /// The subscription's `type`, or `subscription` when the `type` itself is at fault.
+        kind: &'static str,
+        /// The missing field's wire name.
+        field: &'static str,
+    },
+    /// A field is there but of the wrong JSON type.
     #[error("`{field}` of `{kind}` must be {expected}")]
-    Wrong { kind: &'static str, field: &'static str, expected: &'static str },
+    Wrong {
+        /// The subscription's `type`, or `subscription` when the `type` itself is at fault.
+        kind: &'static str,
+        /// The field's wire name.
+        field: &'static str,
+        /// What the field must be, in words.
+        expected: &'static str,
+    },
+    /// The coin is `""`.
     #[error("a coin is never an empty string")]
     EmptyCoin,
+    /// `nSigFigs` is not 2, 3, 4 or 5; the value given.
     #[error("nSigFigs is 2, 3, 4 or 5, not {0}")]
     SigFigs(u8),
+    /// `mantissa` is not 1, 2 or 5, or comes without `nSigFigs` 5; the value given.
     #[error("mantissa is 1, 2 or 5, and only with nSigFigs 5; {0} is refused here")]
     Mantissa(u8),
 }
