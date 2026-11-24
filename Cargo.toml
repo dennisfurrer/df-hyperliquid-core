@@ -3,12 +3,13 @@ resolver = "3"
 members = ["packages/core"]
 
 [workspace.package]
-version = "0.0.10-beta"
+version = "0.0.11-beta"
 edition = "2024"
 rust-version = "1.94"
-license = "BUSL-1.1"
+license = "MIT OR Apache-2.0"
 authors = ["Dennis Furrer"]
 homepage = "https://dfurrer.com"
+repository = "https://github.com/dennisfurrer/df-hyperliquid-core"
 readme = "README.md"
 keywords = ["hyperliquid", "hyperevm", "perps", "trading", "sdk"]
 categories = ["api-bindings", "cryptography::cryptocurrencies", "wasm"]
