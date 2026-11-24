@@ -51,9 +51,12 @@ pub struct ClearinghouseState {
     pub margin_summary: MarginSummary,
     /// The cross positions alone.
     pub cross_margin_summary: MarginSummary,
+    /// The maintenance margin the cross positions need (`crossMaintenanceMarginUsed`), in the dex's
+    /// collateral.
     pub cross_maintenance_margin_used: Dec,
     /// What can leave this dex's balance now.
     pub withdrawable: Dec,
+    /// Every position listed, closed ones of size zero included (`assetPositions`).
     pub asset_positions: Vec<AssetPosition>,
     /// When the venue read it, in milliseconds; not always sent.
     #[serde(default)]
@@ -83,20 +86,24 @@ impl ClearinghouseState {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarginSummary {
+    /// What the account is worth on this dex (`accountValue`): collateral plus unrealized profit.
     pub account_value: Dec,
     /// The positions' notional, every one counted as positive.
     pub total_ntl_pos: Dec,
     /// The collateral before the positions' value: the account value less what the positions
     /// are worth.
     pub total_raw_usd: Dec,
+    /// The margin the positions use (`totalMarginUsed`).
     pub total_margin_used: Dec,
 }
 
+/// One `assetPositions` row: a position and how the venue nets it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct AssetPosition {
     /// `oneWay`: the venue nets a coin's longs and shorts into one position.
     #[serde(rename = "type")]
     pub kind: String,
+    /// The position.
     pub position: Position,
 }
 
@@ -108,12 +115,14 @@ pub struct Position {
     pub coin: String,
     /// Signed: negative is short.
     pub szi: Dec,
+    /// How it is margined, and at what leverage.
     pub leverage: Leverage,
     /// The average entry; `null` on a listed position of size zero.
     #[serde(default)]
     pub entry_px: Option<Dec>,
     /// The size at the mark, positive either way.
     pub position_value: Dec,
+    /// The profit if it closed at the mark (`unrealizedPnl`), in the dex's collateral.
     pub unrealized_pnl: Dec,
     /// The unrealized profit over the margin at entry; not always sent.
     #[serde(default)]
@@ -121,6 +130,7 @@ pub struct Position {
     /// `null` where no move of the price liquidates it.
     #[serde(default)]
     pub liquidation_px: Option<Dec>,
+    /// The margin it uses (`marginUsed`), in the dex's collateral.
     pub margin_used: Dec,
     /// The most this account may take on this coin now.
     pub max_leverage: u32,
@@ -130,11 +140,13 @@ pub struct Position {
 }
 
 impl Position {
+    /// Whether the size is above zero.
     #[must_use]
     pub const fn is_long(&self) -> bool {
         self.szi.is_positive()
     }
 
+    /// Whether the size is below zero.
     #[must_use]
     pub const fn is_short(&self) -> bool {
         self.szi.is_negative()
@@ -172,19 +184,24 @@ impl Position {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Leverage {
+    /// Margined from the account's shared perp balance.
     Cross {
+        /// The leverage, `20` for 20x.
         value: u32,
     },
     /// `rawUsd` is the collateral put up less the notional bought (so negative for a long):
     /// what the position uses is its value plus it.
     Isolated {
+        /// The leverage, `20` for 20x.
         value: u32,
+        /// The collateral put up less the notional bought (`rawUsd`), in the dex's collateral.
         #[serde(rename = "rawUsd")]
         raw_usd: Dec,
     },
 }
 
 impl Leverage {
+    /// The leverage, `20` for 20x.
     #[must_use]
     pub const fn value(&self) -> u32 {
         match self {
@@ -192,6 +209,7 @@ impl Leverage {
         }
     }
 
+    /// Cross or isolated.
     #[must_use]
     pub const fn mode(&self) -> MarginMode {
         match self {

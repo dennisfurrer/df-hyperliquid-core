@@ -21,11 +21,13 @@ pub const LTV: [(&str, i128); 2] = [("HYPE", 65), ("UBTC", 50)];
 pub struct Collateral(BTreeMap<String, u32>);
 
 impl Collateral {
+    /// No dex listed: every dex posts USDC.
     #[must_use]
     pub fn new() -> Collateral {
         Collateral::default()
     }
 
+    /// Adds one dex's collateral token, by the dex's name and the token's index.
     #[must_use]
     pub fn with(mut self, dex: &str, token: u32) -> Collateral {
         self.0.insert(dex.to_owned(), token);
@@ -62,9 +64,15 @@ impl FromIterator<(String, u32)> for Collateral {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Surface<'a> {
     /// A perp dex, `""` the main one.
-    Perps { dex: &'a str },
+    Perps {
+        /// The dex's name.
+        dex: &'a str,
+    },
     /// A spot pair quoted in this token.
-    Spot { quote: u32 },
+    Spot {
+        /// The quote token's index.
+        quote: u32,
+    },
     /// HIP-4 outcomes, quoted in USDC and settled on spot.
     Outcomes,
 }
@@ -85,7 +93,10 @@ impl Surface<'_> {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Pays {
     /// One perp dex's orders, `""` the main dex.
-    Perps { dex: String },
+    Perps {
+        /// The dex's name.
+        dex: String,
+    },
     /// DEX abstraction: the main dex's USDC, for every USDC dex.
     UsdcPerps,
     /// Spot and outcome orders.
@@ -98,11 +109,13 @@ pub enum Pays {
 /// a pooled account's one balance of a token.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Balance {
+    /// The token's index.
     pub token: u32,
     /// A dex's account value, or a spot token's total.
     pub total: Dec,
     /// Free to trade or move: a dex's `withdrawable`, spot's total less its hold.
     pub available: Dec,
+    /// What the balance pays for.
     pub pays: Pays,
 }
 
@@ -128,21 +141,27 @@ pub fn payer<'a>(balances: &'a [Balance], surface: Surface<'_>, collateral: &Col
 pub enum Source {
     /// One perp dex's own margin.
     Perps {
+        /// The dex's name, `""` the main dex.
         dex: String,
     },
     /// DEX abstraction: the main dex's USDC, for a HIP-3 USDC dex.
     NativePerps,
+    /// Spot, on a standard account or for spot and outcome orders.
     Spot,
+    /// A unified account's one balance in spot.
     Unified,
+    /// A portfolio-margin account's balance in spot, with what it may borrow.
     PortfolioMargin,
 }
 
 /// What an account can put on a surface, and where that sits.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Usable {
+    /// How much, in `token`, borrowing included.
     pub amount: Dec,
     /// The token it is counted in.
     pub token: u32,
+    /// Where it sits.
     pub from: Source,
     /// Portfolio margin: the part of `amount` that would be borrowed.
     pub borrowable: Dec,

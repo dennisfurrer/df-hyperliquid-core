@@ -14,18 +14,28 @@ use crate::utils::{Dec, Round};
 /// What a fill was, by its `dir`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Direction {
+    /// A buy that crossed a book (`Buy`).
     Buy,
+    /// A sell that crossed a book (`Sell`).
     Sell,
+    /// The quote token split into as many of each side of an outcome (`Split Outcome`).
     SplitOutcome,
+    /// Both sides of an outcome merged back into the quote token (`Merge Outcome`).
     MergeOutcome,
+    /// No shares of one outcome turned into Yes shares of every other outcome of its question
+    /// (`Negate Outcome`).
     NegateOutcome,
+    /// Yes shares of each outcome of a question merged back into the quote token
+    /// (`Merge Question`).
     MergeQuestion,
+    /// Paid out when the outcome settled (`Settlement`).
     Settlement,
     /// Anything else, kept as written.
     Other(String),
 }
 
 impl Direction {
+    /// From the venue's `dir`: `Split Outcome`. Anything else is kept as [`Direction::Other`].
     #[must_use]
     pub fn read(text: &str) -> Direction {
         match text.trim() {
@@ -40,6 +50,7 @@ impl Direction {
         }
     }
 
+    /// As a lowercase slug: `split_outcome`, or an unknown `dir` as the venue wrote it.
     #[must_use]
     pub fn slug(&self) -> &str {
         match self {
@@ -101,26 +112,39 @@ impl serde::Serialize for Direction {
 /// the same answer; [`Fill::read`] skips them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Fill {
+    /// The outcome side.
     pub coin: Coin,
+    /// The account's side.
     pub side: Side,
+    /// What the fill was, from its `dir`.
     pub direction: Direction,
     /// As reported: a structural fill's `1/n` is finer than the grid.
     pub price: Dec,
+    /// The size filled, in contracts.
     pub size: Qty,
+    /// When it filled (`time`), in milliseconds.
     pub at_ms: u64,
+    /// The account's position in the side before this fill.
     pub start_position: SignedQty,
     /// After this fill.
     pub position: SignedQty,
+    /// The profit or loss the fill realised (`closedPnl`), in the quote token.
     pub closed_pnl: Dec,
     /// Everything billed, the builder's fee included.
     pub fee: Dec,
+    /// The token `fee` is paid in (`feeToken`).
     pub fee_token: String,
+    /// What the order's builder took; `None` when the venue leaves it out.
     pub builder_fee: Option<Dec>,
     /// True for an order that took, false for a resting one that was taken.
     pub crossed: bool,
+    /// The venue's order id (`oid`).
     pub oid: u64,
+    /// The trade id (`tid`).
     pub tid: u64,
+    /// The L1 transaction hash.
     pub hash: String,
+    /// The order's client id as written; `None` when the order had none.
     pub cloid: Option<String>,
 }
 
@@ -175,14 +199,21 @@ impl Fill {
 /// An outcome order resting on the book, read from an `openOrders` row.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OpenOrder {
+    /// The outcome side.
     pub coin: Coin,
+    /// The side it rests on.
     pub side: Side,
+    /// The limit price.
     pub price: Px,
     /// What still rests.
     pub size: Qty,
+    /// The size when placed (`origSz`).
     pub original_size: Qty,
+    /// When it was placed (`timestamp`), in milliseconds.
     pub placed_ms: u64,
+    /// The venue's order id (`oid`).
     pub oid: u64,
+    /// The client's order id; `None` when the order was sent without one.
     pub cloid: Option<Cloid>,
 }
 
@@ -215,6 +246,7 @@ impl OpenOrder {
 /// One outcome side held, as the spot side reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Holding {
+    /// The outcome side.
     pub coin: Coin,
     /// Everything held, `hold` included.
     pub total: Dec,

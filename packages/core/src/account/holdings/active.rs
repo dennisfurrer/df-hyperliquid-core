@@ -16,6 +16,7 @@ pub fn active_asset_data_request(user: Address, coin: &str) -> String {
     info_request("activeAssetData", &[("user", Json::String(user.to_hex())), ("coin", Json::String(coin.to_owned()))])
 }
 
+/// Reads `activeAssetData`; see [`active_asset_data_request`].
 pub async fn active_asset_data(
     transport: &impl Transport,
     user: Address,
@@ -28,7 +29,9 @@ pub async fn active_asset_data(
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActiveAssetData {
+    /// The account's address.
     pub user: Address,
+    /// The perp's coin, `BTC` or `xyz:TSLA`.
     pub coin: String,
     /// What an order here would be margined at.
     pub leverage: Leverage,
@@ -36,6 +39,7 @@ pub struct ActiveAssetData {
     pub max_trade_szs: [Dec; 2],
     /// What an order may draw on, in the collateral, buy then sell.
     pub available_to_trade: [Dec; 2],
+    /// The perp's mark price (`markPx`).
     pub mark_px: Dec,
 }
 

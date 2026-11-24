@@ -24,6 +24,7 @@ pub async fn spot_state(transport: &impl Transport, user: Address) -> Result<Spo
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotState {
+    /// Every row, tokens and outcome sides alike.
     pub balances: Vec<SpotBalance>,
     /// Said on a portfolio-margin account's answer alone: `None` on every other answer and frame,
     /// where it is not said either way.
@@ -40,6 +41,8 @@ pub struct SpotState {
 }
 
 impl SpotState {
+    /// One token's row, by its index; `None` for a token never held. Outcome rows are never
+    /// returned.
     #[must_use]
     pub fn balance(&self, token: u32) -> Option<&SpotBalance> {
         self.balances.iter().find(|balance| balance.token == Some(token) && !balance.is_outcome())
@@ -83,11 +86,13 @@ impl SpotState {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SpotBalance {
+    /// The token's name, `USDC` or `HYPE`, or an outcome row's `+92260`, `#92260`, `o458`.
     pub coin: String,
     /// The token's index, a number here, not the `NAME:0x..` a transfer names. HIP-4 rows
     /// (`+92260`, `o458`) carry none.
     #[serde(default)]
     pub token: Option<u32>,
+    /// Everything held, `hold` included.
     pub total: Dec,
     /// What open orders and margin hold. On a portfolio-margin account it can be negative
     /// (`-268.81821068` against a `total` of `0.55817531`), so it is never subtracted as it stands:
@@ -133,6 +138,7 @@ impl SpotBalance {
 /// 0.95.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum Risk {
+    /// Below 0.85, or no ratio said.
     #[default]
     Safe,
     /// From 0.85: worth a warning.
@@ -142,6 +148,8 @@ pub enum Risk {
 }
 
 impl Risk {
+    /// The tier `ratio` falls in: from 0.85 [`Risk::Near`], past 0.95 [`Risk::Liquidatable`], else
+    /// [`Risk::Safe`].
     #[must_use]
     pub fn of(ratio: Option<Dec>) -> Risk {
         let (near, liquidatable) = (Dec::lit::<2>(85), Dec::lit::<2>(95));

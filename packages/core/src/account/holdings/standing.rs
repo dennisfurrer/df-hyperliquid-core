@@ -29,6 +29,7 @@ pub async fn standing(transport: &impl Transport, user: Address, dexes: &[Dex<'_
 pub struct DexState {
     /// `""` for the main dex.
     pub dex: String,
+    /// The dex's clearinghouse state as read.
     pub state: ClearinghouseState,
 }
 
@@ -37,18 +38,23 @@ pub struct DexState {
 pub struct Standing {
     /// `None` until a read or the socket says.
     pub mode: Option<Abstraction>,
+    /// Each perp dex read, in the order read.
     pub dexes: Vec<DexState>,
+    /// Spot balances; `None` until a read or the socket says.
     pub spot: Option<SpotState>,
     /// When it was last told anything, in milliseconds.
     pub heard: Option<u64>,
 }
 
 impl Standing {
+    /// One dex's clearinghouse state, by its name (`""` for the main dex); `None` when it was not
+    /// read.
     #[must_use]
     pub fn dex(&self, dex: &str) -> Option<&ClearinghouseState> {
         self.dexes.iter().find(|state| state.dex == dex).map(|state| &state.state)
     }
 
+    /// How the account holds its margin, from its mode and spot state.
     #[must_use]
     pub fn keeping(&self) -> Keeping {
         Keeping::of(self.mode.as_ref(), self.spot.as_ref())

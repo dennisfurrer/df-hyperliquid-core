@@ -15,6 +15,7 @@ const STAKED: &str = "HYPE";
 pub struct Prices(BTreeMap<String, Dec>);
 
 impl Prices {
+    /// No prices.
     #[must_use]
     pub fn new() -> Prices {
         Prices::default()
@@ -70,8 +71,10 @@ pub struct Beside {
     pub vaults: Vec<VaultShare>,
 }
 
+/// One vault deposit and what it is worth.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VaultShare {
+    /// The vault's address.
     pub vault: Address,
     /// In USDC.
     pub equity: Dec,
@@ -89,7 +92,9 @@ pub struct Worth {
     pub lending: Dec,
     /// HIP-4 sides at their mids.
     pub outcomes: Dec,
+    /// HYPE staked, at HYPE's price.
     pub staking: Dec,
+    /// Vault deposits, at their equity.
     pub vaults: Dec,
     /// Margin in use across the dexes; part of `perps`, not added.
     pub margin: Dec,
@@ -102,6 +107,7 @@ impl Worth {
         Dec::checked_sum([self.perps, self.spot, self.lending, self.outcomes, self.staking, self.vaults])
     }
 
+    /// Each slice of `self` and `other` added; `None` only past what a `Dec` counts.
     #[must_use]
     pub fn plus(&self, other: &Worth) -> Option<Worth> {
         Some(Worth {
