@@ -12,16 +12,19 @@ pub struct Cancel {
 }
 
 impl Cancel {
+    /// Cancels each `(asset, oid)`.
     #[must_use]
     pub fn new(cancels: Vec<(Asset, u64)>) -> Cancel {
         Cancel { cancels }
     }
 
+    /// Cancels one order by its oid.
     #[must_use]
     pub fn one(asset: Asset, oid: u64) -> Cancel {
         Cancel::new(vec![(asset, oid)])
     }
 
+    /// Each `(asset, oid)` it cancels, in the order sent.
     #[must_use]
     pub fn cancels(&self) -> &[(Asset, u64)] {
         &self.cancels
@@ -44,16 +47,19 @@ pub struct CancelByCloid {
 }
 
 impl CancelByCloid {
+    /// Cancels each `(asset, cloid)`.
     #[must_use]
     pub fn new(cancels: Vec<(Asset, Cloid)>) -> CancelByCloid {
         CancelByCloid { cancels }
     }
 
+    /// Cancels one order by its client order id.
     #[must_use]
     pub fn one(asset: Asset, cloid: Cloid) -> CancelByCloid {
         CancelByCloid::new(vec![(asset, cloid)])
     }
 
+    /// Each `(asset, cloid)` it cancels, in the order sent.
     #[must_use]
     pub fn cancels(&self) -> &[(Asset, Cloid)] {
         &self.cancels

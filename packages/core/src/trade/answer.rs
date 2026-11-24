@@ -13,10 +13,24 @@ use serde_json::Value;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OrderAnswer {
     /// On the book.
-    Resting { oid: u64, cloid: Option<Cloid> },
+    Resting {
+        /// The venue's id for the order.
+        oid: u64,
+        /// The client order id, when the order was sent with one.
+        cloid: Option<Cloid>,
+    },
     /// Filled `total_sz` at `avg_px` on average: all of it, or as much as
     /// crossed for an IOC or a market order.
-    Filled { oid: u64, total_sz: Dec, avg_px: Dec, cloid: Option<Cloid> },
+    Filled {
+        /// The venue's id for the order.
+        oid: u64,
+        /// `totalSz`: the size filled, in the base asset.
+        total_sz: Dec,
+        /// `avgPx`: the average fill price.
+        avg_px: Dec,
+        /// The client order id, when the order was sent with one.
+        cloid: Option<Cloid>,
+    },
     /// A take profit or stop loss, placed and waiting for its trigger.
     WaitingForTrigger,
     /// A take profit or stop loss grouped with an entry that has not filled.
@@ -96,6 +110,7 @@ impl OrderAnswer {
         )
     }
 
+    /// The venue's words when it refused the order; `None` otherwise.
     #[must_use]
     pub fn refusal(&self) -> Option<&str> {
         match self {
@@ -108,12 +123,14 @@ impl OrderAnswer {
 /// What the venue said of one cancel, or of a TWAP's cancel.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CancelAnswer {
+    /// `success`: the order or TWAP is cancelled.
     Cancelled,
     /// In the venue's words; any word but `success` is a refusal.
     Refused(String),
 }
 
 impl CancelAnswer {
+    /// One cancel's status: `success` is cancelled, anything else a refusal.
     #[must_use]
     pub fn read(status: &Status) -> CancelAnswer {
         match status {
@@ -130,8 +147,10 @@ impl CancelAnswer {
 pub enum TwapAnswer {
     /// Running under this id, which `twapCancel` names.
     Running {
+        /// `twapId`: the venue's id for the TWAP.
         twap_id: u64,
     },
+    /// Refused, in the venue's words.
     Refused(String),
 }
 

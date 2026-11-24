@@ -17,7 +17,9 @@ pub struct ScheduleCancel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
 #[error("a scheduled cancel at {time} is under five seconds away; the earliest is {earliest}")]
 pub struct TooSoon {
+    /// The time asked for, unix milliseconds.
     pub time: u64,
+    /// The earliest time the venue would take, unix milliseconds.
     pub earliest: u64,
 }
 
@@ -50,6 +52,7 @@ impl ScheduleCancel {
         ScheduleCancel { time: None }
     }
 
+    /// When the switch fires, unix milliseconds; `None` when it is disarmed.
     #[must_use]
     pub const fn time(&self) -> Option<u64> {
         self.time

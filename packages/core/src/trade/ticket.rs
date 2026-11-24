@@ -46,11 +46,13 @@ impl Market {
         }
     }
 
+    /// The asset id orders name.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
     }
 
+    /// The price and size grid orders are put on.
     #[must_use]
     pub const fn grid(&self) -> Grid {
         self.grid
@@ -62,6 +64,7 @@ impl Market {
         self.max_leverage
     }
 
+    /// Whether the perp takes cross margin; false on spot.
     #[must_use]
     pub const fn allows_cross(&self) -> bool {
         self.allows_cross
@@ -79,7 +82,9 @@ impl Market {
 /// a size at the order's price.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Amount {
+    /// A size in the base asset.
     Size(Dec),
+    /// A notional in the quote asset, cut to a size at the order's price.
     Notional(Dec),
 }
 
@@ -99,42 +104,96 @@ impl Amount {
 /// Why the ticket sends nothing.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum Refusal {
+    /// A check on the action itself failed.
     #[error(transparent)]
     Trade(#[from] TradeError),
+    /// A value that has to be above zero is not.
     #[error("{what} above zero is needed, not {value}")]
-    NotPositive { what: &'static str, value: Dec },
+    NotPositive {
+        /// What the value is, in words: `a size`, `a price` and so on.
+        what: &'static str,
+        /// The value given.
+        value: Dec,
+    },
+    /// The order is worth less than the venue's minimum.
     #[error("{size} at {price} is worth {}, under the venue's minimum of {minimum}", worth(.size, .price))]
-    UnderMinimum { size: Dec, price: Dec, minimum: Dec },
+    UnderMinimum {
+        /// The order's size, in the base asset.
+        size: Dec,
+        /// The price it is valued at.
+        price: Dec,
+        /// The venue's minimum order value, in the quote asset.
+        minimum: Dec,
+    },
+    /// A limit order was given `FrontendMarket`; a market order is [`crate::trade::Price::Market`].
     #[error("a limit is never FrontendMarket: a market order is Price::Market, bounded from the mid")]
     MarketTif,
+    /// A scale was given a time in force other than `Gtc` or `Alo`; the one given.
     #[error("a scale rests on the book, so Gtc or Alo, not {}", .0.wire())]
     ScaleTif(Tif),
+    /// A scale's levels are outside [`LEAST_LEVELS`] to [`MOST_LEVELS`]; the levels given.
     #[error("a scale has {LEAST_LEVELS} to {MOST_LEVELS} levels, not {0}")]
     Levels(u32),
+    /// A limit modify that does not always place was given a time in force other than `Alo` or `Gtc`; the one given.
     #[error("a modify that does not always place is Alo or Gtc, not {}", .0.wire())]
     ModifyTif(Tif),
+    /// Spot has no positions, so this does not apply to it: reduce only, a take profit or stop
+    /// loss, a position, margin or leverage. The thing named, in words.
     #[error("spot takes no {0}")]
     Spot(&'static str),
+    /// A TWAP given as a notional has no reference price to size it at.
     #[error("a notional needs a reference price to be sized at")]
     NoReference,
+    /// A take profit or stop loss would fire on the wrong side of its entry.
     #[error("a {} at {trigger} is on the wrong side of an entry at {entry}", tpsl_words(.tpsl))]
-    ExitSide { tpsl: Tpsl, trigger: Dec, entry: Dec },
+    ExitSide {
+        /// Take profit or stop loss.
+        tpsl: Tpsl,
+        /// Its trigger price.
+        trigger: Dec,
+        /// The entry's price.
+        entry: Dec,
+    },
+    /// There is no position to close or to move margin on.
     #[error("there is no position here")]
     NoPosition,
+    /// The close is larger than the position.
     #[error("closing {size} is more than the position of {position}")]
-    CloseTooLarge { size: Dec, position: Dec },
+    CloseTooLarge {
+        /// The size asked to close.
+        size: Dec,
+        /// The position's size.
+        position: Dec,
+    },
+    /// The leverage is 0 or over what the perp allows.
     #[error("leverage is a whole number from 1 to {most}, not {asked}")]
-    Leverage { asked: u32, most: u32 },
+    Leverage {
+        /// The leverage asked for.
+        asked: u32,
+        /// The most the perp allows.
+        most: u32,
+    },
+    /// The perp is isolated only, and cross was asked for.
     #[error("this market is isolated only")]
     IsolatedOnly,
+    /// Margin was to move on a cross position; it moves only on isolated ones.
     #[error("this position is cross; margin moves on isolated ones")]
     CrossPosition,
+    /// A limit change was asked for on a trigger order; the order's oid.
     #[error("order {0} is a trigger: change its trigger instead")]
     NotALimit(u64),
+    /// A trigger change was asked for on an order that is not a take profit or stop loss; the order's oid.
     #[error("order {0} is not a take profit or stop loss")]
     NotATrigger(u64),
+    /// The order is a trigger of a kind this build cannot modify.
     #[error("order {oid} is a {kind} trigger, which this build cannot modify")]
-    UnknownTrigger { oid: u64, kind: String },
+    UnknownTrigger {
+        /// The order's oid.
+        oid: u64,
+        /// Its order type as `frontendOpenOrders` lists it, in lowercase.
+        kind: String,
+    },
+    /// A whole-position take profit or stop loss was asked for on an order with a size of its own; the order's oid.
     #[error("order {0} has a size of its own; only a position's take profit or stop loss covers the whole position")]
     NotWholePosition(u64),
 }

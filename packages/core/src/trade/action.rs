@@ -9,19 +9,32 @@ use crate::trade::orders::{PlaceOrder, TrailingStop};
 use crate::trade::orders::{Twap, TwapCancel};
 use crate::utils::sign::{L1Action, Map};
 
+/// One trading action of any kind, signed as the action it holds.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TradeAction {
+    /// `order`: one or more orders.
     Place(PlaceOrder),
+    /// `cancel`: orders by their oid.
     Cancel(Cancel),
+    /// `cancelByCloid`: orders by their client order id.
     CancelByCloid(CancelByCloid),
+    /// `modify`: one resting order replaced in place.
     Modify(Modify),
+    /// `batchModify`: several resting orders replaced in place.
     BatchModify(BatchModify),
+    /// `twapOrder`: a TWAP.
     Twap(Twap),
+    /// `twapCancel`: a running TWAP stopped.
     TwapCancel(TwapCancel),
+    /// `updateLeverage`: a perp's leverage and margin mode.
     Leverage(UpdateLeverage),
+    /// `updateIsolatedMargin`: USDC moved into or out of an isolated position.
     Margin(UpdateIsolatedMargin),
+    /// `scheduleCancel`: the dead man's switch armed or disarmed.
     ScheduleCancel(ScheduleCancel),
+    /// `noop`: a nonce spent so an order signed with it never lands.
     Noop(Noop),
+    /// `trailingStop`: a stop that trails the best price.
     TrailingStop(TrailingStop),
 }
 

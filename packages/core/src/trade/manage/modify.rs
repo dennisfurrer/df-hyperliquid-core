@@ -14,7 +14,9 @@ use crate::utils::sign::{L1Action, Map, Value};
 /// The order a modify replaces: the venue's id, or the client's.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderRef {
+    /// The venue's order id.
     Oid(u64),
+    /// The client order id.
     Cloid(Cloid),
 }
 
@@ -40,6 +42,7 @@ pub struct Modify {
 }
 
 impl Modify {
+    /// Replaces `target` with `order`; always places when `order` is a trigger.
     #[must_use]
     pub const fn new(target: OrderRef, order: Order) -> Modify {
         Modify { target, order, always_place: order.is_trigger() }
@@ -52,16 +55,19 @@ impl Modify {
         self
     }
 
+    /// Whether `a` is set: the new order goes on even where the old one is gone.
     #[must_use]
     pub const fn is_always_place(&self) -> bool {
         self.always_place
     }
 
+    /// The order it replaces.
     #[must_use]
     pub const fn target(&self) -> OrderRef {
         self.target
     }
 
+    /// The new order.
     #[must_use]
     pub const fn order(&self) -> &Order {
         &self.order
@@ -94,6 +100,7 @@ pub struct BatchModify {
 }
 
 impl BatchModify {
+    /// Each modify in one action; always places when any new order is a trigger.
     #[must_use]
     pub fn new(modifies: Vec<Modify>) -> BatchModify {
         let always_place = modifies.iter().any(|modify| modify.order.is_trigger());
@@ -107,11 +114,13 @@ impl BatchModify {
         self
     }
 
+    /// The modifies, in the order sent.
     #[must_use]
     pub fn modifies(&self) -> &[Modify] {
         &self.modifies
     }
 
+    /// Whether `a` is set: the new orders go on even where the old ones are gone.
     #[must_use]
     pub const fn is_always_place(&self) -> bool {
         self.always_place
@@ -131,9 +140,23 @@ impl L1Action for BatchModify {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Change {
     /// A limit order's new price, size and time in force.
-    Limit { price: Dec, size: Amount, tif: Tif },
+    Limit {
+        /// The new limit price, brought onto the grid never against the trader.
+        price: Dec,
+        /// The new size, or a notional sized at the new price.
+        size: Amount,
+        /// The new time in force: `Alo` or `Gtc`.
+        tif: Tif,
+    },
     /// A take profit's or stop loss's new trigger, price and size.
-    Trigger { trigger: Dec, price: ExitPrice, size: Covers },
+    Trigger {
+        /// The new trigger price.
+        trigger: Dec,
+        /// How it fills once it fires.
+        price: ExitPrice,
+        /// A fixed size, or the whole position for an order that already covers it.
+        size: Covers,
+    },
 }
 
 /// A resting order replaced in place, as `frontendOpenOrders` lists it. Its
