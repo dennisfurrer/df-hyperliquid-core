@@ -39,6 +39,8 @@ wasm-bindgen-test = "=0.3.79"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
+# Every public item says what it is; docs.rs shows nothing undocumented.
+missing_docs = "deny"
 unsafe_op_in_unsafe_fn = "deny"
 unused_must_use = "deny"
 
