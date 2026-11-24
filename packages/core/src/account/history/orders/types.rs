@@ -19,15 +19,20 @@ pub struct OpenOrder {
     pub coin: String,
     /// The side it rests on.
     pub side: Side,
+    /// The limit price (`limitPx`).
     pub limit_px: Dec,
     /// What is left; `0` on a position's take profit or stop loss.
     pub sz: Dec,
+    /// The venue's order id (`oid`).
     pub oid: u64,
     /// When it was placed, milliseconds.
     pub timestamp: u64,
+    /// The size when placed (`origSz`), in the coin's units.
     pub orig_sz: Dec,
+    /// Whether it may only reduce a position (`reduceOnly`); `false` when the venue leaves it out.
     #[serde(default)]
     pub reduce_only: bool,
+    /// The client's order id; `None` when the order was sent without one.
     #[serde(default)]
     pub cloid: Option<Cloid>,
 }
@@ -35,11 +40,17 @@ pub struct OpenOrder {
 /// What kind of order a `frontendOpenOrders` row is, in the venue's words.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OrderKind {
+    /// A limit order (`Limit`).
     Limit,
+    /// A market order (`Market`).
     Market,
+    /// A stop loss that goes at market once it fires (`Stop Market`).
     StopMarket,
+    /// A stop loss that rests as a limit order once it fires (`Stop Limit`).
     StopLimit,
+    /// A take profit that goes at market once it fires (`Take Profit Market`).
     TakeProfitMarket,
+    /// A take profit that rests as a limit order once it fires (`Take Profit Limit`).
     TakeProfitLimit,
     /// A kind this build does not know, kept as written.
     Other(String),
@@ -104,30 +115,40 @@ impl<'de> Deserialize<'de> for OrderKind {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FrontendOrder {
+    /// `BTC`, `xyz:XYZ100` on a HIP-3 dex, `@107` or `PURR/USDC` for a pair, `#14730`.
     pub coin: String,
+    /// The side it rests on.
     pub side: Side,
+    /// The limit price (`limitPx`).
     pub limit_px: Dec,
     /// What is left; `0` on a position TP/SL, which closes the whole position.
     pub sz: Dec,
+    /// The venue's order id (`oid`).
     pub oid: u64,
     /// Milliseconds.
     pub timestamp: u64,
     /// `N/A`, `Price above 6.04`, or `Triggered` once a trigger has fired.
     pub trigger_condition: String,
+    /// Whether it is a trigger order: a take profit or a stop loss (`isTrigger`).
     pub is_trigger: bool,
     /// `0.0` on an order that is not a trigger.
     pub trigger_px: Dec,
     /// The take profit and stop loss of an entry not yet filled.
     #[serde(default)]
     pub children: Vec<FrontendOrder>,
+    /// Whether it is a take profit or stop loss on the whole position (`isPositionTpsl`).
     pub is_position_tpsl: bool,
+    /// Whether it may only reduce a position (`reduceOnly`).
     pub reduce_only: bool,
+    /// What kind of order it is (`orderType`).
     pub order_type: OrderKind,
+    /// The size when placed (`origSz`), in the coin's units.
     pub orig_sz: Dec,
     /// As the venue writes it: `Gtc`, `Alo`, `Ioc`, `FrontendMarket`, `LiquidationMarket`;
     /// `null` on a trigger still waiting.
     #[serde(default)]
     pub tif: Option<String>,
+    /// The client's order id; `None` when the order was sent without one.
     #[serde(default)]
     pub cloid: Option<Cloid>,
 }
@@ -139,6 +160,7 @@ impl FrontendOrder {
         (self.is_trigger && self.trigger_px.is_positive()).then_some(self.trigger_px)
     }
 
+    /// Whether it is a take profit or a stop loss, by its kind; `None` for a plain order.
     #[must_use]
     pub const fn tpsl(&self) -> Option<Tpsl> {
         self.order_type.tpsl()
@@ -162,10 +184,15 @@ impl FrontendOrder {
 /// `minTradeNtlRejected`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OrderState {
+    /// Resting on the book, or a trigger waiting to fire (`open`).
     Open,
+    /// Filled in full (`filled`).
     Filled,
+    /// A trigger that has fired (`triggered`).
     Triggered,
+    /// Canceled: `canceled`, `scheduledCancel` or any word ending in `Canceled`, kept as written.
     Canceled(String),
+    /// Rejected: `rejected` or any word ending in `Rejected`, kept as written.
     Rejected(String),
     /// A word this build does not know.
     Other(String),
@@ -210,7 +237,9 @@ impl fmt::Display for OrderState {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderRecord {
+    /// The order as placed.
     pub order: FrontendOrder,
+    /// Where it stood (`status`).
     pub status: OrderState,
     /// Milliseconds.
     pub status_timestamp: u64,

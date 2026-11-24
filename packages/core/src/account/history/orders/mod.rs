@@ -17,7 +17,9 @@ use crate::utils::{Address, Json};
 /// `orderStatus`: the order, or `unknownOid` for one the venue never took.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OrderLookup {
+    /// The venue has the order: the order and where it stands.
     Found(Box<OrderRecord>),
+    /// The venue never took an order with that id (`unknownOid`).
     Unknown,
 }
 

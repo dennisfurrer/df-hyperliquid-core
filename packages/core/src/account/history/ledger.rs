@@ -46,6 +46,7 @@ pub struct LedgerUpdate {
     pub time: u64,
     /// The L1 transaction hash, for the explorer.
     pub hash: String,
+    /// What the row did; a row that does not read as modelled is [`Delta::Other`].
     #[serde(deserialize_with = "delta")]
     pub delta: Delta,
 }
@@ -66,18 +67,26 @@ pub enum Delta {
     /// `sendAsset`, from `user` to `destination`, possibly between balances.
     #[serde(rename_all = "camelCase")]
     Send {
+        /// The sender.
         user: Address,
+        /// The receiver; the sender's own address for a move between its own balances.
         destination: Address,
         /// `""` the main perp dex, `spot` spot.
         source_dex: String,
+        /// The dex the amount went to (`destinationDex`): `""` the main perp dex, `spot` spot.
         destination_dex: String,
+        /// The token's name, `USDC` or `HYPE`.
         token: String,
+        /// How much of `token` moved.
         amount: Dec,
+        /// What the amount was worth when it moved (`usdcValue`), in USDC.
         usdc_value: Dec,
+        /// The fee charged, in `fee_token`; zero when none.
         fee: Dec,
         /// Not always sent.
         #[serde(default)]
         native_token_fee: Option<Dec>,
+        /// The nonce of the action that made the row; `None` when the venue leaves it out.
         #[serde(default)]
         nonce: Option<u64>,
         /// `""` where no fee was charged.
@@ -86,121 +95,177 @@ pub enum Delta {
     /// `usdSend`: USDC between perp balances.
     #[serde(rename_all = "camelCase")]
     InternalTransfer {
+        /// How much moved, in USDC.
         usdc: Dec,
+        /// The sender.
         user: Address,
+        /// The receiver.
         destination: Address,
+        /// The fee charged, in USDC.
         fee: Dec,
     },
     /// `spotSend`.
     #[serde(rename_all = "camelCase")]
     SpotTransfer {
+        /// The token's name.
         token: String,
+        /// How much of `token` moved.
         amount: Dec,
+        /// What the amount was worth when it moved (`usdcValue`), in USDC.
         usdc_value: Dec,
+        /// The sender.
         user: Address,
+        /// The receiver.
         destination: Address,
+        /// The fee charged, in `fee_token`; zero when none.
         fee: Dec,
         /// Not always sent.
         #[serde(default)]
         native_token_fee: Option<Dec>,
+        /// The nonce of the `spotSend` that made the row; `None` when the venue leaves it out.
         #[serde(default)]
         nonce: Option<u64>,
+        /// The token the fee was paid in (`feeToken`); `""` where no fee was charged.
         fee_token: String,
     },
     /// In from the Arbitrum bridge.
     Deposit {
+        /// How much came in, in USDC.
         usdc: Dec,
     },
     /// Out to Arbitrum, with the venue's fee.
     #[serde(rename_all = "camelCase")]
     Withdraw {
+        /// How much left the account, in USDC.
         usdc: Dec,
+        /// The withdrawal's nonce as the venue writes it, sixteen digits; not the signed action's
+        /// nonce.
         nonce: u64,
+        /// The venue's fee, in USDC.
         fee: Dec,
     },
     /// Between the account's own spot and perp balances.
     #[serde(rename_all = "camelCase")]
     AccountClassTransfer {
+        /// How much moved, in USDC.
         usdc: Dec,
+        /// `true` from spot to perps, `false` from perps to spot (`toPerp`).
         to_perp: bool,
     },
     /// The fee a first transfer to a fresh address paid.
     AccountActivationGas {
+        /// How much was charged, in `token`.
         amount: Dec,
+        /// The token the fee was paid in.
         token: String,
     },
+    /// USDC put into a vault.
     VaultDeposit {
+        /// The vault's address.
         vault: Address,
+        /// How much went in, in USDC.
         usdc: Dec,
     },
+    /// USDC taken out of a vault, net of the leader's commission and the cost of closing positions.
     #[serde(rename_all = "camelCase")]
     VaultWithdraw {
+        /// The vault's address.
         vault: Address,
+        /// The depositor who withdrew.
         user: Address,
+        /// How much the depositor asked for (`requestedUsd`), in USDC.
         requested_usd: Dec,
+        /// The share of the profit the vault's leader took, in USDC.
         commission: Dec,
+        /// The cost of closing positions to pay the withdrawal out (`closingCost`), in USDC.
         closing_cost: Dec,
+        /// What the withdrawn part of the deposit cost the depositor, in USDC.
         basis: Dec,
+        /// What the depositor received (`netWithdrawnUsd`), in USDC.
         net_withdrawn_usd: Dec,
     },
     /// HYPE between spot and the staking balance: `cDeposit` in, `cWithdraw` out once its queue
     /// has passed.
     #[serde(rename_all = "camelCase")]
     CStakingTransfer {
+        /// The token's name, `HYPE`.
         token: String,
+        /// How much moved, in `token`.
         amount: Dec,
+        /// `true` into staking (`cDeposit`), `false` out of it (`cWithdraw`) (`isDeposit`).
         is_deposit: bool,
     },
     /// A deployer's share of a token it launched.
     SpotGenesis {
+        /// The token's name.
         token: String,
+        /// How much the deployer received, in `token`.
         amount: Dec,
     },
     /// A bid in a deploy gas auction.
     DeployGasAuction {
+        /// The token the bid was paid in, `HYPE`.
         token: String,
+        /// The bid, in `token`.
         amount: Dec,
     },
     /// Referral or builder rewards claimed: an amount of `token`, not `usdc`.
     RewardsClaim {
+        /// How much was claimed, in `token`.
         amount: Dec,
+        /// The token claimed in.
         token: String,
     },
     /// USDC between a master and one of its subaccounts, `user` to `destination`.
     SubAccountTransfer {
+        /// How much moved, in USDC.
         usdc: Dec,
+        /// The sender.
         user: Address,
+        /// The receiver.
         destination: Address,
     },
     /// A vault made: the USDC its leader put in, and the creation fee charged beside it.
     VaultCreate {
+        /// The new vault's address.
         vault: Address,
+        /// What the leader put in, in USDC.
         usdc: Dec,
+        /// The creation fee, in USDC.
         fee: Dec,
     },
     /// A supply, withdrawal, borrow or repayment on a lending reserve: `amount` of `token`, of which
     /// `interest_amount` is interest earned or paid.
     #[serde(rename_all = "camelCase")]
     BorrowLend {
+        /// The token's name.
         token: String,
+        /// What was done: supply, withdraw, borrow or repay.
         operation: Operation,
+        /// How much of `token` moved.
         amount: Dec,
+        /// The part of `amount` that is interest earned or paid (`interestAmount`).
         interest_amount: Dec,
     },
     /// The account was liquidated: the notional taken over and what the account was worth then.
     #[serde(rename_all = "camelCase")]
     Liquidation {
+        /// The notional of the positions taken over (`liquidatedNtlPos`), in USDC.
         liquidated_ntl_pos: Dec,
+        /// What the account was worth at the liquidation (`accountValue`), in USDC.
         account_value: Dec,
         /// `Cross` or `Isolated`, capitalized here unlike anywhere else.
         leverage_type: String,
+        /// The positions taken over (`liquidatedPositions`).
         liquidated_positions: Vec<LiquidatedPosition>,
     },
     /// A type this build does not read, or a known one that no longer reads as modelled: its
     /// `type` (empty when it names none) and the delta as written, every key and digit.
     #[serde(skip_deserializing)]
     Other {
+        /// The row's `type`; empty when it names none.
         kind: String,
+        /// The delta as written, every key and digit.
         fields: Json,
     },
 }
@@ -208,7 +273,9 @@ pub enum Delta {
 /// A position a liquidation took over: its coin and signed size.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct LiquidatedPosition {
+    /// The coin, `ATOM` or `xyz:XYZ100`.
     pub coin: String,
+    /// The size taken over, signed: negative for a short.
     pub szi: Dec,
 }
 

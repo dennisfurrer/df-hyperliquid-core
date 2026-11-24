@@ -22,19 +22,29 @@ pub async fn portfolio(transport: &impl Transport, user: Address) -> Result<Port
 /// A span the venue samples over.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Span {
+    /// The last day (`day`).
     Day,
+    /// The last week (`week`).
     Week,
+    /// The last month (`month`).
     Month,
+    /// Since the account's first sample (`allTime`).
     AllTime,
+    /// The last day, perps only (`perpDay`).
     PerpDay,
+    /// The last week, perps only (`perpWeek`).
     PerpWeek,
+    /// The last month, perps only (`perpMonth`).
     PerpMonth,
+    /// Since the account's first sample, perps only (`perpAllTime`).
     PerpAllTime,
     /// One this build does not know, kept as spelled.
     Other(String),
 }
 
 impl Span {
+    /// From the venue's name: `perpWeek`. A name this build does not know is kept as
+    /// [`Span::Other`].
     #[must_use]
     pub fn parse(text: &str) -> Span {
         match text {
@@ -50,6 +60,7 @@ impl Span {
         }
     }
 
+    /// As the venue spells it: `perpWeek`.
     #[must_use]
     pub fn wire(&self) -> &str {
         match self {
@@ -96,8 +107,10 @@ impl<'de> Deserialize<'de> for Span {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct History {
+    /// What the account was worth at each sample (`accountValueHistory`), in USDC.
     #[serde(default)]
     pub account_value_history: Vec<(u64, Dec)>,
+    /// The profit at each sample (`pnlHistory`), in USDC, a running sum from zero at the first.
     #[serde(default)]
     pub pnl_history: Vec<(u64, Dec)>,
     /// Volume traded over the span.
@@ -109,10 +122,12 @@ pub struct History {
 #[derive(Debug, Clone, Default, PartialEq, Eq, Deserialize)]
 #[serde(transparent)]
 pub struct Portfolio {
+    /// Each span with its samples, as `(span, samples)`.
     pub spans: Vec<(Span, History)>,
 }
 
 impl Portfolio {
+    /// The samples of one span; `None` when the venue did not send it.
     #[must_use]
     pub fn span(&self, span: &Span) -> Option<&History> {
         self.spans.iter().find(|(named, _)| named == span).map(|(_, history)| history)
