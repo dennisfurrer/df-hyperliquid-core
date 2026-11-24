@@ -21,10 +21,8 @@ pub const FIXED_SZ: &str = "0.001";
 
 /// Untimed iterations before the signing samples.
 pub const SIGN_WARMUP: usize = 2_000;
-/// Timed signing iterations per SDK, taken in [`SIGN_BLOCKS`] blocks that alternate between the
-/// SDKs measured in the same process.
+/// Timed signing iterations per SDK.
 pub const SIGN_SAMPLES: usize = 20_000;
-pub const SIGN_BLOCKS: usize = 5;
 
 /// Untimed passes over the corpus, then timed passes.
 pub const PARSE_WARMUP_PASSES: usize = 3;
