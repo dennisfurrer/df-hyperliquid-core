@@ -89,41 +89,59 @@ flowchart TB
 
 ## Feature parity
 
-Set against the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api). Supported means every request or action the docs list for that area is in the crate; Partial names what is missing.
+Full parity with the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api): every info request, exchange action, websocket channel and HyperEVM method the docs list is in the crate. Each signed action is checked against @nktkas/hyperliquid and the official Python SDK in `tests/conformance`.
 
-| API area | Status | Module | Missing |
+| API area | Status | Module |
+|---|---|---|
+| Info: perps (meta, contexts, all dexes' metas, funding, predicted funding, open interest caps, active asset data, dex limits and status, categories, annotations, deploy auction) | Supported | `markets::perps`, `markets::dexes`, `account::holdings`, `deploy` |
+| Info: spot (meta, contexts, balances, token details, deploy state, pair deploy auction) | Supported | `markets::spot`, `account::holdings`, `deploy` |
+| Info: HIP-4 outcomes (meta, templates, settled outcomes, deployer limits) | Supported | `markets::outcomes` |
+| Info: market data (mids, L2 book, candles, recent trades) | Supported | `markets` |
+| Info: user state (clearinghouse, open orders, order status, rate limit, role, subaccounts, fees, referral, abstraction, agents, builder fee approval, approved builders) | Supported | `account` |
+| Info: history (fills, fills by time, historical orders, TWAP history and slice fills, funding, ledger, portfolio) | Supported | `account::history`, `markets::perps` |
+| Info: vaults, staking and lending (vault details and equities, delegations, staking summary, history and rewards, validators, borrow and lend states) | Supported | `earn` |
+| Exchange: orders (limit, market, trigger, TP/SL, trailing stop, scale, close) | Supported | `trade::orders` |
+| Exchange: cancel, cancel by cloid, schedule cancel, noop | Supported | `trade::manage` |
+| Exchange: modify, batch modify | Supported | `trade::manage` |
+| Exchange: TWAP order and cancel | Supported | `trade::orders` |
+| Exchange: leverage and isolated margin | Supported | `trade::margin` |
+| Exchange: transfers (`usdSend`, `spotSend`, `sendAsset`, `agentSendAsset`, `usdClassTransfer`, subaccount transfers, `sendToEvmWithData`, HyperCore to HyperEVM) | Supported | `transfer`, `account::settings` |
+| Exchange: withdrawals (`withdraw3`) and Arbitrum deposits | Supported | `transfer` |
+| Exchange: vaults (`vaultTransfer`, `hip3LiquidatorTransfer`) | Supported | `earn::vaults` |
+| Exchange: staking (`cDeposit`, `cDeposit2`, `cWithdraw`, `tokenDelegate`, `claimRewards`) | Supported | `earn::staking`, `account::settings` |
+| Exchange: lending (`borrowLend`) | Supported | `earn::lending` |
+| Exchange: API wallets (`approveAgent`) | Supported | `account::keys` |
+| Exchange: builder fees (`approveBuilderFee`) | Supported | `account::keys`, `trade::builder` |
+| Exchange: account settings (`userSetAbstraction`, `agentSetAbstraction`, `createSubAccount`, `setReferrer`, `reserveRequestWeight`) | Supported | `account::settings` |
+| Exchange: HIP-4 outcome positions (`userOutcome`: split, merge, `mergeQuestion`, `negateOutcome`) | Supported | `trade::outcomes` |
+| Exchange: multi-sig (`multiSig`, `convertToMultiSigUser`) | Supported | `utils::sign::multi_sig`, `account::keys` |
+| Exchange: validator actions (`validatorL1Stream`, `authorizeAqav2Role`, `CValidatorAction`, `CSignerAction`) | Supported | `deploy::aligned`, `earn::validator` |
+| Deploy: spot tokens (`spotDeploy`, every sub-action, and `finalizeEvmContract`) | Supported | `deploy::spot` |
+| Deploy: HIP-3 perp dexes (`perpDeploy`, every sub-action) | Supported | `deploy::perp` |
+| Deploy: HIP-4 outcome markets (`outcomeDeploy`, `activateOutcomeDeployer`) | Supported | `deploy::outcomes` |
+| Websocket subscriptions (every channel, including `l2`, `pac` and `sac`) | Supported | `live`, `client::native::Feed`, `client::web::Feed` |
+| Websocket post (info reads and signed actions) | Supported | `live::Post`, `Feed::post` |
+| HyperEVM JSON-RPC (every method the docs list) | Supported | `client::evm::rpc` |
+| HyperCore read precompiles (`0x0800` to `0x0814`) | Supported | `client::evm::precompiles` |
+| CoreWriter (actions 1 to 17) | Supported | `client::evm::corewriter` |
+
+Not included:
+
+- `userDexAbstraction` and `agentEnableDexAbstraction`: deprecated, and mainnet no longer accepts them. `userSetAbstraction` and `agentSetAbstraction` replace them.
+- The HIP-3 `star` operations: the docs mark them testnet only, and the crate does not target testnet.
+
+## Benchmarks
+
+df-hyperliquid-core has the fastest order signing of the three SDKs measured: 1.4 times hypersdk and 5 times the official Python SDK with coincurve. hypersdk parses websocket frames faster. Round trips to the venue are the same for all three, because the network takes almost all of the time.
+
+| Measurement | df-hyperliquid-core | hypersdk 0.3.1 | hyperliquid-python-sdk 0.24.0 |
 |---|---|---|---|
-| Info: perps (meta, contexts, all dexes' metas, funding, predicted funding, open interest caps, active asset data, dex limits and status, categories, deploy auction) | Partial | `markets::perps`, `markets::dexes`, `account::holdings`, `deploy` | `perpAnnotation`, `perpConciseAnnotations` |
-| Info: spot (meta, contexts, balances, token details, deploy state, pair deploy auction) | Supported | `markets::spot`, `account::holdings`, `deploy` | |
-| Info: HIP-4 outcomes (meta, templates, settled outcomes, deployer limits) | Supported | `markets::outcomes` | |
-| Info: market data (mids, L2 book, candles, recent trades) | Supported | `markets` | |
-| Info: user state (clearinghouse, open orders, order status, rate limit, role, subaccounts, fees, referral, abstraction, agents, builder fee approval) | Partial | `account` | `approvedBuilders`, `userDexAbstraction` (deprecated) |
-| Info: history (fills, fills by time, historical orders, TWAP history and slice fills, funding, ledger, portfolio) | Supported | `account::history`, `markets::perps` | |
-| Info: vaults, staking and lending (vault details and equities, delegations, staking summary, history and rewards, validators, borrow and lend states) | Supported | `earn` | |
-| Exchange: orders (limit, market, trigger, TP/SL, scale, close) | Partial | `trade::orders` | `trailingStop` |
-| Exchange: cancel, cancel by cloid, schedule cancel, noop | Supported | `trade::manage` | |
-| Exchange: modify, batch modify | Supported | `trade::manage` | |
-| Exchange: TWAP order and cancel | Supported | `trade::orders` | |
-| Exchange: leverage and isolated margin | Supported | `trade::margin` | |
-| Exchange: transfers (`usdSend`, `spotSend`, `sendAsset`, `agentSendAsset`, `usdClassTransfer`, subaccount transfers, HyperCore to HyperEVM) | Partial | `transfer`, `account::settings` | `sendToEvmWithData` |
-| Exchange: withdrawals (`withdraw3`) and Arbitrum deposits | Supported | `transfer` | |
-| Exchange: vaults (`vaultTransfer`) | Partial | `earn::vaults` | `hip3LiquidatorTransfer` |
-| Exchange: staking (`cDeposit`, `cWithdraw`, `tokenDelegate`) | Partial | `earn::staking` | `cDeposit2`, `claimRewards` |
-| Exchange: lending (`borrowLend`) | Supported | `earn::lending` | |
-| Exchange: API wallets (`approveAgent`) | Supported | `account::keys` | |
-| Exchange: builder fees (`approveBuilderFee`) | Supported | `account::keys`, `trade::builder` | |
-| Exchange: account settings (`userSetAbstraction`, `agentSetAbstraction`, `createSubAccount`, `setReferrer`) | Partial | `account::settings` | `reserveRequestWeight`; `userDexAbstraction` and `agentEnableDexAbstraction` (deprecated) |
-| Exchange: HIP-4 outcome positions (`userOutcome`) | Partial | `trade::outcomes` | `mergeQuestion`, `negateOutcome` (split and merge are in) |
-| Exchange: multi-sig (`multiSig`) | Partial | `utils::sign::multi_sig` | `convertToMultiSigUser` |
-| Exchange: validator actions (`validatorL1Stream`, `authorizeAqav2Role`) | Not yet | | all |
-| Deploy: spot tokens (`spotDeploy`) | Not yet | `deploy` has the reads only | all actions |
-| Deploy: HIP-3 perp dexes (`perpDeploy`) | Not yet | `deploy`, `markets::dexes` have the reads only | all actions |
-| Deploy: HIP-4 outcome markets (`outcomeDeploy`, `activateOutcomeDeployer`) | Supported | `deploy::outcomes` | |
-| Websocket subscriptions | Partial | `live`, `client::native::Feed`, `client::web::Feed` | `l2`, `pac`, `sac` |
-| Websocket post (info reads and signed actions) | Supported | `live::Post`, `Feed::post` | |
-| HyperEVM JSON-RPC | Partial | `client::evm::rpc` | `net_version`, `web3_clientVersion`, `eth_getBlockByHash`, `eth_getBlockReceipts`, `eth_getBlockTransactionCountByHash`, `eth_getBlockTransactionCountByNumber`, `eth_getTransactionByBlockHashAndIndex`, `eth_getTransactionByBlockNumberAndIndex`, `eth_syncing`, `eth_getSystemTxsByBlockHash`, `eth_getSystemTxsByBlockNumber` |
-| HyperCore read precompiles (`0x0800` to `0x0814`) | Supported | `client::evm::precompiles` | |
-| CoreWriter (actions 1 to 17) | Supported | `client::evm::corewriter` | |
+| Hash and sign one BTC order, median | 25.5 us | 35.7 us | 2056.7 us (129.1 us with coincurve) |
+| Websocket parse, recorded frames | 252,879 frames/s | 447,251 frames/s | 218,252 frames/s (prices left as strings) |
+| Info round trip (`l2Book`), median | 258.6 ms | 257.1 ms | 263.7 ms |
+| Exchange round trip (refused order), median | 277.5 ms | 275.4 ms | 279.4 ms |
+
+Measured on 2026-11-24 on one Apple M5 Max, from Zurich. The method, p99 figures, raw samples and the command to rerun them are in [bench/README.md](bench/README.md).
 
 ## Tests
 
@@ -171,6 +189,13 @@ Add the badge to your README and open an issue to be listed here:
 ```markdown
 [![Built with df-hyperliquid-core](https://img.shields.io/badge/built%20with-df--hyperliquid--core-0b1220)](https://dfurrer.com/products/df-hyperliquid-core)
 ```
+
+## Stability
+
+- Versions follow [semantic versioning](https://semver.org) from 0.1.0. Within 0.1.x, patch releases never break the public API. A breaking change waits for 0.2.0 and is listed in [CHANGELOG.md](CHANGELOG.md).
+- When Hyperliquid changes the shape of a request or answer, the fix ships as a patch release if the crate's public API can stay the same.
+- Minimum supported Rust version (MSRV): 1.94, edition 2024. CI builds with the toolchain pinned in `rust-toolchain.toml`. The MSRV is raised only in a minor release, and the change is noted in the changelog.
+- Questions and bugs: [GitHub issues](https://github.com/dennisfurrer/df-hyperliquid-core/issues).
 
 ## License
 
