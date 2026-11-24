@@ -1,25 +1,81 @@
-# Migrating from 0.0.x to 0.1
+# Migrating to 0.2
 
-0.1.0 is the first stable release. From 0.1.0 on, versions follow semantic versioning: a 0.1.x release does not remove or rename anything public.
+From 0.1.0 on, versions follow semantic versioning: a patch release does not remove or rename anything public, and a breaking change waits for the next minor version.
 
 Which part of this guide applies depends on the version you start from:
 
 | From | What changes |
 |---|---|
+| 0.1.0, 0.1.1 | Enums and the types the crate returns are `#[non_exhaustive]`. See [From 0.1 to 0.2](#from-01-to-02). |
 | 0.0.9-beta to 0.0.12-beta | Nothing public was removed or renamed. A few enums gained variants, one method is deprecated and two checks count bytes. See [From 0.0.9-beta or later](#from-009-beta-or-later). |
 | 0.0.8-beta, 0.0.8-beta.1 | Modules were reorganised in 0.0.9-beta. Many paths moved and some items were renamed. Read [From 0.0.8-beta](#from-008-beta) first, then the section above. |
 
-The lists below were made by comparing the public API of each published version, as rustdoc reports it, and by moving these crates and apps to 0.1.1: df-elysium-core, df-papertrade-core, hip4-tui and hip4-vanity, vanity-metal, Atlas and the metalliq SDK.
+From 0.0.x, read the 0.0.x sections first, then [From 0.1 to 0.2](#from-01-to-02).
+
+The lists below were made by comparing the public API of each published version, as rustdoc reports it, and by moving these crates and apps to each release: df-elysium-core, df-papertrade-core, hip4-tui and hip4-vanity, vanity-metal, Atlas and the metalliq SDK.
 
 ## Update the dependency
 
 ```toml
-df-hyperliquid-core = "0.1"
+df-hyperliquid-core = "0.2"
 ```
 
 The features are unchanged: `sign` and `native` by default, `web` for the browser, `offline` for tests.
 
 From 0.0.11-beta the license is MIT OR Apache-2.0. Earlier versions were BUSL-1.1.
+
+## From 0.1 to 0.2
+
+0.2.0 changes no behaviour and removes nothing. It marks public enums and the structs the crate returns `#[non_exhaustive]`, so that later 0.2.x releases can add a variant or a field without breaking your build.
+
+Outside the crate, `#[non_exhaustive]` means:
+
+- A `match` on one of these enums needs a `_` arm, even when it lists every variant there is today.
+
+  ```rust
+  match event {
+      Event::Frame(frame) => handle(*frame),
+      Event::Closed { reason, .. } => eprintln!("closed: {reason}"),
+      _ => {}
+  }
+  ```
+
+- A pattern that takes such a struct apart needs `..`: `let Level { px, sz, .. } = level;`.
+- Such a struct cannot be built with a struct literal, not even with `..Default::default()`. These are answers, frames, decoded reads and plans: you get them from the crate. To build one in a test, read it from the JSON the venue sends, as the crate does:
+
+  ```rust
+  let token: SpotToken = serde_json::from_str(
+      r#"{"name":"HYPE","index":150,"tokenId":"0x0d01dc56dcaaca66ad901c959b4011ec","weiDecimals":8,"evmContract":null}"#,
+  )?;
+  ```
+
+- A test that compares a returned struct with a literal compares its fields instead:
+
+  ```rust
+  // 0.1
+  assert_eq!(remaining, Remaining { daily: 793, active: 3 });
+  // 0.2
+  assert_eq!((remaining.daily, remaining.active), (793, 3));
+  ```
+
+### What stays exhaustive
+
+Enums that cannot gain a variant, so a `match` on them needs no `_` arm: `markets::Side`, `utils::OutcomeSide`, `utils::Round`, `utils::Json`, `markets::Dex`, `client::Network`, `account::Readiness`, `account::OrderLookup`, `client::ExchangeResponse` and `client::Status`. Enum variants with fields are not marked either, so `Event::Closed { reason, retry }` still names every field.
+
+Structs you build yourself keep their struct literals:
+
+- Plan contexts: `transfer::Ctx`, `earn::staking::Ctx`, `earn::vaults::Ctx`, `earn::lending::Ctx`, and what you pass to `Standing::worth`: `account::Beside`, `account::holdings::VaultShare`.
+- Orders: `trade::OrderIntent`, `trade::TwapIntent`, `trade::TriggerIntent`, `trade::Exit`, `trade::Close`, `trade::Scale`.
+- Transport and HyperEVM: `client::Request`, `client::Response` (for your own `Transport`), `client::evm::Call`, `client::evm::CallRequest`, `client::evm::LogFilter`, `client::evm::Eip1559`, `client::evm::AccessItem`, `client::evm::Function`, `client::evm::Param`.
+- Deploys and validators: `deploy::TokenSpec`, `deploy::FinalizeEvmContract`, `deploy::AuthorizeAqav2Role`, `deploy::perp::NewAsset`, `deploy::perp::DexSchema`, `deploy::perp::MarginTier`, `deploy::perp::SubDeployer`, `deploy::perp::DeployerFee`, `deploy::outcomes::Grant`, `deploy::outcomes::Instance`, `deploy::outcomes::OutcomeDeploy`, `deploy::outcomes::Settlement`, `earn::validator::ValidatorProfile`, `earn::validator::ProfileChange`.
+- Signing and sockets: `utils::sign::Domain`, `utils::sign::MultiSig`, `live::Timing`, `live::Limits`.
+- Small closed values: `markets::outcomes::Template`, `account::AccountRef`, `live::L2Level`, `client::evm::precompiles::Bbo`.
+
+A field added to one of these is a breaking change and waits for the next minor version.
+
+### Deprecated items are still there
+
+`Template::classify`, `SpotDeploy::EnableAlignedQuoteToken` and `SpotDeploy::DisableAlignedQuoteToken` stay deprecated in 0.2.0 and are not removed.
 
 ## From 0.0.9-beta or later
 

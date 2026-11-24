@@ -2,6 +2,15 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.0
+
+Public enums and the structs the crate returns are `#[non_exhaustive]`, so later 0.2.x releases can add a variant or a field without a breaking change. No behaviour changes and nothing is removed. [MIGRATION.md](MIGRATION.md#from-01-to-02) lists what to change and which types stay exhaustive.
+
+Changed:
+
+- 143 enums are `#[non_exhaustive]`: a `match` on them outside the crate needs a `_` arm. `Side`, `OutcomeSide`, `Round`, `Json`, `Dex`, `Network`, `Readiness`, `OrderLookup`, `ExchangeResponse` and `Status` are not, since they cannot gain a variant.
+- 185 structs with public fields are `#[non_exhaustive]`: answers, frames, decoded reads, plans and errors. Outside the crate they are read, not built; build one in a test from the venue's JSON with serde. The 39 structs callers build (plan contexts, order intents, transport, HyperEVM calls, deploy and validator payloads, signing domains, socket settings) keep their struct literals.
+
 ## 0.1.1
 
 Every L1 action checked on testnet, and the units of irreversible deploy fields confirmed on chain.
