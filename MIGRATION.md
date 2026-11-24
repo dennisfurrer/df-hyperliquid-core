@@ -67,7 +67,7 @@ Two patterns met while moving apps to 0.2, and what replaces them (both from 0.2
 
 ### What stays exhaustive
 
-Enums that cannot gain a variant, so a `match` on them needs no `_` arm: `markets::Side`, `utils::OutcomeSide`, `utils::Round`, `utils::Json`, `markets::Dex`, `client::Network`, `account::Readiness`, `account::OrderLookup`, `client::ExchangeResponse` and `client::Status`. Enum variants with fields are not marked either, so `Event::Closed { reason, retry }` still names every field.
+Enums that cannot gain a variant, so a `match` on them needs no `_` arm: `markets::Side`, `utils::OutcomeSide`, `utils::Round`, `utils::Json`, `markets::Dex`, `client::Network`, `account::Readiness`, `account::OrderLookup`, `client::ExchangeResponse` and `client::Status`. From 0.2.2, also `client::Method`, which a `Transport` you write matches on. Enum variants with fields are not marked either, so `Event::Closed { reason, retry }` still names every field.
 
 Structs you build yourself keep their struct literals:
 

@@ -13,7 +13,6 @@ pub trait Http {
 
 /// An HTTP method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[non_exhaustive]
 pub enum Method {
     /// `GET`.
     Get,

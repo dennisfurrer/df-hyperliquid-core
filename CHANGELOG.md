@@ -2,6 +2,12 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.2
+
+Changed:
+
+- `client::Method` (`Get`, `Post`) is no longer `#[non_exhaustive]`. A `Transport` you write has to send every method the crate asks for, so it matches on `Method`, and a `_` arm there could only fail at run time. Found moving Atlas to 0.2.
+
 ## 0.2.1
 
 Found while moving df-elysium-core, df-papertrade-core and hip4-tui to 0.2.
