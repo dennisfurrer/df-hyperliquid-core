@@ -3,7 +3,9 @@
 
 use std::fmt;
 
-/// The longest value a keyword takes, in bytes; whether the venue counts bytes or characters is not confirmed.
+/// The longest value a keyword takes, in UTF-8 bytes. The venue counts HIP-4 text in bytes: testnet
+/// refused a 70-character, 71-byte outcome name with `name too long` and took a 69-character,
+/// 70-byte one.
 pub const MAX_VALUE_LEN: usize = 100;
 
 /// What is wrong with one keyword's value, in words for the person typing it.
@@ -44,11 +46,11 @@ impl Problem {
     pub const fn words(self) -> &'static str {
         match self {
             Problem::Missing => "needs a value",
-            Problem::TooLong => "takes at most 100 characters",
+            Problem::TooLong => "takes at most 100 bytes",
             Problem::Reserved => "cannot hold {, } or |",
             Problem::DateTime => "takes YYYYMMDD-HHMM in UTC",
             Problem::Date => "takes YYYYMMDD in UTC",
-            Problem::ShortString => "takes at most 10 characters",
+            Problem::ShortString => "takes at most 10 bytes",
             Problem::UInt => "takes a whole number with no sign or leading zeros",
             Problem::TooLarge => "takes a whole number that fits in 64 bits",
             Problem::UDecimal => "takes a decimal with no sign, no exponent and no leading or trailing zeros",

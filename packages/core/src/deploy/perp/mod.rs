@@ -38,11 +38,12 @@ pub struct DeployerFee {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PerpDeploy {
     /// `registerAsset2`: an asset with a margin mode. With a schema it also
-    /// creates the dex. `max_gas` is in native token wei; `None` (sent as
+    /// creates the dex. `max_gas` is in HYPE wei, 8 decimals; `None` (sent as
     /// null) pays the current auction price, and 0 uses a reserve
     /// deployment whether or not the auction has ended.
     RegisterAsset2 {
-        /// The most native token wei to pay (`maxGas`); `None`, sent as null, pays the current auction price.
+        /// The most to pay (`maxGas`), in HYPE wei, 8 decimals (1 HYPE is `100_000_000`); `None`,
+        /// sent as null, pays the current auction price. The gas paid is not refunded.
         max_gas: Option<u64>,
         /// The asset to list (`assetRequest`).
         asset: NewAsset,
@@ -56,7 +57,8 @@ pub enum PerpDeploy {
     /// `registerAsset`: as [`RegisterAsset2`](PerpDeploy::RegisterAsset2),
     /// with `onlyIsolated` for the margin mode.
     RegisterAsset {
-        /// The most native token wei to pay (`maxGas`); `None`, sent as null, pays the current auction price.
+        /// The most to pay (`maxGas`), in HYPE wei, 8 decimals (1 HYPE is `100_000_000`); `None`,
+        /// sent as null, pays the current auction price. The gas paid is not refunded.
         max_gas: Option<u64>,
         /// The asset to list (`assetRequest`).
         asset: NewAsset,
@@ -109,7 +111,9 @@ pub enum PerpDeploy {
         fee_recipient: Address,
     },
     /// `setOpenInterestCaps`: notional caps; `None` (sent as null) removes
-    /// an asset's custom cap.
+    /// an asset's custom cap. A cap is in millionths of the dex's collateral token whatever its
+    /// `weiDecimals`: `1_000_000` is one token of notional. `perpDexLimits` shows it in whole
+    /// tokens. Confirmed against mainnet caps on USDC, USDE, USDH and USDT0 dexes.
     SetOpenInterestCaps(ByCoin<Option<u64>>),
     /// `setSubDeployers`.
     SetSubDeployers {
@@ -265,7 +269,8 @@ impl PerpDeploy {
         Ok(PerpDeploy::SetMarginTableIds(ids))
     }
 
-    /// `setOpenInterestCaps`; `None` removes an asset's custom cap.
+    /// `setOpenInterestCaps`; `None` removes an asset's custom cap. Caps are in millionths of the
+    /// collateral token, as [`PerpDeploy::SetOpenInterestCaps`] says.
     pub fn set_open_interest_caps<K: Into<String>>(
         caps: impl IntoIterator<Item = (K, Option<u64>)>,
     ) -> Result<Self, BadDeploy> {

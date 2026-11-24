@@ -1,18 +1,20 @@
 //! What frontends show for a spot token or a HIP-3 perp: the text `setTokenAnnotation` and
-//! `setPerpAnnotation` carry, checked against the lengths the docs give.
+//! `setPerpAnnotation` carry, checked against the lengths the docs give. The venue counts those
+//! lengths in UTF-8 bytes, not characters: testnet refused a Chinese display name of 6
+//! characters and 18 bytes, and took one of 2 characters and 6 bytes.
 
 use crate::deploy::error::BadDeploy;
 use crate::utils::sign::{Map, Value};
 
-/// The longest category, in characters.
+/// The longest category, in bytes.
 pub const MAX_CATEGORY_LEN: usize = 15;
-/// The longest description, in characters.
+/// The longest description, in bytes.
 pub const MAX_DESCRIPTION_LEN: usize = 400;
-/// The longest display name, in characters.
+/// The longest display name, in bytes.
 pub const MAX_DISPLAY_NAME_LEN: usize = 9;
 /// The most keywords an annotation takes.
 pub const MAX_KEYWORDS: usize = 2;
-/// The longest keyword, in characters.
+/// The longest keyword, in bytes.
 pub const MAX_KEYWORD_LEN: usize = 10;
 
 /// A token's or perp's annotation: a category, a description, a display name
@@ -26,17 +28,17 @@ pub struct Annotation {
     keywords: Vec<String>,
 }
 
-/// `text` if it is at most `most` characters.
+/// `text` if it is at most `most` bytes.
 fn short(what: &'static str, text: String, most: usize) -> Result<String, BadDeploy> {
-    if text.chars().count() > most {
+    if text.len() > most {
         return Err(BadDeploy::TooLong { what, most, value: text });
     }
     Ok(text)
 }
 
 impl Annotation {
-    /// Refuses a category over 15 characters, a description over 400, a
-    /// display name over 9, more than 2 keywords or a keyword over 10.
+    /// Refuses a category over 15 bytes, a description over 400, a display
+    /// name over 9, more than 2 keywords or a keyword over 10.
     pub fn new(
         category: impl Into<String>,
         description: impl Into<String>,
@@ -57,13 +59,13 @@ impl Annotation {
         })
     }
 
-    /// The category, at most 15 characters.
+    /// The category, at most 15 bytes.
     #[must_use]
     pub fn category(&self) -> &str {
         &self.category
     }
 
-    /// The description, at most 400 characters.
+    /// The description, at most 400 bytes.
     #[must_use]
     pub fn description(&self) -> &str {
         &self.description
@@ -75,7 +77,7 @@ impl Annotation {
         self.display_name.as_deref()
     }
 
-    /// Up to two words searches match against, each at most 10 characters.
+    /// Up to two words searches match against, each at most 10 bytes.
     #[must_use]
     pub fn keywords(&self) -> &[String] {
         &self.keywords

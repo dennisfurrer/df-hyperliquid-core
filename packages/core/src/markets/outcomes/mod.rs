@@ -20,6 +20,6 @@ pub use px::{
 };
 pub use settled::{SettledOutcome, SettledQuestion, settled_outcome, settled_outcome_request};
 pub use template::{
-    Family, Keyword, OnChain, OutcomeTemplate, RateMove, Remaining, Template, TemplateRole, Templates, deployer_limits,
-    deployer_limits_request, fill, label, outcome_templates, outcome_templates_request,
+    Family, Keyword, OnChain, OutcomeTemplate, RateMove, Remaining, Template, TemplateRole, Templates, VersionTooLarge,
+    deployer_limits, deployer_limits_request, fill, label, outcome_templates, outcome_templates_request,
 };

@@ -24,11 +24,11 @@ pub enum BadDeploy {
         value: String,
     },
     /// A text longer than the docs allow.
-    #[error("{what} is at most {most} characters, which `{value}` is over")]
+    #[error("{what} is at most {most} bytes, which `{value}` is over")]
     TooLong {
         /// What the text is, such as `a keyword`.
         what: &'static str,
-        /// The most characters allowed.
+        /// The most UTF-8 bytes allowed.
         most: usize,
         /// The text given.
         value: String,

@@ -30,7 +30,7 @@ fn every_name_reads_into_its_family_and_version() {
         ("Argentina", Family::Named, None),
     ];
     for (name, family, version) in cases {
-        assert_eq!(Template::classify(name), Template { family, version }, "{name}");
+        assert_eq!(Template::parse(name), Ok(Template { family, version }), "{name}");
     }
     let questions: Vec<&str> =
         cases.iter().filter(|(_, family, _)| family.is_question()).map(|(name, _, _)| *name).collect();
@@ -39,6 +39,21 @@ fn every_name_reads_into_its_family_and_version() {
         ["template:sportsContestResult", "template:sportsTournamentWinner", "template:policyRateDecision"],
         "the families that describe a question rather than a book"
     );
+}
+
+/// A version past 255 is refused, not dropped; 255 itself and leading zeros read.
+#[test]
+fn a_version_past_255_is_an_error() {
+    assert_eq!(Template::parse("template:binaryPrice256"), Err(VersionTooLarge("256".to_owned())));
+    assert_eq!(
+        Template::parse("template:priceTouch99999999999999999999"),
+        Err(VersionTooLarge("99999999999999999999".to_owned()))
+    );
+    assert_eq!(Template::parse("template:binaryPrice255").map(|t| t.version), Ok(Some(255)));
+    assert_eq!(Template::parse("template:binaryPrice007").map(|t| t.version), Ok(Some(7)));
+    #[allow(deprecated)]
+    let dropped = Template::classify("template:binaryPrice256");
+    assert_eq!(dropped, Template { family: Family::BinaryPrice, version: None });
 }
 
 /// Every family has its own name, reads back from it, and serde writes and reads the same.

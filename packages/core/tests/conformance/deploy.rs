@@ -68,6 +68,7 @@ fn annotation(category: &str, description: &str, display_name: Option<&str>, key
 
 /// The case's action, built from the inputs its SDK was given. Per-coin lists are given out of order
 /// where the SDK sorted them, so the sorting is this crate's.
+#[allow(deprecated)]
 fn built(name: &str) -> Box<dyn L1Action> {
     let spot = |action: SpotDeploy| -> Box<dyn L1Action> { Box::new(action) };
     let perp = |action: PerpDeploy| -> Box<dyn L1Action> { Box::new(action) };

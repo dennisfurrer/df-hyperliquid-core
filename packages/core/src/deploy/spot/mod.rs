@@ -25,10 +25,13 @@ use crate::utils::{Address, Dec};
 pub enum SpotDeploy {
     /// `registerToken2`: claims a token index, paying the token auction up
     /// to `max_gas`. `fullName` is left out when `None`.
+    ///
+    /// The gas paid is not refunded. `max_gas` is in HYPE wei, 8 decimals: 1 HYPE is
+    /// `100_000_000`, so `1_000_000_000_000` is 10,000 HYPE. The spec is fixed for good.
     RegisterToken2 {
         /// The name, size decimals and wei decimals to register.
         spec: TokenSpec,
-        /// The most to pay for the token auction (`maxGas`), in native token wei.
+        /// The most to pay for the token auction (`maxGas`), in HYPE wei: 8 decimals.
         max_gas: u64,
         /// The full name (`fullName`); `None` leaves it out.
         full_name: Option<String>,
@@ -36,6 +39,12 @@ pub enum SpotDeploy {
     /// `userGenesis`: wei for addresses, wei shared among the holders of
     /// existing tokens, and addresses to blacklist (`true`) or take off the
     /// blacklist (`false`). `blacklistUsers` is left out when empty.
+    ///
+    /// Amounts are the token's wei, the integer of whole tokens times 10^`weiDecimals`: with
+    /// `weiDecimals` 8, `100_000_000` is one token. A later `userGenesis` for the same address
+    /// replaces its amount rather than adding to it. The address `0xff..ff` holds the
+    /// hyperliquidity allocation. Balances are fixed for good at [`Genesis`](SpotDeploy::Genesis).
+    /// Confirmed against mainnet deploys and `tokenDetails`.
     UserGenesis {
         /// The token index.
         token: u32,
@@ -49,6 +58,9 @@ pub enum SpotDeploy {
     /// `genesis`: the maximum supply in wei, which must equal what the
     /// user genesis steps gave out. `noHyperliquidity` is sent, as `true`,
     /// only when set.
+    ///
+    /// Irreversible: the supply and every genesis balance are final. `maxSupply` is the token's
+    /// wei, whole tokens times 10^`weiDecimals`.
     Genesis {
         /// The token index.
         token: u32,
@@ -69,6 +81,11 @@ pub enum SpotDeploy {
     /// starting price, each order's size in tokens (not wei), the number of
     /// orders (0 after a genesis with no hyperliquidity) and the number of
     /// levels seeded with USDC. `nSeededLevels` is left out when `None`.
+    ///
+    /// Irreversible. `startPx` is the lowest level's price in the quote token per whole token;
+    /// each level above is 0.3% higher. `orderSz` is whole tokens per level, and `nOrders` times
+    /// `orderSz` must be the `0xff..ff` genesis balance. Confirmed against mainnet deploys and
+    /// their books.
     RegisterHyperliquidity {
         /// The spot pair index.
         spot: u32,
@@ -82,7 +99,8 @@ pub enum SpotDeploy {
         n_seeded_levels: Option<u32>,
     },
     /// `setDeployerTradingFeeShare`, at any time after `registerToken2`, and
-    /// again only to lower it.
+    /// again only to a strictly lower share: the venue refuses a raise and the same value.
+    /// Sent as a percentage string, `"5%"`; `spotMeta` shows it as a fraction, 0.05.
     SetDeployerTradingFeeShare {
         /// The token index.
         token: u32,
@@ -91,11 +109,20 @@ pub enum SpotDeploy {
     },
     /// `enableQuoteToken`: lets the token quote spot pairs.
     EnableQuoteToken(u32),
-    /// `enableAlignedQuoteToken`: makes the token an aligned quote asset.
+    /// `enableAlignedQuoteToken`: makes the token an aligned quote asset, as the docs write it.
+    ///
+    /// Hyperliquid's nodes do not take this action yet: mainnet and testnet refuse it with
+    /// `422 Failed to deserialize` for every shape, the answer for an action that does not
+    /// exist (checked 2026-11-24 by `just testnet`).
+    #[deprecated(since = "0.1.1", note = "Hyperliquid's nodes refuse this action; see the variant's docs")]
     EnableAlignedQuoteToken(u32),
     /// `disableQuoteToken`.
     DisableQuoteToken(u32),
-    /// `disableAlignedQuoteToken`, sent after `disableQuoteToken`.
+    /// `disableAlignedQuoteToken`, sent after `disableQuoteToken`, as the docs write it.
+    ///
+    /// Hyperliquid's nodes do not take this action yet: mainnet and testnet refuse it with
+    /// `422 Failed to deserialize` for every shape (checked 2026-11-24 by `just testnet`).
+    #[deprecated(since = "0.1.1", note = "Hyperliquid's nodes refuse this action; see the variant's docs")]
     DisableAlignedQuoteToken(u32),
     /// `setTokenAnnotation`, at any time after `registerToken2`, at most
     /// once a day.
@@ -144,6 +171,8 @@ fn pair(key: impl Into<Value>, value: impl Into<Value>) -> Value {
     Value::Array(vec![key.into(), value.into()])
 }
 
+// The aligned quote token variants are deprecated, not gone: they still build and hash.
+#[allow(deprecated)]
 impl SpotDeploy {
     /// `registerHyperliquidity`, refusing a negative price or size.
     pub fn register_hyperliquidity(

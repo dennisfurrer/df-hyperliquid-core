@@ -82,7 +82,7 @@ async fn a_question_and_its_outcomes_are_titled_from_their_templates() {
     let named: Vec<_> = question.unsettled().map(|outcome| meta.outcome(outcome).unwrap()).collect();
 
     assert_eq!(bodies(&client), [r#"{"type":"outcomeMeta"}"#, r#"{"type":"outcomeTemplates"}"#]);
-    assert_eq!(Template::classify(&question.name).family, Family::TournamentWinner);
+    assert_eq!(Template::parse(&question.name).unwrap().family, Family::TournamentWinner);
     assert_eq!(template(&question.name).role, TemplateRole::Question);
     assert_eq!(title(&question.name, &question.description), "2026/2027 English Premier League winner");
     let titles: Vec<String> = named.iter().map(|outcome| title(&outcome.name, &outcome.description)).collect();
@@ -92,7 +92,7 @@ async fn a_question_and_its_outcomes_are_titled_from_their_templates() {
     );
     assert!(named.iter().all(|outcome| template(&outcome.name).parent() == Some("sportsTournamentWinner")));
     let fallback = meta.outcome(question.fallback_outcome.unwrap()).unwrap();
-    assert_eq!(Template::classify(&fallback.name).family, Family::Fallback);
+    assert_eq!(Template::parse(&fallback.name).unwrap().family, Family::Fallback);
     let fields = Fields::parse(&named[0].description);
     let sides: Vec<String> = named[0].side_specs.iter().map(|side| label(Some(&side.name), &fields, "?")).collect();
     assert_eq!(sides, ["Yes", "No"]);

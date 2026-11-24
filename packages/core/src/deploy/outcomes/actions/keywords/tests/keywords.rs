@@ -53,10 +53,10 @@ fn a_keyword_takes_one_plain_value() {
     assert_eq!(refused(&[("perp", "{perp}")]), "perp cannot hold {, } or |");
     let too_long = "x".repeat(101);
     let too_many_bytes = "\u{e9}".repeat(51);
-    assert_eq!(refused(&[("priceDescription", too_long.as_str())]), "priceDescription takes at most 100 characters");
+    assert_eq!(refused(&[("priceDescription", too_long.as_str())]), "priceDescription takes at most 100 bytes");
     assert_eq!(
         refused(&[("priceDescription", too_many_bytes.as_str())]),
-        "priceDescription takes at most 100 characters",
+        "priceDescription takes at most 100 bytes",
         "counted in bytes: 51 of them are 102"
     );
     let longest = "x".repeat(100);

@@ -39,7 +39,12 @@ pub struct SpotDeployState {
     pub gas_auction: GasAuction,
 }
 
-/// One token being deployed. Every field but the token and its spec is read as optional: none has been seen live.
+/// One token being deployed. Every field but the token and its spec is read as optional.
+///
+/// The balances are whole tokens as the venue renders them through a 64-bit float, so a large
+/// one is rounded: `184467440737.0955200195` for a total of `18446744073709551615` wei. Only
+/// [`total_genesis_balance_wei`](DeployingToken::total_genesis_balance_wei) is exact. Confirmed
+/// against testnet deploys in progress and the `userGenesis` actions behind them.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeployingToken {
@@ -56,20 +61,21 @@ pub struct DeployingToken {
     /// The pairs registered for it so far, by pair index.
     #[serde(default)]
     pub spots: Vec<u32>,
-    /// Set by genesis.
+    /// Set by genesis, in whole tokens; `None` before.
     #[serde(default)]
     pub max_supply: Option<Dec>,
-    /// The supply kept for hyperliquidity at genesis (`hyperliquidityGenesisBalance`).
+    /// The supply kept for hyperliquidity at genesis (`hyperliquidityGenesisBalance`), in whole tokens.
     #[serde(default)]
     pub hyperliquidity_genesis_balance: Option<Dec>,
-    /// The total given out at genesis, in wei (`totalGenesisBalanceWei`).
+    /// The total given out at genesis, in the token's wei (`totalGenesisBalanceWei`): exact.
     #[serde(default)]
     pub total_genesis_balance_wei: Option<Dec>,
-    /// What each address was given by the user genesis steps (`userGenesisBalances`).
+    /// What each address was given by the user genesis steps (`userGenesisBalances`), in whole
+    /// tokens. Emptied once genesis is done.
     #[serde(default)]
     pub user_genesis_balances: Vec<(Address, Dec)>,
     /// What was shared among the holders of each existing token (`existingTokenGenesisBalances`), by
-    /// token index.
+    /// token index, in whole tokens.
     #[serde(default)]
     pub existing_token_genesis_balances: Vec<(u32, Dec)>,
     /// Addresses blacklisted from holding the token (`blacklistUsers`).

@@ -9,7 +9,7 @@ use crate::utils::Address;
 use crate::utils::sign::{L1Action, Map, Value};
 
 /// `{"Ip":..}`, the node address as sent. An IPv6 address is written in its
-/// short form, `2001:db8::1`.
+/// short form, `2001:db8::1`, but the node refuses it (see [`ValidatorProfile::node_ip`]).
 fn node_ip(ip: IpAddr) -> Map {
     Map::new().put("Ip", ip.to_string())
 }
@@ -17,7 +17,9 @@ fn node_ip(ip: IpAddr) -> Map {
 /// A new validator's profile.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValidatorProfile {
-    /// The validator node's IP address.
+    /// The validator node's IP address. Give an IPv4 address: Hyperliquid's node refuses the
+    /// action with `422 Failed to deserialize` when this is IPv6, including an IPv4-mapped one
+    /// (checked on testnet 2026-11-24 by `just testnet`). The type stays `IpAddr` until 0.2.
     pub node_ip: IpAddr,
     /// The validator's name.
     pub name: String,
@@ -25,7 +27,9 @@ pub struct ValidatorProfile {
     pub description: String,
     /// Whether the validator refuses delegations.
     pub delegations_disabled: bool,
-    /// The commission, as the integer the venue takes.
+    /// The commission in basis points: 1 is 0.01%, 500 is 5%, 10000 (the most) is 100%.
+    /// `validatorSummaries` shows it divided by 10000. Once registered it can only be lowered.
+    /// Confirmed against mainnet registers and `validatorSummaries`.
     pub commission_bps: u64,
     /// The address that signs for the validator node.
     pub signer: Address,
@@ -49,7 +53,8 @@ impl ValidatorProfile {
 /// leaves that field as it is; `unjailed` is always sent.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ProfileChange {
-    /// The new node IP address (`node_ip`, sent as `{"Ip":..}`).
+    /// The new node IP address (`node_ip`, sent as `{"Ip":..}`). IPv4 only, as for
+    /// [`ValidatorProfile::node_ip`].
     pub node_ip: Option<IpAddr>,
     /// The new name.
     pub name: Option<String>,
@@ -59,7 +64,8 @@ pub struct ProfileChange {
     pub unjailed: bool,
     /// Whether the validator refuses delegations (`disable_delegations`).
     pub disable_delegations: Option<bool>,
-    /// The new commission (`commission_bps`), as the integer the venue takes.
+    /// The new commission (`commission_bps`) in basis points: 1 is 0.01%, 10000 is 100%. The
+    /// venue refuses a raise; it can only be lowered.
     pub commission_bps: Option<u64>,
     /// The new address that signs for the validator node.
     pub signer: Option<Address>,
@@ -95,7 +101,8 @@ pub enum CValidatorAction {
         profile: ValidatorProfile,
         /// Whether the validator starts unjailed.
         unjailed: bool,
-        /// The initial self-stake (`initial_wei`), in HYPE wei: 8 decimals.
+        /// The initial self-stake (`initial_wei`), in HYPE wei: 8 decimals, so 10,000 HYPE is
+        /// `1_000_000_000_000`. Confirmed against mainnet registers and `delegations`.
         initial_wei: u64,
     },
     /// `changeProfile`.

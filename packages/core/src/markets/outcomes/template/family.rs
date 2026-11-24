@@ -147,23 +147,47 @@ impl<'de> serde::Deserialize<'de> for Family {
 pub struct Template {
     /// What kind of market the name says it is.
     pub family: Family,
-    /// The digits after the template id; `None` without them, or past 255.
+    /// The digits after the template id; `None` without them. [`Template::parse`] refuses a
+    /// version past 255.
     pub version: Option<u8>,
 }
+
+/// A template name whose version digits are past 255; holds the digits.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("template version `{0}` is past 255")]
+pub struct VersionTooLarge(pub String);
 
 impl Template {
     /// Reads `template:<stem><N>`, a fallback (`template fallback`, testnet's `Fallback`,
     /// `Recurring Fallback`), a `Recurring` name, or a deployer's own name.
+    ///
+    /// # Errors
+    /// [`VersionTooLarge`] when the version digits are past 255.
+    pub fn parse(name: &str) -> Result<Template, VersionTooLarge> {
+        let template = Template::read(name);
+        match template.1 {
+            Some(digits) if template.0.version.is_none() => Err(VersionTooLarge(digits.to_owned())),
+            _ => Ok(template.0),
+        }
+    }
+
+    /// As [`Template::parse`], but a version past 255 comes back as `None`.
+    #[deprecated(since = "0.1.1", note = "drops a version past 255 without an error; use `Template::parse`")]
     #[must_use]
     pub fn classify(name: &str) -> Template {
+        Template::read(name).0
+    }
+
+    /// The template, and the version digits when there are any.
+    fn read(name: &str) -> (Template, Option<&str>) {
         let name = name.trim();
         let fallback = ["template fallback", "fallback", "recurring fallback"];
         if fallback.iter().any(|spelling| name.eq_ignore_ascii_case(spelling)) {
-            return Template { family: Family::Fallback, version: None };
+            return (Template { family: Family::Fallback, version: None }, None);
         }
         let Some(rest) = name.strip_prefix("template:") else {
             let family = if name.starts_with("Recurring") { Family::Recurring } else { Family::Named };
-            return Template { family, version: None };
+            return (Template { family, version: None }, None);
         };
         let stem = rest.trim_end_matches(|c: char| c.is_ascii_digit());
         let digits = &rest[stem.len()..];
@@ -185,7 +209,8 @@ impl Template {
             "policyRateDecision" => Family::PolicyRateDecision,
             _ => Family::Template,
         };
-        Template { family, version: digits.parse().ok() }
+        let digits = (!digits.is_empty()).then_some(digits);
+        (Template { family, version: digits.and_then(|digits| digits.parse().ok()) }, digits)
     }
 }
 

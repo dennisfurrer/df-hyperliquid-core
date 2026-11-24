@@ -45,7 +45,7 @@ fn each_hint_is_read_by_its_name_and_refuses_what_the_venue_refuses_in_words() {
         (Hint::Date, "day", "20230229", Some(date)),
         (Hint::ShortString, "shortNameA", "BRA", None),
         (Hint::ShortString, "shortNameA", "0123456789", None),
-        (Hint::ShortString, "shortNameA", long_short.as_str(), Some("takes at most 10 characters")),
+        (Hint::ShortString, "shortNameA", long_short.as_str(), Some("takes at most 10 bytes")),
         (Hint::HlPerp, "perp", "BTC", None),
         (Hint::HlPerp, "perp", "", Some("needs a value")),
         (Hint::UInt, "seconds", "0", None),
@@ -77,7 +77,7 @@ fn each_hint_is_read_by_its_name_and_refuses_what_the_venue_refuses_in_words() {
         (Hint::String, "season", "2026/27", None),
         (Hint::String, "priceDescription", "a {b}", Some("cannot hold {, } or |")),
         (Hint::String, "priceDescription", "", Some("needs a value")),
-        (Hint::String, "priceDescription", too_long.as_str(), Some("takes at most 100 characters")),
+        (Hint::String, "priceDescription", too_long.as_str(), Some("takes at most 100 bytes")),
         (Hint::parse("uPercent"), "share", "anything, 0.5% or -3", None),
         (Hint::parse("uPercent"), "share", "a|b", Some("cannot hold {, } or |")),
     ];

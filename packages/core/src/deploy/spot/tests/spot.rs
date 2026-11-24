@@ -54,6 +54,7 @@ fn unset_optional_keys_are_left_out_and_set_ones_follow_the_docs() {
 }
 
 #[test]
+#[allow(deprecated)]
 fn a_token_only_variant_carries_its_token_and_the_rest_their_fields() {
     let only = [
         (SpotDeploy::EnableQuoteToken(9), "enableQuoteToken"),
