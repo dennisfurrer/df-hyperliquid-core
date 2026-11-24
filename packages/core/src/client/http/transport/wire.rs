@@ -7,24 +7,34 @@ use std::future::Future;
 /// nothing of networks or limits; an error means no answer at all
 /// ([`TransportError::Unreachable`]).
 pub trait Http {
+    /// Sends `request` and returns the answer, whatever its status.
     fn send(&self, request: Request) -> impl Future<Output = Result<Response, TransportError>>;
 }
 
+/// An HTTP method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Method {
+    /// `GET`.
     Get,
+    /// `POST`.
     Post,
 }
 
+/// An HTTP request for an [`Http`] to send.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Request {
+    /// `GET` or `POST`.
     pub method: Method,
+    /// The full URL, such as `https://api.hyperliquid.xyz/info`.
     pub url: String,
+    /// Header names and values, in the order they are sent.
     pub headers: Vec<(String, String)>,
+    /// The body bytes; empty for a `GET`.
     pub body: Vec<u8>,
 }
 
 impl Request {
+    /// A `GET` of `url` with no headers and no body.
     #[must_use]
     pub fn get(url: impl Into<String>) -> Self {
         Request { method: Method::Get, url: url.into(), headers: Vec::new(), body: Vec::new() }
@@ -72,14 +82,19 @@ impl Request {
     }
 }
 
+/// The answer to a [`Request`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Response {
+    /// The HTTP status code.
     pub status: u16,
+    /// Header names and values, as received.
     pub headers: Vec<(String, String)>,
+    /// The body bytes.
     pub body: Vec<u8>,
 }
 
 impl Response {
+    /// Whether the status is 2xx.
     #[must_use]
     pub const fn is_success(&self) -> bool {
         self.status >= 200 && self.status < 300
@@ -109,18 +124,29 @@ fn find_header<'a>(headers: &'a [(String, String)], name: &str) -> Option<&'a st
     headers.iter().find(|(key, _)| key.eq_ignore_ascii_case(name)).map(|(_, value)| value.as_str())
 }
 
+/// Why a request got no usable answer.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum TransportError {
     /// No answer came back. For `/exchange` that means unknown, not failed:
     /// the action may have landed, so it is never sent again.
     #[error("no answer from the venue: {0}")]
     Unreachable(String),
+    /// The venue answered with a status other than 2xx or 429.
     #[error("the venue answered HTTP {status}: {body}")]
-    Status { status: u16, body: String },
+    Status {
+        /// The HTTP status code.
+        status: u16,
+        /// The answer's text.
+        body: String,
+    },
     /// Refused for the rate limit, by the venue (a 429) or by the [`crate::client::Client`]'s
     /// gate before it went out. Nothing was done; try again after the wait.
     #[error("rate limited; try again in {} ms", retry_after_ms.unwrap_or(0))]
-    RateLimited { retry_after_ms: Option<u64> },
+    RateLimited {
+        /// How long to wait, in milliseconds: the venue's `Retry-After` or the
+        /// gate's cooldown. `None` when no wait was given.
+        retry_after_ms: Option<u64>,
+    },
     /// Not sent: this build has the `offline` feature, and the request carried a signature.
     #[error("an offline build sends nothing signed: {0}")]
     Offline(String),

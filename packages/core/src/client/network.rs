@@ -11,18 +11,24 @@ pub const L1_CHAIN_ID: u64 = 1337;
 /// Spot USDC's index on both networks.
 pub const USDC_INDEX: u32 = 0;
 
+/// A Hyperliquid network. Parses from `mainnet` or `main`, `testnet` or `test`,
+/// in any case.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub enum Network {
+    /// The production network, `api.hyperliquid.xyz`. The default.
     #[default]
     Mainnet,
+    /// The test network, `api.hyperliquid-testnet.xyz`.
     Testnet,
 }
 
+/// A network name that is neither mainnet nor testnet; holds the text given, trimmed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("`{0}` is not a network; expected mainnet or testnet")]
 pub struct UnknownNetwork(pub String);
 
 impl Network {
+    /// Both networks, mainnet first.
     pub const ALL: [Network; 2] = [Network::Mainnet, Network::Testnet];
 
     /// Both endpoints live under it: `/info` and `/exchange`.
@@ -127,6 +133,7 @@ impl Network {
         }
     }
 
+    /// `mainnet` or `testnet`, as [`fmt::Display`] writes it.
     #[must_use]
     pub const fn name(self) -> &'static str {
         match self {
@@ -144,6 +151,7 @@ impl Network {
         }
     }
 
+    /// Whether this is [`Network::Mainnet`].
     #[must_use]
     pub const fn is_mainnet(self) -> bool {
         matches!(self, Network::Mainnet)
@@ -171,9 +179,11 @@ impl FromStr for Network {
 /// A spot token as the venue names it in each place it appears.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Token {
+    /// The token's name in `spotMeta`, such as `USDC`.
     pub name: &'static str,
     /// `token` in `spotClearinghouseState`, and the index in `spotMeta`.
     pub index: u32,
+    /// `tokenId` in `spotMeta`: 16 bytes as `0x`-prefixed hex.
     pub token_id: &'static str,
     /// `NAME:0x<tokenId>`, how a transfer names the token.
     pub wire: &'static str,

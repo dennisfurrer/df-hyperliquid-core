@@ -71,7 +71,9 @@ pub fn action_weight(batched: usize) -> u32 {
 /// What went out over the last minute.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Spent {
+    /// The weight allowed a minute per IP: [`LIMIT`].
     pub limit: u32,
+    /// The weight sent over the last minute, all kinds together.
     pub minute: u32,
     /// By kind, the heaviest first.
     pub kinds: Vec<Kind>,
@@ -81,10 +83,14 @@ pub struct Spent {
     pub cooldown_ms: u64,
 }
 
+/// One kind of request in [`Spent`] and what it spent over the last minute.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Kind {
+    /// The `/info` read's `type`, such as `l2Book`, or `exchange` for every action.
     pub name: String,
+    /// How many went out.
     pub count: u32,
+    /// Their weight added up.
     pub weight: u32,
 }
 

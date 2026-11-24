@@ -76,6 +76,8 @@ impl Feed {
         })
     }
 
+    /// Stops wanting `subscription`, and unsubscribes on the socket when it is open. A
+    /// subscription that was not wanted is ignored. [`FeedError::Stopped`] once the feed has stopped.
     pub fn unsubscribe(&self, subscription: Subscription) -> Result<(), FeedError> {
         self.with(|driver| {
             if let Some(frame) = driver.session.unsubscribe(&subscription) {

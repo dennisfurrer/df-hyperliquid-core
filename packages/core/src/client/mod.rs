@@ -36,8 +36,10 @@ pub type Clock = fn() -> u64;
 /// ([`TransportError::Unreachable`]) may have landed, so it is never resent.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum SendError {
+    /// Signing failed, or the signature did not recover to the signer. Nothing was sent.
     #[error(transparent)]
     Sign(#[from] SignError),
+    /// The post to `/exchange` failed or the venue refused the action.
     #[error(transparent)]
     Api(#[from] ApiError),
 }
@@ -87,16 +89,19 @@ impl<H: Http, S> Client<H, S> {
         self
     }
 
+    /// The network every request goes to.
     #[must_use]
     pub const fn network(&self) -> Network {
         self.api.network()
     }
 
+    /// The wire requests are sent through.
     #[must_use]
     pub const fn http(&self) -> &H {
         self.api.http()
     }
 
+    /// The signer actions are signed with; `()` for a reader.
     #[must_use]
     pub const fn signer(&self) -> &S {
         &self.signer

@@ -19,6 +19,7 @@ pub enum ExchangeResponse {
 /// `"order"` and the like for actions that answer per item.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Accepted {
+    /// `response.type`; empty when the venue gave none.
     pub kind: String,
     /// `response.data.statuses`, or `response.data.status` alone, when present.
     pub statuses: Vec<Status>,
@@ -30,6 +31,8 @@ pub struct Accepted {
 /// One item of an accepted answer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Status {
+    /// Anything but an `error`: the item as the venue wrote it, such as
+    /// `{"resting":{"oid":1}}` or the string `"success"`.
     Ok(Value),
     /// `{"error": "..."}`: that item was refused though the action was taken.
     Error(String),
@@ -46,6 +49,8 @@ impl Accepted {
 }
 
 impl ExchangeResponse {
+    /// Reads an `/exchange` answer's text. [`ApiError::Unreadable`] when it is
+    /// not JSON or has no `status`.
     pub fn parse(text: &str) -> Result<ExchangeResponse, ApiError> {
         let bad = |detail: String| ApiError::Unreadable { path: EXCHANGE, detail };
         let answer: Value = serde_json::from_str(text).map_err(|error| bad(unreadable(&error, text)))?;

@@ -61,6 +61,8 @@ impl Feed {
         Ok(answer.await.map_err(|_| FeedError::Stopped)??)
     }
 
+    /// Stops wanting `subscription`, and unsubscribes on the socket when it is open. A
+    /// subscription that was not wanted is ignored. [`FeedError::Stopped`] once the feed has stopped.
     pub fn unsubscribe(&self, subscription: Subscription) -> Result<(), FeedError> {
         self.commands.send(Command::Unsubscribe(subscription)).map_err(|_| FeedError::Stopped)
     }

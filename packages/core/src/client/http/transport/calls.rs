@@ -10,22 +10,33 @@ use crate::client::http::transport::{Accepted, ExchangeResponse, TransportError}
 use crate::utils::address::Address;
 use crate::utils::json::Json;
 
+/// The path every read is posted to.
 pub const INFO: &str = "/info";
+/// The path every signed action is posted to.
 pub const EXCHANGE: &str = "/exchange";
 
 /// Posts a JSON body to `path` (`/info` or `/exchange`) on one network and
 /// returns the answer's text. [`crate::client::Client`] implements it behind
 /// the rate limit. No `Send` bound, since the browser is single-threaded.
 pub trait Transport {
+    /// Posts `body` to `path` and returns the answer's text.
     fn post(&self, path: &str, body: String) -> impl Future<Output = Result<String, TransportError>>;
 }
 
+/// Why a read or action through a [`Transport`] gave no usable answer.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ApiError {
+    /// The request got no answer, a non-2xx status, or was rate limited.
     #[error(transparent)]
     Transport(#[from] TransportError),
+    /// The answer came back but did not parse as expected.
     #[error("the venue's answer on {path} could not be read: {detail}")]
-    Unreadable { path: &'static str, detail: String },
+    Unreadable {
+        /// `/info` or `/exchange`.
+        path: &'static str,
+        /// The parse error and up to 300 characters of the answer.
+        detail: String,
+    },
     /// `{"status":"err"}`: the venue's own words, shown as they came.
     #[error("{0}")]
     Refused(String),
