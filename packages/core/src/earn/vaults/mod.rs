@@ -1,9 +1,12 @@
-//! Vaults: details, deposits and withdrawals, lockups, and an account's equity in each.
+//! Vaults: details, deposits and withdrawals, lockups, and an account's equity in each; and a HIP-3
+//! dex's backstop liquidator, which takes deposits as a vault does.
 
+pub mod liquidator;
 pub mod plan;
 pub mod reads;
 pub mod transfer;
 
+pub use liquidator::{BadLiquidatorTransfer, Hip3LiquidatorTransfer, LIQUIDATOR_DECIMALS, LIQUIDATOR_STEP};
 pub use plan::{Balance, Change, Ctx, Effect, Plan, Refused};
 pub use reads::{
     Follower, LeadingVault, Relationship, VaultDetails, VaultEquity, leading_vaults, leading_vaults_request,

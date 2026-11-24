@@ -1,8 +1,9 @@
 //! `cDeposit`, `cWithdraw` and `tokenDelegate`: user-signed, keys in the order
-//! `@nktkas/hyperliquid` 0.33.2 posts them.
+//! `@nktkas/hyperliquid` 0.33.2 posts them. `cDeposit2`: the L1 form of `cDeposit`, as the exchange
+//! endpoint docs write it.
 
 use crate::account::{ActionKind, Signers};
-use crate::utils::sign::{Field, NonceKey, UserAction, UserSigned};
+use crate::utils::sign::{Field, L1Action, Map, NonceKey, UserAction, UserSigned};
 use crate::utils::{Address, BadUnits, Dec, HYPE_DECIMALS, exact_units};
 
 /// `hype` as the `wei` an action carries, refused rather than rounded when
@@ -36,6 +37,35 @@ impl UserAction for CDeposit {
     fn user_signed(&self) -> UserSigned<'_> {
         UserSigned::new("cDeposit", "HyperliquidTransaction:CDeposit", NonceKey::Nonce, self.nonce)
             .field("wei", Field::Uint64(self.wei))
+    }
+}
+
+/// `cDeposit2`: [`CDeposit`] as an L1 action, `{type, wei}`, which an agent may sign for its
+/// master. It carries no nonce of its own: the one it is signed at.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CDeposit2 {
+    wei: u64,
+}
+
+impl CDeposit2 {
+    /// L1: an agent may sign it for its master.
+    pub const KEY: Signers = ActionKind::CDeposit2.signers();
+
+    /// `hype` from spot into the staking balance, refused rather than rounded past eight places.
+    pub fn new(hype: Dec) -> Result<CDeposit2, BadUnits> {
+        Ok(CDeposit2 { wei: hype_wei(hype)? })
+    }
+
+    /// The amount as the action carries it, in hundred-millionths of HYPE.
+    #[must_use]
+    pub const fn wei(&self) -> u64 {
+        self.wei
+    }
+}
+
+impl L1Action for CDeposit2 {
+    fn action(&self) -> Map {
+        Map::new().put("type", "cDeposit2").put("wei", self.wei)
     }
 }
 

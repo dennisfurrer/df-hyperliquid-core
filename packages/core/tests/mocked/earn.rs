@@ -233,3 +233,30 @@ async fn lending_supplies_hype_borrows_usdc_against_it_and_takes_its_usdc_back()
     );
     assert!(actions.iter().all(|sent| sent.signer == Some(me)));
 }
+
+/// HYPE staked by an L1 action an agent could sign, and the `xyz` dex's backstop liquidator funded
+/// and drawn on: both recover to the account's key.
+#[tokio::test]
+async fn hype_is_staked_by_an_l1_action_and_a_hip3_liquidator_is_funded_and_drawn_on() {
+    use df_hyperliquid_core::account::Signers;
+    use df_hyperliquid_core::earn::staking::CDeposit2;
+    use df_hyperliquid_core::earn::vaults::Hip3LiquidatorTransfer;
+
+    let venue = Venue::mainnet().signed_by(key().address()).exchange("default").exchange("default").exchange("default");
+    let client = Client::new(venue, Network::Mainnet, clock, key());
+    assert_eq!((CDeposit2::KEY, Hip3LiquidatorTransfer::KEY), (Signers::Either, Signers::Either));
+
+    client.send(&CDeposit2::new(dec("2.5")).unwrap()).await.unwrap();
+    client.send(&Hip3LiquidatorTransfer::deposit("xyz", dec("2000")).unwrap()).await.unwrap();
+    client.send(&Hip3LiquidatorTransfer::withdraw("xyz", dec("1000")).unwrap()).await.unwrap();
+
+    let sent: Vec<String> = client.http().actions().iter().map(|sent| sent.action.compact()).collect();
+    assert_eq!(
+        sent,
+        [
+            r#"{"type":"cDeposit2","wei":250000000}"#,
+            r#"{"type":"hip3LiquidatorTransfer","dex":"xyz","ntl":2000000000,"isDeposit":true}"#,
+            r#"{"type":"hip3LiquidatorTransfer","dex":"xyz","ntl":1000000000,"isDeposit":false}"#,
+        ]
+    );
+}
