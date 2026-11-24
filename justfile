@@ -19,6 +19,11 @@ test:
 live:
     cargo test -p df-hyperliquid-core --test live -- --ignored --test-threads 1
 
+# Against testnet: every L1 action in vectors/ signed by a new key with no account and posted
+# to /exchange. The node must read each one and recover the key's address. Nothing can execute.
+testnet:
+    cargo test -p df-hyperliquid-core --test testnet -- --ignored --nocapture
+
 # Line coverage of the unit, conformance and mocked suites.
 cover:
     cargo llvm-cov -p df-hyperliquid-core --summary-only
