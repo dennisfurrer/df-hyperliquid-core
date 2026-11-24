@@ -16,7 +16,10 @@ pub const TRIGGER_SLIPPAGE: Dec = Dec::lit::<1>(1);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitPrice {
     /// At market, no worse than `slippage` past the trigger.
-    Market { slippage: Dec },
+    Market {
+        /// How far past the trigger it may fill, a fraction: 0.1 is 10%.
+        slippage: Dec,
+    },
     /// A limit at this price.
     Limit(Dec),
 }
@@ -24,7 +27,9 @@ pub enum ExitPrice {
 /// A take profit or stop loss: where it fires and how it fills.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Exit {
+    /// The mark price that fires it.
     pub trigger: Dec,
+    /// How it fills once it fires.
     pub price: ExitPrice,
 }
 

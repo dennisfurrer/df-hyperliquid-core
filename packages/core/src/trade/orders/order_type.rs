@@ -19,6 +19,7 @@ pub enum Tif {
 }
 
 impl Tif {
+    /// As `tif` writes it: `Alo`, `Ioc`, `Gtc` or `FrontendMarket`.
     #[must_use]
     pub const fn wire(self) -> &'static str {
         match self {
@@ -40,6 +41,7 @@ pub enum Tpsl {
 }
 
 impl Tpsl {
+    /// As `tpsl` writes it: `tp` or `sl`.
     #[must_use]
     pub const fn wire(self) -> &'static str {
         match self {
@@ -62,6 +64,7 @@ pub enum Grouping {
 }
 
 impl Grouping {
+    /// As `grouping` writes it: `na`, `normalTpsl` or `positionTpsl`.
     #[must_use]
     pub const fn wire(self) -> &'static str {
         match self {
@@ -75,12 +78,16 @@ impl Grouping {
 /// What an order's `t` says.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OrderType {
+    /// `limit`: rests or crosses as its time in force says.
     Limit(Tif),
     /// Rests off the book until the mark crosses `trigger`; then a market
     /// order bounded by the order's price (`is_market`), or a limit at it.
     Trigger {
+        /// `isMarket`: a market order once it fires, else a limit.
         is_market: bool,
+        /// `triggerPx`: the mark price that fires it.
         trigger: Dec,
+        /// Take profit or stop loss.
         tpsl: Tpsl,
     },
 }

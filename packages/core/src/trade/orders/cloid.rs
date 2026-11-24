@@ -12,21 +12,25 @@ use crate::utils::hex::{self, BadHex};
 pub struct Cloid([u8; 16]);
 
 impl Cloid {
+    /// From its 16 bytes.
     #[must_use]
     pub const fn from_bytes(bytes: [u8; 16]) -> Cloid {
         Cloid(bytes)
     }
 
+    /// From a number, its bytes big-endian.
     #[must_use]
     pub const fn from_u128(value: u128) -> Cloid {
         Cloid(value.to_be_bytes())
     }
 
+    /// Its 16 bytes.
     #[must_use]
     pub const fn bytes(&self) -> &[u8; 16] {
         &self.0
     }
 
+    /// As written on the wire: `0x` and 32 hex digits.
     #[must_use]
     pub fn to_hex(self) -> String {
         hex::encode_prefixed(&self.0)

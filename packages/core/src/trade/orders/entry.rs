@@ -13,21 +13,38 @@ use crate::utils::rounding::MINIMUM_ORDER_VALUE;
 pub enum Price {
     /// `FrontendMarket`, bounded `slippage` (a fraction, 0.01 for 1%) past
     /// `reference`: the mid, or else the mark.
-    Market { reference: Dec, slippage: Dec },
+    Market {
+        /// The price the bound is measured from: the mid, or else the mark.
+        reference: Dec,
+        /// How far past `reference` the order may fill, a fraction.
+        slippage: Dec,
+    },
     /// A limit at `price`, resting as `tif` says. Never `FrontendMarket`.
-    Limit { price: Dec, tif: Tif },
+    Limit {
+        /// The limit price.
+        price: Dec,
+        /// How long it rests.
+        tif: Tif,
+    },
 }
 
 /// An order to place: a market or limit entry, with its take profit and stop
 /// loss when it has them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct OrderIntent {
+    /// Buy or sell.
     pub side: Side,
+    /// How much: a size, or a notional sized at the order's price.
     pub amount: Amount,
+    /// At market or at a limit.
     pub price: Price,
+    /// Whether it may only reduce a position.
     pub reduce_only: bool,
+    /// The client order id; `None` for none.
     pub cloid: Option<Cloid>,
+    /// Placed with the entry, the other way, once it fills; `None` for none.
     pub take_profit: Option<Exit>,
+    /// Placed with the entry, the other way, once it fills; `None` for none.
     pub stop_loss: Option<Exit>,
 }
 
@@ -36,6 +53,7 @@ impl OrderIntent {
         OrderIntent { side, amount, price, reduce_only: false, cloid: None, take_profit: None, stop_loss: None }
     }
 
+    /// Sent with this client order id.
     #[must_use]
     pub const fn with_cloid(mut self, cloid: Cloid) -> OrderIntent {
         self.cloid = Some(cloid);

@@ -9,6 +9,7 @@ use crate::utils::Dec;
 use crate::utils::rounding::Grid;
 
 impl OrderIntent {
+    /// A limit entry at `price`, resting as `tif` says.
     #[must_use]
     pub const fn limit(side: Side, amount: Amount, price: Dec, tif: Tif) -> OrderIntent {
         OrderIntent::at(side, amount, Price::Limit { price, tif })

@@ -13,9 +13,13 @@ pub struct Close {
     /// The position, signed as `clearinghouseState` writes `szi`: below
     /// zero is short.
     pub position: Dec,
+    /// How much to close, in the base asset; `None` closes the whole position.
     pub size: Option<Dec>,
+    /// The price the bound is measured from: the mid, or else the mark.
     pub reference: Dec,
+    /// How far past `reference` the close may fill, a fraction: 0.01 is 1%.
     pub slippage: Dec,
+    /// The client order id; `None` for none.
     pub cloid: Option<Cloid>,
 }
 
@@ -26,6 +30,7 @@ impl Close {
         Close { position, size: None, reference, slippage, cloid: None }
     }
 
+    /// Sent with this client order id.
     #[must_use]
     pub const fn with_cloid(mut self, cloid: Cloid) -> Close {
         self.cloid = Some(cloid);

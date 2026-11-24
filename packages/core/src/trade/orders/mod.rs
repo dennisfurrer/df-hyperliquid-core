@@ -92,42 +92,50 @@ impl Order {
         self
     }
 
+    /// Sent with this client order id.
     #[must_use]
     pub const fn with_cloid(mut self, cloid: Cloid) -> Order {
         self.cloid = Some(cloid);
         self
     }
 
+    /// `a`: the asset id.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
     }
 
+    /// `b`: buy or sell.
     #[must_use]
     pub const fn side(&self) -> Side {
         self.side
     }
 
+    /// `p`: the limit price, a market order's bound, or a trigger's fill price.
     #[must_use]
     pub const fn price(&self) -> Dec {
         self.price
     }
 
+    /// `s`: the size in the base asset; 0 on a whole-position take profit or stop loss.
     #[must_use]
     pub const fn size(&self) -> Dec {
         self.size
     }
 
+    /// `r`: whether it may only reduce a position.
     #[must_use]
     pub const fn is_reduce_only(&self) -> bool {
         self.reduce_only
     }
 
+    /// `t`: a limit's time in force, or a trigger.
     #[must_use]
     pub const fn order_type(&self) -> OrderType {
         self.order_type
     }
 
+    /// `c`: the client order id; `None` when there is none.
     #[must_use]
     pub const fn cloid(&self) -> Option<Cloid> {
         self.cloid
@@ -142,11 +150,13 @@ impl Order {
         }
     }
 
+    /// Whether it is a market order: a `FrontendMarket` limit.
     #[must_use]
     pub const fn is_market(&self) -> bool {
         matches!(self.order_type, OrderType::Limit(Tif::FrontendMarket))
     }
 
+    /// Whether it is a trigger order: a take profit or stop loss.
     #[must_use]
     pub const fn is_trigger(&self) -> bool {
         matches!(self.order_type, OrderType::Trigger { .. })
@@ -181,33 +191,39 @@ impl PlaceOrder {
         PlaceOrder { orders, grouping: Grouping::Na, builder: None }
     }
 
+    /// One order, grouped `na`.
     #[must_use]
     pub fn one(order: Order) -> PlaceOrder {
         PlaceOrder::new(vec![order])
     }
 
+    /// With this grouping.
     #[must_use]
     pub fn grouped(mut self, grouping: Grouping) -> PlaceOrder {
         self.grouping = grouping;
         self
     }
 
+    /// Routed through `builder`, which the action names last.
     #[must_use]
     pub fn through(mut self, builder: Builder) -> PlaceOrder {
         self.builder = Some(builder);
         self
     }
 
+    /// The orders, in the order sent.
     #[must_use]
     pub fn orders(&self) -> &[Order] {
         &self.orders
     }
 
+    /// How the orders relate.
     #[must_use]
     pub const fn grouping(&self) -> Grouping {
         self.grouping
     }
 
+    /// The builder it is routed through; `None` for none.
     #[must_use]
     pub const fn builder(&self) -> Option<Builder> {
         self.builder

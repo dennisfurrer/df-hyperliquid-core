@@ -22,19 +22,26 @@ pub enum Covers {
 /// a sell for a long.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TriggerIntent {
+    /// The side that closes: a sell for a long.
     pub side: Side,
+    /// How much of the position it closes.
     pub size: Covers,
+    /// Take profit or stop loss.
     pub tpsl: Tpsl,
+    /// Where it fires and how it fills.
     pub exit: Exit,
+    /// The client order id; `None` for none.
     pub cloid: Option<Cloid>,
 }
 
 impl TriggerIntent {
+    /// Without a client order id.
     #[must_use]
     pub const fn new(side: Side, size: Covers, tpsl: Tpsl, exit: Exit) -> TriggerIntent {
         TriggerIntent { side, size, tpsl, exit, cloid: None }
     }
 
+    /// Sent with this client order id.
     #[must_use]
     pub const fn with_cloid(mut self, cloid: Cloid) -> TriggerIntent {
         self.cloid = Some(cloid);

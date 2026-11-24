@@ -38,10 +38,13 @@ impl Retracement {
 /// Why a trailing stop is not one the venue would take.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadTrailingStop {
+    /// The size is not positive; the size given.
     #[error("a trailing stop's size is positive, not {0}")]
     Size(Dec),
+    /// The retracement is not positive, or a percent is 100 or more; the figure given.
     #[error("a retracement is positive, and a percent is under 100: {0}")]
     Retracement(Dec),
+    /// The activation price is not positive; the price given.
     #[error("an activation price is positive, not {0}")]
     Activation(Dec),
 }

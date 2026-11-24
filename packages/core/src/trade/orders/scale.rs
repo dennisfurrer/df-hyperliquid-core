@@ -19,17 +19,24 @@ pub const MOST_LEVELS: u32 = 50;
 /// size split evenly between them.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Scale {
+    /// Buy or sell.
     pub side: Side,
     /// The total, in the base.
     pub size: Dec,
+    /// The first level's price.
     pub from: Dec,
+    /// The last level's price.
     pub to: Dec,
+    /// How many orders, [`LEAST_LEVELS`] to [`MOST_LEVELS`].
     pub levels: u32,
+    /// `Gtc` or `Alo`: a scale rests on the book.
     pub tif: Tif,
+    /// Whether its orders may only reduce a position.
     pub reduce_only: bool,
 }
 
 impl Scale {
+    /// `levels` orders from `from` to `to`, not reduce only.
     #[must_use]
     pub const fn new(side: Side, size: Dec, from: Dec, to: Dec, levels: u32, tif: Tif) -> Scale {
         Scale { side, size, from, to, levels, tif, reduce_only: false }

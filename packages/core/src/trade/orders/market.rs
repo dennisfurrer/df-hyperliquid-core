@@ -8,6 +8,7 @@ use crate::utils::Dec;
 use crate::utils::rounding::Grid;
 
 impl OrderIntent {
+    /// A market entry bounded `slippage` (a fraction) past `reference`, the mid or else the mark.
     #[must_use]
     pub const fn market(side: Side, amount: Amount, reference: Dec, slippage: Dec) -> OrderIntent {
         OrderIntent::at(side, amount, Price::Market { reference, slippage })

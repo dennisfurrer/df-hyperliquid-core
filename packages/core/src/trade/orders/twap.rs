@@ -23,7 +23,9 @@ pub struct Twap {
 }
 
 impl Twap {
+    /// The shortest a TWAP runs, in minutes.
     pub const MIN_MINUTES: u32 = 5;
+    /// The longest a TWAP runs, in minutes: one day.
     pub const MAX_MINUTES: u32 = 1440;
 
     /// `size` already cut to the asset's size decimals.
@@ -34,6 +36,7 @@ impl Twap {
         Ok(Twap { asset, side, size, reduce_only: false, minutes, randomize: false })
     }
 
+    /// Only ever shrinks the position.
     #[must_use]
     pub const fn reduce_only(mut self) -> Twap {
         self.reduce_only = true;
@@ -47,6 +50,7 @@ impl Twap {
         self
     }
 
+    /// The asset id.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
@@ -76,11 +80,13 @@ pub struct TwapCancel {
 }
 
 impl TwapCancel {
+    /// Stops the TWAP on `asset` with the id `twap` the venue gave it.
     #[must_use]
     pub const fn new(asset: Asset, twap: u64) -> TwapCancel {
         TwapCancel { asset, twap }
     }
 
+    /// The asset id.
     #[must_use]
     pub const fn asset(&self) -> Asset {
         self.asset
@@ -97,15 +103,22 @@ impl L1Action for TwapCancel {
 /// `minutes`. `reference` prices a notional and the venue's minimum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TwapIntent {
+    /// Buy or sell.
     pub side: Side,
+    /// A size, or a notional sized at `reference`.
     pub amount: Amount,
+    /// How long it runs, [`Twap::MIN_MINUTES`] to [`Twap::MAX_MINUTES`].
     pub minutes: u32,
+    /// Whether the venue varies each slice's size.
     pub randomize: bool,
+    /// Whether its slices may only reduce a position.
     pub reduce_only: bool,
+    /// The mid or else the mark, which prices a notional and the minimum; `None` when not given.
     pub reference: Option<Dec>,
 }
 
 impl TwapIntent {
+    /// Not randomized, not reduce only, and with no reference price.
     #[must_use]
     pub const fn new(side: Side, amount: Amount, minutes: u32) -> TwapIntent {
         TwapIntent { side, amount, minutes, randomize: false, reduce_only: false, reference: None }
