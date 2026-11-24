@@ -31,3 +31,9 @@ fn a_short_leg_is_a_magnitude_and_a_sign_and_saturates_rather_than_wraps() {
     assert_eq!(SignedQty::long(Qty::new(u64::MAX)), SignedQty::new(i64::MAX));
     assert_eq!(SignedQty::short(Qty::new(u64::MAX)), SignedQty::new(i64::MIN));
 }
+
+#[test]
+fn a_holding_takes_one_sign_at_most() {
+    assert!(SignedQty::parse("-+5").is_err(), "two signs are refused");
+    assert_eq!(SignedQty::parse("-5").map(|held| held.to_wire()), Ok("-5".to_owned()));
+}

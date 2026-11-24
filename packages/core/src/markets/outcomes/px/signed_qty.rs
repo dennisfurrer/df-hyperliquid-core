@@ -86,6 +86,10 @@ impl SignedQty {
             Some(rest) => (true, rest),
             None => (false, raw),
         };
+        // One sign at most: `-+5` is not a number the venue writes.
+        if negative && body.starts_with('+') {
+            return Err(BadQty::NotAnInteger(raw.to_owned()).into());
+        }
         let size = Qty::parse(body).map_err(|error| match error {
             BadQty::NotAnInteger(_) => BadQty::NotAnInteger(raw.to_owned()),
             BadQty::Fractional(_) => BadQty::Fractional(raw.to_owned()),
