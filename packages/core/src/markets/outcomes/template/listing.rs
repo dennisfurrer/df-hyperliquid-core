@@ -14,11 +14,17 @@ use serde::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TemplateRole {
     /// `{"standaloneOutcome":{"sideNames"}}`: one outcome and its two sides.
-    Standalone { side_names: Vec<String> },
+    Standalone {
+        /// The two sides' names (`sideNames`).
+        side_names: Vec<String>,
+    },
     /// `"question"`.
     Question,
     /// `{"questionOutcome":{"parent"}}`: a named outcome of a question made from `parent`.
-    QuestionOutcome { parent: String },
+    QuestionOutcome {
+        /// The id of the question template it belongs to.
+        parent: String,
+    },
     /// A role this build does not know, kept by its name.
     Other(String),
 }
@@ -26,12 +32,14 @@ pub enum TemplateRole {
 /// One keyword a template declares, and the kind of value it takes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Keyword {
+    /// The keyword, as it appears in braces in the title and rules.
     pub name: String,
     /// As `outcomeTemplates` spells it: `dateTime`, `hlPerp`.
     pub kind: String,
 }
 
 impl Keyword {
+    /// How the keyword's value is written, read from [`kind`](Self::kind).
     #[must_use]
     pub fn hint(&self) -> Hint {
         Hint::parse(&self.kind)
@@ -42,7 +50,9 @@ impl Keyword {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "RawTemplate")]
 pub struct OutcomeTemplate {
+    /// The template's id, such as `binaryPrice`.
     pub id: String,
+    /// What the template makes.
     pub role: TemplateRole,
     /// The title pattern, keywords in braces.
     pub name: String,
@@ -88,7 +98,9 @@ impl OutcomeTemplate {
 /// How the venue writes a row made from a template.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OnChain {
+    /// The row's name: `template:<id>`.
     pub name: String,
+    /// The row's description: `key:value` pairs sorted by key, joined by `|`.
     pub description: String,
     /// A standalone outcome's sides; a question's outcome has `Yes` and `No`.
     pub sides: Option<[String; 2]>,
@@ -211,6 +223,7 @@ pub fn outcome_templates_request() -> String {
     info_request("outcomeTemplates", &[])
 }
 
+/// Every template the venue offers.
 pub async fn outcome_templates(transport: &impl Transport) -> Result<Vec<OutcomeTemplate>, ApiError> {
     info::<Templates>(transport, outcome_templates_request()).await.map(|templates| templates.0)
 }

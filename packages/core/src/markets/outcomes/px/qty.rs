@@ -12,8 +12,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 /// Why a figure is not a size.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadQty {
+    /// Not a number of contracts: a sign other than `+`, a character that is not a digit, or too many
+    /// contracts to count; holds the text.
     #[error("`{0}` is not a whole number of contracts")]
     NotAnInteger(String),
+    /// A size with a fractional part; holds the text.
     #[error("size `{0}` is fractional; outcome books trade whole contracts")]
     Fractional(String),
 }
@@ -24,28 +27,34 @@ pub enum BadQty {
 pub struct Qty(u64);
 
 impl Qty {
+    /// No contracts.
     pub const ZERO: Qty = Qty(0);
 
+    /// `contracts` whole contracts.
     #[must_use]
     pub const fn new(contracts: u64) -> Qty {
         Qty(contracts)
     }
 
+    /// The number of contracts.
     #[must_use]
     pub const fn get(self) -> u64 {
         self.0
     }
 
+    /// Whether there are no contracts.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.0 == 0
     }
 
+    /// The smaller of the two sizes.
     #[must_use]
     pub const fn min(self, other: Qty) -> Qty {
         if self.0 < other.0 { self } else { other }
     }
 
+    /// The difference, stopping at zero.
     #[must_use]
     pub const fn saturating_sub(self, other: Qty) -> Qty {
         Qty(self.0.saturating_sub(other.0))
@@ -78,11 +87,13 @@ impl Qty {
             .ok_or_else(|| BadQty::NotAnInteger(value.to_string()))
     }
 
+    /// The size as a whole decimal.
     #[must_use]
     pub const fn to_dec(self) -> Dec {
         Dec::lit::<0>(self.0 as i128)
     }
 
+    /// The size as the wire writes it: digits, no point.
     #[must_use]
     pub fn to_wire(self) -> String {
         self.0.to_string()

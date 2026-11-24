@@ -62,10 +62,13 @@ impl SettledOutcome {
 /// A settled leg's question: `{"question":{"active":823},"name","description"}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SettledQuestion {
+    /// The question's id.
     pub question: u32,
     /// The question's own state when the leg settled: `active`.
     pub state: String,
+    /// The question's name; empty when the venue leaves it out.
     pub name: String,
+    /// The question's description; empty when the venue leaves it out.
     pub description: String,
 }
 

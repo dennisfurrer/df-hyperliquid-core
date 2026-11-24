@@ -9,8 +9,11 @@ use serde::Deserialize;
 /// One price on the book: what rests there and in how many orders.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 pub struct Level {
+    /// The price, on the 0.00001 grid.
     pub px: Px,
+    /// The whole contracts resting at the price.
     pub sz: Qty,
+    /// How many orders rest at the price.
     pub n: u32,
 }
 
@@ -26,6 +29,7 @@ impl TryFrom<crate::markets::book::Level> for Level {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(try_from = "crate::markets::book::Book")]
 pub struct Book {
+    /// The outcome side the book is for.
     pub coin: Coin,
     /// Milliseconds.
     pub time: u64,
@@ -46,10 +50,13 @@ impl Book {
 /// Why a book is no outcome book.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadBook {
+    /// The book's coin is no outcome side (`#<encoding>`); holds the coin as written.
     #[error("`{0}` is not an outcome side")]
     Coin(String),
+    /// A level's price is off the grid.
     #[error(transparent)]
     Px(#[from] BadPx),
+    /// A level's size is not whole contracts.
     #[error(transparent)]
     Qty(#[from] BadQty),
 }

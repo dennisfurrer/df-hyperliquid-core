@@ -9,8 +9,10 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 /// Why a figure is not a holding.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadSignedQty {
+    /// Not whole contracts.
     #[error(transparent)]
     Size(#[from] BadQty),
+    /// More contracts than an `i64` counts; holds the text.
     #[error("holding `{0}` is more contracts than this build can count")]
     TooLarge(String),
 }
@@ -20,28 +22,34 @@ pub enum BadSignedQty {
 pub struct SignedQty(i64);
 
 impl SignedQty {
+    /// No holding.
     pub const ZERO: SignedQty = SignedQty(0);
 
+    /// `contracts` whole contracts, negative for short.
     #[must_use]
     pub const fn new(contracts: i64) -> SignedQty {
         SignedQty(contracts)
     }
 
+    /// The number of contracts, negative for short.
     #[must_use]
     pub const fn get(self) -> i64 {
         self.0
     }
 
+    /// Whether nothing is held.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.0 == 0
     }
 
+    /// Whether the holding is short.
     #[must_use]
     pub const fn is_short(self) -> bool {
         self.0 < 0
     }
 
+    /// The number of contracts held, long or short.
     #[must_use]
     pub const fn abs(self) -> Qty {
         Qty::new(self.0.unsigned_abs())
@@ -56,6 +64,7 @@ impl SignedQty {
         }
     }
 
+    /// A short holding of `size`; saturates at what an `i64` counts.
     #[must_use]
     pub const fn short(size: Qty) -> SignedQty {
         match size.get() > i64::MAX as u64 {
@@ -64,6 +73,7 @@ impl SignedQty {
         }
     }
 
+    /// The sum of the two holdings, stopping at what an `i64` counts.
     #[must_use]
     pub const fn saturating_add(self, other: SignedQty) -> SignedQty {
         SignedQty(self.0.saturating_add(other.0))
@@ -91,6 +101,7 @@ impl SignedQty {
         Ok(SignedQty(if value.is_negative() { -contracts } else { contracts }))
     }
 
+    /// The holding as the wire writes it: digits with a leading `-` when short.
     #[must_use]
     pub fn to_wire(self) -> String {
         self.0.to_string()

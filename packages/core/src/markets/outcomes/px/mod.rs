@@ -23,10 +23,13 @@ pub const TICKS_PER_UNIT: u32 = 100_000;
 /// Why a figure is not a price.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadPx {
+    /// Not a decimal, or a negative one; holds the text.
     #[error("`{0}` is not a decimal number")]
     NotANumber(String),
+    /// Above 1; holds the text.
     #[error("price `{0}` is outside 0 to 1")]
     OutOfRange(String),
+    /// More than five decimal places; holds the text.
     #[error("price `{0}` is finer than the 0.00001 tick")]
     TooFine(String),
 }
@@ -37,7 +40,9 @@ pub enum BadPx {
 pub struct Px(u32);
 
 impl Px {
+    /// A price of 0: the side pays nothing.
     pub const ZERO: Px = Px(0);
+    /// A price of 1: the side pays in full.
     pub const ONE: Px = Px(TICKS_PER_UNIT);
     /// The lowest price an order may name: a market sell goes at it.
     pub const MIN_QUOTE: Px = Px(1);
@@ -62,6 +67,7 @@ impl Px {
         }
     }
 
+    /// The price in ticks of 0.00001.
     #[must_use]
     pub const fn ticks(self) -> u32 {
         self.0
@@ -73,6 +79,7 @@ impl Px {
         Px(TICKS_PER_UNIT - self.0)
     }
 
+    /// Whether the price is 0.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.0 == 0
@@ -108,6 +115,7 @@ impl Px {
         Px::from_ticks(self.0 + other.0)
     }
 
+    /// How many ticks apart the two prices are.
     #[must_use]
     pub const fn abs_diff(self, other: Px) -> u32 {
         self.0.abs_diff(other.0)
@@ -161,6 +169,7 @@ impl Px {
         Px::on_grid(value, Round::Nearest)
     }
 
+    /// The price as a decimal with five places.
     #[must_use]
     pub const fn to_dec(self) -> Dec {
         Dec::lit::<PRICE_PLACES>(self.0 as i128)

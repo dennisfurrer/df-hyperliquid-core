@@ -18,7 +18,9 @@ pub const OBSERVED_PER_UNIT: u32 = 100_000_000;
 pub struct Mid(u32);
 
 impl Mid {
+    /// A reported price of 0.
     pub const ZERO: Mid = Mid(0);
+    /// A reported price of 1.
     pub const ONE: Mid = Mid(OBSERVED_PER_UNIT);
 
     /// Units of 0.00000001 between 0 and one.
@@ -36,11 +38,13 @@ impl Mid {
         }
     }
 
+    /// The other side's reported price: `1 - p`.
     #[must_use]
     pub const fn complement(self) -> Mid {
         Mid(OBSERVED_PER_UNIT - self.0)
     }
 
+    /// Whether the reported price is 0.
     #[must_use]
     pub const fn is_zero(self) -> bool {
         self.0 == 0
@@ -65,11 +69,13 @@ impl Mid {
         Px((self.0 + per / 2) / per)
     }
 
+    /// The grid price at or below it.
     #[must_use]
     pub const fn to_px_floor(self) -> Px {
         Px(self.0 / (OBSERVED_PER_UNIT / TICKS_PER_UNIT))
     }
 
+    /// The grid price at or above it.
     #[must_use]
     pub const fn to_px_ceil(self) -> Px {
         Px(self.0.div_ceil(OBSERVED_PER_UNIT / TICKS_PER_UNIT))
@@ -101,11 +107,13 @@ impl Mid {
             .ok_or(BadPx::OutOfRange(String::new()))
     }
 
+    /// The reported price as a decimal with eight places.
     #[must_use]
     pub const fn to_dec(self) -> Dec {
         Dec::lit::<OBSERVED_PLACES>(self.0 as i128)
     }
 
+    /// No trailing zeros: `0.27`, `1`.
     #[must_use]
     pub fn to_wire(self) -> String {
         self.to_dec().to_wire()

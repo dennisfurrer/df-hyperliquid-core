@@ -13,19 +13,25 @@ pub fn outcome_meta_request() -> String {
     info_request("outcomeMeta", &[])
 }
 
+/// Every live outcome, every question and every deployer.
 pub async fn outcome_meta(transport: &impl Transport) -> Result<OutcomeMeta, ApiError> {
     info(transport, outcome_meta_request()).await
 }
 
+/// What `outcomeMeta` answers.
 #[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OutcomeMeta {
+    /// Every live outcome.
     #[serde(default)]
     pub outcomes: Vec<Outcome>,
+    /// Every question.
     #[serde(default)]
     pub questions: Vec<Question>,
+    /// Every venue's deployer.
     #[serde(default)]
     pub deployers: Vec<Deployer>,
+    /// The fee scale listed next to the lists (`feeScale`), read back as `1.0`; `None` when left out.
     #[serde(default)]
     pub fee_scale: Option<Dec>,
 }
@@ -35,15 +41,21 @@ pub struct OutcomeMeta {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Outcome {
+    /// The outcome's id.
     pub outcome: u32,
+    /// The outcome's name, as written.
     #[serde(default)]
     pub name: String,
+    /// The outcome's description, as written: `keyword:value` pairs joined by `|`.
     #[serde(default)]
     pub description: String,
+    /// The two sides' names (`sideSpecs`), first side first.
     #[serde(default)]
     pub side_specs: Vec<SideSpec>,
+    /// The token the outcome is quoted in (`quoteToken`), such as `USDC`.
     #[serde(default)]
     pub quote_token: Option<String>,
+    /// The venue the outcome was deployed on; `None` when left out.
     #[serde(default)]
     pub venue: Option<String>,
     /// Read back as `1.0`; sent as `1`.
@@ -51,13 +63,16 @@ pub struct Outcome {
     pub deployer_fee_scale: Option<Dec>,
 }
 
+/// One side of an outcome as `outcomeMeta` lists it.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct SideSpec {
+    /// The side's name, such as `Yes`.
     #[serde(default)]
     pub name: String,
 }
 
 impl Outcome {
+    /// The coin of one side of this outcome.
     #[must_use]
     pub const fn coin(&self, side: OutcomeSide) -> Coin {
         Coin::new(self.outcome, side)
@@ -85,15 +100,21 @@ impl Outcome {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Question {
+    /// The question's id.
     pub question: u32,
+    /// The question's name, as written.
     #[serde(default)]
     pub name: String,
+    /// The question's description, as written.
     #[serde(default)]
     pub description: String,
+    /// The outcome that settles when no named outcome does (`fallbackOutcome`).
     #[serde(default)]
     pub fallback_outcome: Option<u32>,
+    /// The named outcomes, in the order shown (`namedOutcomes`).
     #[serde(default)]
     pub named_outcomes: Vec<u32>,
+    /// The named outcomes already settled one at a time (`settledNamedOutcomes`).
     #[serde(default)]
     pub settled_named_outcomes: Vec<u32>,
 }
@@ -109,19 +130,24 @@ impl Question {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Deployer {
+    /// The deployer's address.
     pub deployer: Address,
+    /// The venue it deploys on.
     #[serde(default)]
     pub venue: Option<String>,
+    /// Each operation the deployer lets others send, and who (`subDeployers`).
     #[serde(default)]
     pub sub_deployers: Vec<(String, Vec<Address>)>,
 }
 
 impl OutcomeMeta {
+    /// The live outcome with the id `outcome`.
     #[must_use]
     pub fn outcome(&self, outcome: u32) -> Option<&Outcome> {
         self.outcomes.iter().find(|listed| listed.outcome == outcome)
     }
 
+    /// The question with the id `question`.
     #[must_use]
     pub fn question(&self, question: u32) -> Option<&Question> {
         self.questions.iter().find(|listed| listed.question == question)

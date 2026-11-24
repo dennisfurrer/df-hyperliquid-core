@@ -29,6 +29,7 @@ impl<'a> Fields<'a> {
         self.0.iter().copied()
     }
 
+    /// Whether the description has no `keyword:value` pairs.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -68,6 +69,7 @@ impl<'a> Fields<'a> {
         self.get(key)?.trim().parse().ok()
     }
 
+    /// A time written in the description's `YYYYMMDD-HHMM` form, in UTC; `None` when it does not read as one.
     #[must_use]
     pub fn time(&self, key: &str) -> Option<Stamp> {
         Stamp::parse(self.get(key)?)

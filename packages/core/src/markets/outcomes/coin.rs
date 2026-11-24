@@ -21,16 +21,19 @@ pub struct Coin {
 }
 
 impl Coin {
+    /// The side `side` of the outcome `outcome`.
     #[must_use]
     pub const fn new(outcome: u32, side: OutcomeSide) -> Coin {
         Coin { outcome, side }
     }
 
+    /// The outcome id.
     #[must_use]
     pub const fn outcome(self) -> u32 {
         self.outcome
     }
 
+    /// Which side of the outcome.
     #[must_use]
     pub const fn side(self) -> OutcomeSide {
         self.side
@@ -58,6 +61,7 @@ impl Coin {
         self.outcome as u64 * 10 + self.side.digit() as u64
     }
 
+    /// The other side of the same outcome.
     #[must_use]
     pub const fn opposite(self) -> Coin {
         Coin { outcome: self.outcome, side: self.side.other() }
@@ -69,6 +73,7 @@ impl Coin {
         Asset::outcome(self.outcome, self.side)
     }
 
+    /// The side an asset id names; `None` for an asset id that is no outcome side.
     #[must_use]
     pub const fn from_asset(asset: Asset) -> Option<Coin> {
         match asset.outcome_side() {

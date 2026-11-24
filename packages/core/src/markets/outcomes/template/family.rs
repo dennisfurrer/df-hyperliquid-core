@@ -5,31 +5,49 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RateMove {
+    /// `increase`: the rate goes up.
     Increase,
+    /// `decrease`: the rate goes down.
     Decrease,
+    /// `no_change`: the rate stays.
     NoChange,
 }
 
 /// What kind of market a template makes, read from its id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Family {
+    /// `binaryPrice`: whether a perp's price is above a threshold at a time.
     BinaryPrice,
+    /// `priceTouch`: whether a perp's price touches a target at or before a time.
     PriceTouch,
+    /// Read from the template id `scalarPrice`, or `scalePrice`.
     ScalarPrice,
+    /// `sportsContestWinner`: a contest between two participants, one side for each.
     ContestWinner,
+    /// `sportsContestParticipant`: one participant's named outcome in a contest result question.
     ContestParticipant,
+    /// `sportsContestDraw`: the draw named outcome in a contest result question.
     ContestDraw,
+    /// `sportsTournamentParticipant`: one participant's named outcome in a tournament winner question.
     TournamentParticipant,
+    /// Read from the template id `sportsScalarMarket`.
     SportsScalar,
+    /// Read from the template id `sportsOverUnderMarket`.
     SportsOverUnder,
+    /// `policyRateIncrease`, `policyRateDecrease` or `policyRateNoChange`: one move of a policy rate
+    /// decision.
     PolicyRate(RateMove),
     /// The venue's own daily markets, named `Recurring`.
     Recurring,
+    /// A question's fallback outcome: `template fallback`, testnet's `Fallback`, or `Recurring Fallback`.
     Fallback,
     /// A deployer's own name, no template.
     Named,
+    /// `sportsContestResult`: a question with one named outcome per participant and one for a draw.
     ContestResult,
+    /// `sportsTournamentWinner`: a question with one named outcome per participant in a tournament.
     TournamentWinner,
+    /// `policyRateDecision`: a question with one named outcome per rate move.
     PolicyRateDecision,
     /// A venue template with no family here; its `outcomeTemplates` entry says what it makes.
     Template,
@@ -127,7 +145,9 @@ impl<'de> serde::Deserialize<'de> for Family {
 /// An outcome's name read: its family and the version digits after the id.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Template {
+    /// What kind of market the name says it is.
     pub family: Family,
+    /// The digits after the template id; `None` without them, or past 255.
     pub version: Option<u8>,
 }
 

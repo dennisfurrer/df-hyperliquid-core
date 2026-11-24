@@ -14,8 +14,10 @@ pub fn deployer_limits_request(venue: &str) -> String {
 /// more it may hold live. Neither cap is documented.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 pub struct Remaining {
+    /// How many more outcomes the venue may register today (`nDailyOutcomesRemaining`).
     #[serde(default, rename = "nDailyOutcomesRemaining")]
     pub daily: u32,
+    /// How many more outcomes the venue may hold live (`nActiveOutcomesRemaining`).
     #[serde(default, rename = "nActiveOutcomesRemaining")]
     pub active: u32,
 }
