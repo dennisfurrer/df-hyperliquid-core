@@ -10,7 +10,8 @@ pub const NATIVE_DECIMALS: u32 = 18;
 /// Why an amount does not convert between wei and a [`Dec`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum BadAmount {
-    /// The value is negative.
+    /// The value is below zero, or is zero where the call needs a positive amount. A plain
+    /// conversion with [`U256::from_dec`] takes zero; a transfer such as `to_core` does not.
     #[error("{0} is not a positive amount")]
     NotPositive(Dec),
     /// The value has more decimal places than the token counts.

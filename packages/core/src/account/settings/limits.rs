@@ -160,7 +160,7 @@ pub fn volume_for(requests: u64) -> Dec {
 /// the perps balance.
 #[must_use]
 pub fn surplus_cost(requests: u64) -> Option<Dec> {
-    Dec::lit::<0>(i128::from(requests)).checked_mul(Dec::lit::<4>(5))
+    Dec::lit::<0>(i128::from(requests)).checked_mul(RESERVED_REQUEST_COST)
 }
 
 /// What an action costs the address: one, or one for every order or cancel it batches. The IP
