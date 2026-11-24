@@ -1,6 +1,6 @@
 [package]
 name = "df-hyperliquid-core"
-description = "Hyperliquid SDK for Rust: markets, account, trading, transfers, earn and deploy, with exact decimals and signing. Native and wasm."
+description = "Hyperliquid SDK for Rust: markets, account, trading, transfers, earn and HIP-4 deploys, with exact decimals and signing. Native and wasm."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
