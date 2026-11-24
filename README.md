@@ -82,6 +82,48 @@ flowchart TB
 | Example | What it does |
 |---|---|
 | `cargo run -p df-hyperliquid-core --example market_order` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
+| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --example signed_order` | Signs a post-only BTC limit buy 30% under the mid and the cancel for it, and prints both signed bodies; with `HL_SEND=1` it places the order on mainnet and cancels it |
+| `cargo run -p df-hyperliquid-core --example subscribe` | Opens the mainnet websocket, subscribes to BTC's book and trades, prints ten updates and exits |
+| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --example outcome_trade` | Lists the HIP-4 outcome markets with their titles, picks one with a bid, signs a post-only buy of Yes at half the bid and the cancel for it; with `HL_SEND=1` it places the order and cancels it |
+| `cargo build -p df-hyperliquid-core --example web_book --no-default-features --features sign,web --target wasm32-unknown-unknown` | Builds a wasm module that exports `btcMid()`, which reads BTC's book through the global `fetch`; bind it with `wasm-bindgen --target nodejs` or `--target web` |
+
+## Feature parity
+
+Set against the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyperliquid-docs/for-developers/api). Supported means every request or action the docs list for that area is in the crate; Partial names what is missing.
+
+| API area | Status | Module | Missing |
+|---|---|---|---|
+| Info: perps (meta, contexts, all dexes' metas, funding, predicted funding, open interest caps, active asset data, dex limits and status, categories, deploy auction) | Partial | `markets::perps`, `markets::dexes`, `account::holdings`, `deploy` | `perpAnnotation`, `perpConciseAnnotations` |
+| Info: spot (meta, contexts, balances, token details, deploy state, pair deploy auction) | Supported | `markets::spot`, `account::holdings`, `deploy` | |
+| Info: HIP-4 outcomes (meta, templates, settled outcomes, deployer limits) | Supported | `markets::outcomes` | |
+| Info: market data (mids, L2 book, candles, recent trades) | Supported | `markets` | |
+| Info: user state (clearinghouse, open orders, order status, rate limit, role, subaccounts, fees, referral, abstraction, agents, builder fee approval) | Partial | `account` | `approvedBuilders`, `userDexAbstraction` (deprecated) |
+| Info: history (fills, fills by time, historical orders, TWAP history and slice fills, funding, ledger, portfolio) | Supported | `account::history`, `markets::perps` | |
+| Info: vaults, staking and lending (vault details and equities, delegations, staking summary, history and rewards, validators, borrow and lend states) | Supported | `earn` | |
+| Exchange: orders (limit, market, trigger, TP/SL, scale, close) | Partial | `trade::orders` | `trailingStop` |
+| Exchange: cancel, cancel by cloid, schedule cancel, noop | Supported | `trade::manage` | |
+| Exchange: modify, batch modify | Supported | `trade::manage` | |
+| Exchange: TWAP order and cancel | Supported | `trade::orders` | |
+| Exchange: leverage and isolated margin | Supported | `trade::margin` | |
+| Exchange: transfers (`usdSend`, `spotSend`, `sendAsset`, `agentSendAsset`, `usdClassTransfer`, subaccount transfers, HyperCore to HyperEVM) | Partial | `transfer`, `account::settings` | `sendToEvmWithData` |
+| Exchange: withdrawals (`withdraw3`) and Arbitrum deposits | Supported | `transfer` | |
+| Exchange: vaults (`vaultTransfer`) | Partial | `earn::vaults` | `hip3LiquidatorTransfer` |
+| Exchange: staking (`cDeposit`, `cWithdraw`, `tokenDelegate`) | Partial | `earn::staking` | `cDeposit2`, `claimRewards` |
+| Exchange: lending (`borrowLend`) | Supported | `earn::lending` | |
+| Exchange: API wallets (`approveAgent`) | Supported | `account::keys` | |
+| Exchange: builder fees (`approveBuilderFee`) | Supported | `account::keys`, `trade::builder` | |
+| Exchange: account settings (`userSetAbstraction`, `agentSetAbstraction`, `createSubAccount`, `setReferrer`) | Partial | `account::settings` | `reserveRequestWeight`; `userDexAbstraction` and `agentEnableDexAbstraction` (deprecated) |
+| Exchange: HIP-4 outcome positions (`userOutcome`) | Partial | `trade::outcomes` | `mergeQuestion`, `negateOutcome` (split and merge are in) |
+| Exchange: multi-sig (`multiSig`) | Partial | `utils::sign::multi_sig` | `convertToMultiSigUser` |
+| Exchange: validator actions (`validatorL1Stream`, `authorizeAqav2Role`) | Not yet | | all |
+| Deploy: spot tokens (`spotDeploy`) | Not yet | `deploy` has the reads only | all actions |
+| Deploy: HIP-3 perp dexes (`perpDeploy`) | Not yet | `deploy`, `markets::dexes` have the reads only | all actions |
+| Deploy: HIP-4 outcome markets (`outcomeDeploy`, `activateOutcomeDeployer`) | Supported | `deploy::outcomes` | |
+| Websocket subscriptions | Partial | `live`, `client::native::Feed`, `client::web::Feed` | `l2`, `pac`, `sac` |
+| Websocket post (info reads and signed actions) | Supported | `live::Post`, `Feed::post` | |
+| HyperEVM JSON-RPC | Partial | `client::evm::rpc` | `net_version`, `web3_clientVersion`, `eth_getBlockByHash`, `eth_getBlockReceipts`, `eth_getBlockTransactionCountByHash`, `eth_getBlockTransactionCountByNumber`, `eth_getTransactionByBlockHashAndIndex`, `eth_getTransactionByBlockNumberAndIndex`, `eth_syncing`, `eth_getSystemTxsByBlockHash`, `eth_getSystemTxsByBlockNumber` |
+| HyperCore read precompiles (`0x0800` to `0x0814`) | Supported | `client::evm::precompiles` | |
+| CoreWriter (actions 1 to 17) | Supported | `client::evm::corewriter` | |
 
 ## Tests
 
