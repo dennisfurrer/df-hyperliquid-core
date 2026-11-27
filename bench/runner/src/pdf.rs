@@ -163,6 +163,7 @@ pub fn document(title: &str, pages: &[Page]) -> Vec<u8> {
     for offset in offsets {
         let _ = writeln!(out, "{offset:010} 00000 n ");
     }
-    let _ = write!(out, "trailer\n<< /Size {} /Root 1 0 R /Info 5 0 R >>\nstartxref\n{xref}\n%%EOF\n", objects.len() + 1);
+    let _ =
+        write!(out, "trailer\n<< /Size {} /Root 1 0 R /Info 5 0 R >>\nstartxref\n{xref}\n%%EOF\n", objects.len() + 1);
     out.into_bytes()
 }

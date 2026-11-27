@@ -65,7 +65,8 @@ pub fn versions(bench: &Path, binaries: &Binaries) -> Value {
     }
     if binaries.python {
         let script = "import importlib.metadata as m; print(' '.join(m.version(p) for p in ('hyperliquid-python-sdk', 'eth-account', 'eth-keys', 'coincurve')))";
-        let found = first_line("uv", &["run", "--project", "py", "--frozen", "python", "-c", script], bench).unwrap_or_default();
+        let found = first_line("uv", &["run", "--project", "py", "--frozen", "python", "-c", script], bench)
+            .unwrap_or_default();
         let found: Vec<&str> = found.split_whitespace().collect();
         for (at, name) in [PY, "eth-account", "eth-keys", "coincurve"].iter().enumerate() {
             versions[*name] = Value::from(found.get(at).map(|version| (*version).to_owned()));
@@ -175,7 +176,13 @@ pub fn tables(result: &Value) -> Vec<Table> {
     for (at, (name, row)) in signing.iter().enumerate() {
         let (a, b) = (&row["sign"], &row["build_sign_body"]);
         sign.rows.push((
-            vec![name.clone(), us(f(&a["median_ns"])), us(f(&a["p99_ns"])), us(f(&b["median_ns"])), us(f(&b["p99_ns"]))],
+            vec![
+                name.clone(),
+                us(f(&a["median_ns"])),
+                us(f(&a["p99_ns"])),
+                us(f(&b["median_ns"])),
+                us(f(&b["p99_ns"])),
+            ],
             (sign_best == Some(at)).then_some(1),
         ));
     }
@@ -189,7 +196,8 @@ pub fn tables(result: &Value) -> Vec<Table> {
 
     let recovering: Vec<(&String, &Value)> = signing.iter().filter(|(_, row)| row.get("recover").is_some()).collect();
     if !recovering.is_empty() {
-        let best = fastest(&recovering.iter().map(|(_, row)| f(&row["recover"]["median_ns"])).collect::<Vec<_>>(), true);
+        let best =
+            fastest(&recovering.iter().map(|(_, row)| f(&row["recover"]["median_ns"])).collect::<Vec<_>>(), true);
         tables.push(Table {
             title: "Recovering the signer from a signature (offline)".to_owned(),
             header: ["SDK", "median (us)", "p99 (us)"].map(str::to_owned).to_vec(),
@@ -211,9 +219,17 @@ pub fn tables(result: &Value) -> Vec<Table> {
     let best_rate = fastest(&parsing.values().map(|row| rate(row, "all")).collect::<Vec<_>>(), false);
     tables.push(Table {
         title: format!("Websocket parse ({} recorded mainnet frames, offline)", thousands(frames)),
-        header: ["SDK", "all frames/s", "l2Book frames/s", "trades frames/s", "p99 per frame (ns)", "allocations per frame", "not read"]
-            .map(str::to_owned)
-            .to_vec(),
+        header: [
+            "SDK",
+            "all frames/s",
+            "l2Book frames/s",
+            "trades frames/s",
+            "p99 per frame (ns)",
+            "allocations per frame",
+            "not read",
+        ]
+        .map(str::to_owned)
+        .to_vec(),
         rows: parsing
             .iter()
             .enumerate()
@@ -234,13 +250,17 @@ pub fn tables(result: &Value) -> Vec<Table> {
                 )
             })
             .collect(),
-        note: parsing
-            .contains_key(PY)
-            .then(|| "The Python SDK leaves prices and sizes as strings; the two Rust SDKs read them into exact decimals.".to_owned()),
+        note: parsing.contains_key(PY).then(|| {
+            "The Python SDK leaves prices and sizes as strings; the two Rust SDKs read them into exact decimals."
+                .to_owned()
+        }),
     });
 
     if let Some(sdks) = result["network"]["sdks"].as_object() {
-        for (test, title) in [("info", "Info round trip: POST /info l2Book BTC"), ("exchange", "Exchange round trip: refused post-only order from an empty key")] {
+        for (test, title) in [
+            ("info", "Info round trip: POST /info l2Book BTC"),
+            ("exchange", "Exchange round trip: refused post-only order from an empty key"),
+        ] {
             tables.push(Table {
                 title: format!("{title} ({} requests per SDK)", result["network"]["rounds"]),
                 header: ["SDK", "median (ms)", "p90 (ms)", "p99 (ms)", "failed"].map(str::to_owned).to_vec(),
@@ -249,21 +269,39 @@ pub fn tables(result: &Value) -> Vec<Table> {
                     .map(|(name, row)| {
                         let s = &row[format!("{test}_summary")];
                         let cell = |key: &str| s[key].as_f64().map_or("-".to_owned(), |ms| format!("{ms:.1}"));
-                        (vec![name.clone(), cell("median_ms"), cell("p90_ms"), cell("p99_ms"), row[format!("{test}_failed")].to_string()], None)
+                        (
+                            vec![
+                                name.clone(),
+                                cell("median_ms"),
+                                cell("p90_ms"),
+                                cell("p99_ms"),
+                                row[format!("{test}_failed")].to_string(),
+                            ],
+                            None,
+                        )
                     })
                     .collect(),
-                note: Some("Almost all of a round trip is the network and the venue, so these show parity, not a ranking.".to_owned()),
+                note: Some(
+                    "Almost all of a round trip is the network and the venue, so these show parity, not a ranking."
+                        .to_owned(),
+                ),
             });
         }
     }
     if let Some(sdks) = result["live"]["sdks"].as_object() {
         tables.push(Table {
-            title: format!("Live websocket, BTC l2Book (fast), bbo and trades, {} s, every SDK at once", result["live"]["seconds"]),
-            header: ["SDK", "l2Book", "bbo", "trades frames", "not read", "age median (ms)", "age p99 (ms)"].map(str::to_owned).to_vec(),
+            title: format!(
+                "Live websocket, BTC l2Book (fast), bbo and trades, {} s, every SDK at once",
+                result["live"]["seconds"]
+            ),
+            header: ["SDK", "l2Book", "bbo", "trades frames", "not read", "age median (ms)", "age p99 (ms)"]
+                .map(str::to_owned)
+                .to_vec(),
             rows: sdks
                 .iter()
                 .map(|(name, row)| {
-                    let unread = if row["unreadable"].is_null() { "-".to_owned() } else { row["unreadable"].to_string() };
+                    let unread =
+                        if row["unreadable"].is_null() { "-".to_owned() } else { row["unreadable"].to_string() };
                     (
                         vec![
                             name.clone(),
@@ -278,7 +316,9 @@ pub fn tables(result: &Value) -> Vec<Table> {
                     )
                 })
                 .collect(),
-            note: Some("Age is the local clock minus the venue's timestamp; it compares the SDKs with each other.".to_owned()),
+            note: Some(
+                "Age is the local clock minus the venue's timestamp; it compares the SDKs with each other.".to_owned(),
+            ),
         });
     }
     tables
@@ -339,7 +379,8 @@ pub fn write(bench: &Path, result: &Value) -> Result<()> {
     std::fs::write(folder.join(format!("{stem}.json")), text).map_err(|error| error.to_string())?;
     let table = markdown(result);
     std::fs::write(folder.join(format!("{stem}.md")), &table).map_err(|error| error.to_string())?;
-    std::fs::write(folder.join(format!("{stem}.pdf")), pdf_report::render(result)).map_err(|error| error.to_string())?;
+    std::fs::write(folder.join(format!("{stem}.pdf")), pdf_report::render(result))
+        .map_err(|error| error.to_string())?;
     println!("{table}");
     progress(&format!("wrote bench/results/{stem}.json, .md and .pdf"));
     match summary(result) {
@@ -375,7 +416,8 @@ fn ratio(ours: f64, theirs: f64) -> Option<f64> {
 /// At most 280 characters: the ratios against each competitor and the machine.
 pub fn summary(result: &Value) -> Result<String> {
     if result["options"]["quick"].as_bool() == Some(true) {
-        return Err("a quick run is only a check that the harness runs; run `just bench-compare` for numbers to share".to_owned());
+        return Err("a quick run is only a check that the harness runs; run `just bench-compare` for numbers to share"
+            .to_owned());
     }
     let sign = |name: &str| f(&result["signing"][name]["sign"]["median_ns"]);
     let parse = |name: &str, part: &str| f(&result["parsing"][name]["parse"][part]["frames_per_s"]);
@@ -390,7 +432,9 @@ pub fn summary(result: &Value) -> Result<String> {
     if let Some(hyper) = result["parsing"].get(HYPERSDK) {
         let _ = hyper;
         let mut line = format!("vs hypersdk {}:", version(HYPERSDK));
-        if let (Some(all), Some(books)) = (ratio(parse(DF, "all"), parse(HYPERSDK, "all")), ratio(parse(DF, "l2Book"), parse(HYPERSDK, "l2Book"))) {
+        if let (Some(all), Some(books)) =
+            (ratio(parse(DF, "all"), parse(HYPERSDK, "all")), ratio(parse(DF, "l2Book"), parse(HYPERSDK, "l2Book")))
+        {
             line.push_str(&format!(" parse {all:.1}x (books {books:.1}x),"));
         }
         if let Some(signing) = ratio(sign(HYPERSDK), sign(DF)) {
@@ -420,7 +464,10 @@ pub fn summary(result: &Value) -> Result<String> {
     text.push_str(". github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench");
     if text.chars().count() > 280 {
         // Drop the Python part first, then the link, to stay within one post.
-        text = format!("{head}, {}. github.com/dennisfurrer/df-hyperliquid-core", parts.first().cloned().unwrap_or_default());
+        text = format!(
+            "{head}, {}. github.com/dennisfurrer/df-hyperliquid-core",
+            parts.first().cloned().unwrap_or_default()
+        );
     }
     if text.chars().count() > 280 {
         text = text.chars().take(280).collect();
@@ -434,6 +481,10 @@ pub fn share(bench: &Path, given: Option<PathBuf>) -> Result<()> {
     let result: Value = serde_json::from_str(&text).map_err(|error| format!("{}: {error}", path.display()))?;
     let line = summary(&result)?;
     println!("{line}");
-    eprintln!("({} characters, from {})", line.chars().count(), path.file_name().map_or_else(String::new, |name| name.to_string_lossy().into_owned()));
+    eprintln!(
+        "({} characters, from {})",
+        line.chars().count(),
+        path.file_name().map_or_else(String::new, |name| name.to_string_lossy().into_owned())
+    );
     Ok(())
 }

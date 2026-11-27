@@ -19,17 +19,24 @@ fn linux_field(file: &str, key: &str) -> Option<String> {
         .map(|(_, value)| value.trim().to_owned())
 }
 
+/// `lscpu`'s value for `key`, when it names something (ARM Linux often reports `-`).
+fn lscpu(key: &str) -> Option<String> {
+    let output = std::process::Command::new("lscpu").output().ok()?;
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .find(|line| line.split(':').next().is_some_and(|name| name.trim() == key))
+        .and_then(|line| line.split_once(':'))
+        .map(|(_, value)| value.trim().to_owned())
+        .filter(|value| !value.is_empty() && value != "-")
+}
+
 fn cpu() -> String {
+    let named = |value: Option<String>| value.filter(|value| !value.is_empty() && value != "-");
     let found = match std::env::consts::OS {
-        "macos" => mac_sysctl("machdep.cpu.brand_string"),
-        "linux" => linux_field("/proc/cpuinfo", "model name").or_else(|| {
-            let lscpu = std::process::Command::new("lscpu").output().ok()?;
-            String::from_utf8_lossy(&lscpu.stdout)
-                .lines()
-                .find(|line| line.starts_with("Model name"))
-                .and_then(|line| line.split_once(':'))
-                .map(|(_, value)| value.trim().to_owned())
-        }),
+        "macos" => named(mac_sysctl("machdep.cpu.brand_string")),
+        "linux" => named(linux_field("/proc/cpuinfo", "model name"))
+            .or_else(|| lscpu("Model name"))
+            .or_else(|| lscpu("Vendor ID").map(|vendor| format!("{vendor} {}", std::env::consts::ARCH))),
         _ => None,
     };
     found.unwrap_or_else(|| format!("unknown {} CPU", std::env::consts::ARCH))
@@ -53,8 +60,12 @@ fn os() -> String {
             let version = first_line("sw_vers", &["-productVersion"], Path::new(".")).unwrap_or_default();
             format!("{name} {version}").trim().to_owned()
         }
-        "linux" => linux_field("/etc/os-release", "PRETTY_NAME")
-            .map(|name| name.trim_matches('"').to_owned())
+        "linux" => std::fs::read_to_string("/etc/os-release")
+            .ok()
+            .and_then(|text| {
+                text.lines()
+                    .find_map(|line| line.strip_prefix("PRETTY_NAME=").map(|name| name.trim_matches('"').to_owned()))
+            })
             .unwrap_or_else(|| "Linux".to_owned()),
         other => other.to_owned(),
     }
@@ -71,7 +82,8 @@ pub fn slug(cpu: &str) -> String {
         }
     }
     let slug = slug.replace("-r-", "-").replace("-tm-", "-");
-    slug.trim_matches('-').chars().take(40).collect::<String>().trim_matches('-').to_owned()
+    let slug = slug.trim_matches('-').chars().take(40).collect::<String>().trim_matches('-').to_owned();
+    if slug.is_empty() { "unknown-cpu".to_owned() } else { slug }
 }
 
 pub fn describe() -> Value {
@@ -84,4 +96,17 @@ pub fn describe() -> Value {
         "os": os(),
         "arch": std::env::consts::ARCH,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::slug;
+
+    #[test]
+    fn a_cpu_name_becomes_a_file_name() {
+        assert_eq!(slug("Apple M5 Max"), "apple-m5-max");
+        assert_eq!(slug("AMD Ryzen 9 7950X 16-Core Processor"), "amd-ryzen-9-7950x-16-core-processor");
+        assert_eq!(slug("Intel(R) Xeon(R) Platinum 8375C CPU @ 2.90GHz"), "intel-xeon-platinum-8375c-cpu-2-90ghz");
+        assert_eq!(slug("-"), "unknown-cpu");
+    }
 }

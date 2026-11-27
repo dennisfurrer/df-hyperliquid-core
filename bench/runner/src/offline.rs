@@ -108,7 +108,8 @@ fn canonical(value: &Value) -> String {
         Value::Object(map) => {
             let mut keys: Vec<&String> = map.keys().collect();
             keys.sort();
-            let fields: Vec<String> = keys.iter().map(|key| format!("{}:{}", Value::from(key.as_str()), canonical(&map[*key]))).collect();
+            let fields: Vec<String> =
+                keys.iter().map(|key| format!("{}:{}", Value::from(key.as_str()), canonical(&map[*key]))).collect();
             format!("{{{}}}", fields.join(","))
         }
         Value::Array(items) => format!("[{}]", items.iter().map(canonical).collect::<Vec<_>>().join(",")),
@@ -180,7 +181,8 @@ mod tests {
     fn the_same_action_with_its_keys_in_another_order_is_the_same() {
         let a: Value = serde_json::from_str(r#"{"type":"order","orders":[{"a":0,"b":true}],"grouping":"na"}"#).unwrap();
         let b: Value = serde_json::from_str(r#"{"grouping":"na","orders":[{"b":true,"a":0}],"type":"order"}"#).unwrap();
-        let c: Value = serde_json::from_str(r#"{"grouping":"na","orders":[{"b":false,"a":0}],"type":"order"}"#).unwrap();
+        let c: Value =
+            serde_json::from_str(r#"{"grouping":"na","orders":[{"b":false,"a":0}],"type":"order"}"#).unwrap();
         assert_eq!(canonical(&a), canonical(&b));
         assert_ne!(canonical(&a), canonical(&c));
     }

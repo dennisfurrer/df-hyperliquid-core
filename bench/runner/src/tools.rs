@@ -49,7 +49,8 @@ pub fn doctor(bench: &Path) {
     let found = find(bench);
     let need = msrv(bench).unwrap_or_else(|| "unknown".to_owned());
     let wanted: Vec<u64> = need.split('.').filter_map(|part| part.parse().ok()).collect();
-    let line = |ok: bool, name: &str, detail: &str| println!("{} {name:<12} {detail}", if ok { "ok     " } else { "missing" });
+    let line =
+        |ok: bool, name: &str, detail: &str| println!("{} {name:<12} {detail}", if ok { "ok     " } else { "missing" });
 
     match &found.rustc {
         Some(version) if rustc_numbers(version) >= wanted => {

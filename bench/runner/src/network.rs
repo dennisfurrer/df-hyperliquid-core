@@ -71,7 +71,9 @@ impl Worker {
     }
 
     fn ask(&mut self, line: &str) -> Result<Value> {
-        writeln!(self.input, "{line}").and_then(|()| self.input.flush()).map_err(|error| format!("{}: {error}", self.name))?;
+        writeln!(self.input, "{line}")
+            .and_then(|()| self.input.flush())
+            .map_err(|error| format!("{}: {error}", self.name))?;
         let mut answer = String::new();
         self.output.read_line(&mut answer).map_err(|error| format!("{}: {error}", self.name))?;
         serde_json::from_str(&answer).map_err(|_| format!("{} worker stopped", self.name))
@@ -135,12 +137,17 @@ pub fn rounds(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Va
             row.insert(format!("{test}_summary"), summary_ms(&ok));
             row.insert(format!("{test}_failed"), Value::from(answers.len() - ok.len()));
             row.insert(format!("{test}_first_answer"), Value::from(answers.first().map(|(_, _, text)| text.clone())));
-            row.insert(format!("{test}_samples_ns"), Value::from(answers.iter().map(|(_, ns, _)| *ns).collect::<Vec<_>>()));
+            row.insert(
+                format!("{test}_samples_ns"),
+                Value::from(answers.iter().map(|(_, ns, _)| *ns).collect::<Vec<_>>()),
+            );
         }
         rows.insert(worker.name.to_owned(), Value::Object(row));
         worker.stop();
     }
-    Ok(json!({ "order": { "coin": "BTC", "side": "buy", "tif": "Alo", "px": px, "sz": sz }, "rounds": options.rounds, "sdks": rows }))
+    Ok(
+        json!({ "order": { "coin": "BTC", "side": "buy", "tif": "Alo", "px": px, "sz": sz }, "rounds": options.rounds, "sdks": rows }),
+    )
 }
 
 pub fn live(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Value> {
@@ -150,11 +157,18 @@ pub fn live(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Valu
         .into_iter()
         .map(|(name, mut command)| {
             let bench = bench.to_path_buf();
-            (name, std::thread::spawn(move || command.current_dir(&bench).output().map_err(|e| e.to_string()).and_then(|out| {
-                let text = String::from_utf8_lossy(&out.stdout);
-                let last = text.lines().rev().find(|line| !line.trim().is_empty()).unwrap_or_default();
-                serde_json::from_str::<Value>(last).map(|value| value["live"].clone()).map_err(|e| format!("live: {e}"))
-            })))
+            (
+                name,
+                std::thread::spawn(move || {
+                    command.current_dir(&bench).output().map_err(|e| e.to_string()).and_then(|out| {
+                        let text = String::from_utf8_lossy(&out.stdout);
+                        let last = text.lines().rev().find(|line| !line.trim().is_empty()).unwrap_or_default();
+                        serde_json::from_str::<Value>(last)
+                            .map(|value| value["live"].clone())
+                            .map_err(|e| format!("live: {e}"))
+                    })
+                }),
+            )
         })
         .collect();
     let mut rows = Map::new();

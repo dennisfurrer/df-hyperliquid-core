@@ -69,7 +69,10 @@ fn band(layout: &mut Layout, result: &Value) {
     page.text(MARGIN, 100.0, Font::Regular, 9.0, ACCENT, &format!("{cpu}  |  {os}  |  {arch}"));
     let started = result["started_utc"].as_str().unwrap_or_default().replace('T', " ").replace('Z', " UTC");
     page.text_right(PAGE_WIDTH - MARGIN, 52.0, Font::Regular, 9.0, BAND_TEXT, &started);
-    let mode = match (result["options"]["compare"].as_bool() == Some(true), result["options"]["network"].as_bool() == Some(true)) {
+    let mode = match (
+        result["options"]["compare"].as_bool() == Some(true),
+        result["options"]["network"].as_bool() == Some(true),
+    ) {
         (true, true) => "compare, offline and network",
         (true, false) => "compare, offline",
         (false, true) => "df-hyperliquid-core alone, offline and network",
@@ -92,11 +95,20 @@ fn tiles(layout: &mut Layout, result: &Value) {
     let parse = |name: &str, part: &str| f(&result["parsing"][name]["parse"][part]["frames_per_s"]);
     let mut items: Vec<(String, String)> = Vec::new();
     if result["parsing"].get(HYPERSDK).is_some() && parse(HYPERSDK, "all") > 0.0 && sign(DF) > 0.0 {
-        items.push((format!("{:.1}x", parse(DF, "all") / parse(HYPERSDK, "all")), "websocket parsing vs hypersdk".to_owned()));
-        items.push((format!("{:.1}x", parse(DF, "l2Book") / parse(HYPERSDK, "l2Book")), "l2Book parsing vs hypersdk".to_owned()));
+        items.push((
+            format!("{:.1}x", parse(DF, "all") / parse(HYPERSDK, "all")),
+            "websocket parsing vs hypersdk".to_owned(),
+        ));
+        items.push((
+            format!("{:.1}x", parse(DF, "l2Book") / parse(HYPERSDK, "l2Book")),
+            "l2Book parsing vs hypersdk".to_owned(),
+        ));
         items.push((format!("{:.1}x", sign(HYPERSDK) / sign(DF)), "order signing vs hypersdk".to_owned()));
         if sign(DF_SECP) > 0.0 {
-            items.push((format!("{:.1}x", sign(HYPERSDK) / sign(DF_SECP)), "signing with secp256k1 vs hypersdk".to_owned()));
+            items.push((
+                format!("{:.1}x", sign(HYPERSDK) / sign(DF_SECP)),
+                "signing with secp256k1 vs hypersdk".to_owned(),
+            ));
         }
     } else {
         items.push((format!("{:.1} us", sign(DF) / 1_000.0), "hash and sign one order".to_owned()));
@@ -208,8 +220,22 @@ pub fn render(result: &Value) -> Vec<u8> {
     let count = layout.pages.len();
     for (at, page) in layout.pages.iter_mut().enumerate() {
         page.line(MARGIN, PAGE_HEIGHT - 40.0, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 40.0, RULE, 0.75);
-        page.text(MARGIN, PAGE_HEIGHT - 26.0, Font::Regular, 7.5, MUTED, "Method and how to rerun: github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench");
-        page.text_right(PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 26.0, Font::Regular, 7.5, MUTED, &format!("{} / {count}", at + 1));
+        page.text(
+            MARGIN,
+            PAGE_HEIGHT - 26.0,
+            Font::Regular,
+            7.5,
+            MUTED,
+            "Method and how to rerun: github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench",
+        );
+        page.text_right(
+            PAGE_WIDTH - MARGIN,
+            PAGE_HEIGHT - 26.0,
+            Font::Regular,
+            7.5,
+            MUTED,
+            &format!("{} / {count}", at + 1),
+        );
     }
     let title = format!("df-hyperliquid-core benchmark, {}", result["machine"]["cpu"].as_str().unwrap_or_default());
     pdf::document(&title, &layout.pages)
