@@ -103,8 +103,10 @@ pub enum Frame {
     },
     /// `spotAssetCtxs`: every spot pair's and outcome side's context.
     SpotAssetCtxs(Vec<SpotCtx>),
-    /// What changed in `outcomeMeta`, kept as sent: `[{"outcomeSettled":23205}]`. Its arrival
-    /// is the news; read `outcomeMeta` again for the whole.
+    /// What changed in `outcomeMeta`, kept as sent: an array of one-key objects, such as
+    /// `{"outcomeSettled":23205}` or `{"outcomeCreated":{"outcome":49747,"name":..,
+    /// "description":..,"sideSpecs":[..],"quoteToken":"USDC",..}}`. Its arrival is the news; read
+    /// `outcomeMeta` again for the whole.
     OutcomeMetaUpdates(Json),
     /// `fastAssetCtxs`: base64 of raw DEFLATE (RFC 1951) over JSON, kept as sent. Inflating it
     /// needs a decompressor this crate does not carry.

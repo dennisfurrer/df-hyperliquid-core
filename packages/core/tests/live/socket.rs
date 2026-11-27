@@ -114,7 +114,7 @@ async fn every_market_channel_reads_and_keeps_its_recorded_shape() {
         (Subscription::Sac, "compressed#sac", |f| matches!(f, Frame::Sac(_)), Sends::AtOnce),
         (
             Subscription::OutcomeMetaUpdates,
-            "testnet#outcomeMetaUpdates",
+            "testnet#outcomeMetaUpdates+mainnet#outcomeMetaUpdates.created",
             |f| matches!(f, Frame::OutcomeMetaUpdates(_)),
             Sends::OnChange,
         ),

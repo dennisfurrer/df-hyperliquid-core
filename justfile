@@ -21,6 +21,8 @@ test:
     cargo test -p df-hyperliquid-core --features offline --lib -- offline what_is_signed
     cargo test -p df-hyperliquid-core --lib -- --ignored mainnet_corpus
     cargo test -p df-hyperliquid-core --features secp256k1 --lib
+    # A release build does not recover a local key's signatures: the fake venue still checks each one.
+    cargo test -p df-hyperliquid-core --release --test mocked
 
 # Against mainnet, read only: every read, websocket channel and HyperEVM read, each held
 # against its recording. Run by hand.

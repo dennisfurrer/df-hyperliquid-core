@@ -163,11 +163,18 @@ impl<H: Http, S: Signer> Client<H, S> {
     /// known good ([`Signer::signature_is_known_good`], a [`crate::account::LocalKey`]) is not
     /// recovered in a release build: it signed with the key its address comes from.
     fn check(&self, digest: &[u8; 32], signature: &crate::account::Signature) -> Result<(), SignError> {
-        if self.signer.signature_is_known_good() && !cfg!(debug_assertions) {
+        if !recovers(self.signer.signature_is_known_good(), cfg!(debug_assertions)) {
             return Ok(());
         }
         crate::account::verify(digest, signature, self.signer.address())
     }
+}
+
+/// Whether [`Client`] recovers a signature before posting it: always in a debug build, and in a
+/// release build only when the signer does not vouch for it ([`Signer::signature_is_known_good`]).
+#[cfg(feature = "sign")]
+const fn recovers(known_good: bool, debug_build: bool) -> bool {
+    !known_good || debug_build
 }
 
 impl<H: Http, S> Transport for Client<H, S> {
@@ -175,3 +182,7 @@ impl<H: Http, S> Transport for Client<H, S> {
         self.api.post(path, body)
     }
 }
+
+#[cfg(all(test, feature = "sign"))]
+#[path = "tests/check.rs"]
+mod tests;

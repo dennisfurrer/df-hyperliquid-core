@@ -7,13 +7,13 @@ use std::fmt;
 use std::future::Future;
 
 #[cfg(feature = "sign")]
-use k256::ecdsa::{Signature as CurveSignature, SigningKey, VerifyingKey};
+use k256::ecdsa::{Signature as CurveSignature, SigningKey};
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "sign")]
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 #[cfg(feature = "sign")]
-use crate::account::keys::curve::{address_of_coordinates, backend};
+use crate::account::keys::curve::backend;
 use crate::utils::address::Address;
 #[cfg(feature = "sign")]
 use crate::utils::hex;
@@ -167,31 +167,8 @@ impl Serialize for Signature {
     }
 }
 
-/// The address that signed `digest`. With the `secp256k1` feature on a native target
-/// libsecp256k1 recovers it, otherwise k256; both refuse the same signatures.
 #[cfg(feature = "sign")]
-pub fn recover(digest: &[u8; 32], signature: &Signature) -> Result<Address, SignError> {
-    backend::recover(digest, signature)
-}
-
-/// Recovers `signature` and requires `expected`: what every wallet signature
-/// passes before it is posted, since a wallet can sign as another account.
-#[cfg(feature = "sign")]
-pub fn verify(digest: &[u8; 32], signature: &Signature, expected: Address) -> Result<(), SignError> {
-    let recovered = recover(digest, signature)?;
-    match recovered == expected {
-        true => Ok(()),
-        false => Err(SignError::WrongSigner { expected, recovered }),
-    }
-}
-
-/// `keccak256(uncompressed public key without its 0x04 tag)`, last twenty bytes.
-#[cfg(feature = "sign")]
-#[must_use]
-pub fn address_of_public_key(key: &VerifyingKey) -> Address {
-    let point = key.to_encoded_point(false);
-    address_of_coordinates(point.as_bytes().get(1..).unwrap_or_default())
-}
+pub use super::recovery::{address_of_public_key, recover, verify};
 
 /// Whoever signs for an account. In the browser that is the wallet, handed
 /// [`TypedStruct::wallet_json`]; in tests and native tools, a [`LocalKey`].

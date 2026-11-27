@@ -64,6 +64,19 @@ pub enum Subscription {
     /// every 7 s, so a program that waits for it holds a stale book. With `fast` it came about
     /// twice a second, 5 levels a side. For the best bid and ask alone, [`Subscription::Bbo`] is
     /// sent on every block where they change (about ten times a second for BTC).
+    ///
+    /// For both speed and depth, subscribe twice on one feed: `bbo` or a fast book for the top of
+    /// the book, and a book without `fast` for the twenty levels a side.
+    ///
+    /// ```
+    /// use df_hyperliquid_core::live::Subscription;
+    ///
+    /// let coin = || "BTC".to_owned();
+    /// let top = Subscription::L2Book { coin: coin(), n_sig_figs: None, mantissa: None, fast: true };
+    /// let depth = Subscription::L2Book { coin: coin(), n_sig_figs: None, mantissa: None, fast: false };
+    /// let touch = Subscription::Bbo { coin: coin() };
+    /// # let _ = (top, depth, touch);
+    /// ```
     L2Book {
         /// The coin.
         coin: String,

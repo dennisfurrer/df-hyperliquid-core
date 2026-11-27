@@ -72,11 +72,13 @@
   "user.funding": "{\"channel\":\"user\",\"data\":{\"funding\":{\"time\":1791482400023,\"coin\":\"ZEC\",\"usdc\":\"0.082377\",\"szi\":\"-5.8\",\"fundingRate\":\"0.0000125\",\"nSamples\":null}}}",
   "user.nonUserCancel": "{\"channel\":\"user\",\"data\":{\"nonUserCancel\":[{\"coin\":\"ZEC\",\"oid\":569031862179}]}}",
   "user.twapHistory": "{\"channel\":\"user\",\"data\":{\"twapHistory\":[{\"time\":1791481178,\"state\":{\"coin\":\"BTC\",\"user\":\"0x939f95036d2e7b6d7419ec072bf9d967352204d2\",\"side\":\"A\",\"sz\":\"13.0\",\"executedSz\":\"0.0\",\"executedNtl\":\"0.0\",\"minutes\":10,\"reduceOnly\":false,\"randomize\":false,\"timestamp\":1791481178059,\"trigger\":null,\"stopPx\":null},\"status\":{\"status\":\"activated\"},\"twapId\":2297697}]}}",
-  "user.twapSliceFills": "{\"channel\":\"user\",\"data\":{\"twapSliceFills\":[{\"fill\":{\"coin\":\"ENA\",\"px\":\"0.1997\",\"sz\":\"59.0\",\"side\":\"B\",\"time\":1791481327059,\"startPosition\":\"2048.0\",\"dir\":\"Open Long\",\"closedPnl\":\"0.0\",\"hash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"oid\":569036759873,\"crossed\":true,\"fee\":\"0.00458\",\"tid\":805092930237458,\"feeToken\":\"USDC\",\"twapId\":null},\"twapId\":2257646}]}}"
+  "user.twapSliceFills": "{\"channel\":\"user\",\"data\":{\"twapSliceFills\":[{\"fill\":{\"coin\":\"ENA\",\"px\":\"0.1997\",\"sz\":\"59.0\",\"side\":\"B\",\"time\":1791481327059,\"startPosition\":\"2048.0\",\"dir\":\"Open Long\",\"closedPnl\":\"0.0\",\"hash\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"oid\":569036759873,\"crossed\":true,\"fee\":\"0.00458\",\"tid\":805092930237458,\"feeToken\":\"USDC\",\"twapId\":null},\"twapId\":2257646}]}}",
+  "outcomeMetaUpdates.created": "{\"channel\":\"outcomeMetaUpdates\",\"data\":[{\"outcomeCreated\":{\"description\":\"perp:BTC|priceDescription:the Hyperliquid BTC perp 5-minute candle close reference|seconds:1|threshold:60430|time:20261127-1640\",\"name\":\"template:binaryPrice\",\"outcome\":49747,\"quoteToken\":\"USDC\",\"sideSpecs\":[{\"name\":\"template:Yes\"},{\"name\":\"template:No\"}],\"venue\":\"fox\"}}]}"
  },
  "notes": {
   "allDexsAssetCtxs": "trimmed: the first two dexes, two contexts each",
   "assetCtxs": "trimmed: the first two contexts",
-  "spotAssetCtxs": "trimmed: the first two contexts"
+  "spotAssetCtxs": "trimmed: the first two contexts",
+  "outcomeMetaUpdates.created": "from the live suite on 2026-11-27: the data as the venue sent it, written back with its keys in alphabetical order"
  }
 }
