@@ -2,6 +2,14 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.5
+
+No code changes to the crate. Benchmark harness in `bench/`:
+
+- Each results file records the power source and energy mode (`pmset` on macOS, `/sys/class/power_supply` and the ACPI platform profile on Linux). The runner warns when it runs on battery or in low power mode, the `.md` and `.pdf` show the warning, and `just bench-share` repeats it.
+- On macOS the benchmark programs ask for the user-interactive quality of service on every thread that does timed work, so the scheduler keeps them on performance cores more reliably. The Python SDK's main thread does the same.
+- `just bench-share` says "df-hyperliquid-core only, no comparison" for a run without competitors, and "no hypersdk comparison" for a run without the hypersdk row.
+
 ## 0.2.4
 
 No code changes. The README's benchmarks are from the reproducible harness in `bench/` (`just bench-compare`, offline, no key needed), at the tag `bench-2026-11-27`.
