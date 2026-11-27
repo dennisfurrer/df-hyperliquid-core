@@ -2,6 +2,27 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.6
+
+Added:
+
+- `utils::sign::Breakdown`: every stage of an L1 signature in the order it is built, from the same encoders `L1Action::digest` and `L1Action::body` use: the msgpack bytes, the action hash over them with the nonce, the vault and an optional `expiresAfter`, the EIP-712 payload a wallet is asked to sign, and the digest. `Breakdown::of` and `Breakdown::expiring` build it; with the `sign` feature, `recover(&signature)` gives the address a signature recovers to over that digest. Useful when the venue answers "User or API Wallet 0x... does not exist": that answer means the address it recovered is not one it knows, and comparing these stages with another SDK's, or the recovered address with the key's, shows where they differ.
+- `utils::sign::agent_digest(connection_id, network)`: the phantom agent's digest under `Domain::EXCHANGE`.
+- Examples: `quickstart` (what is listed, every mid, BTC's book and candles, and with `HL_ADDRESS` an account's state; no key) and `market_maker` (two post-only quotes on BTC from the live touch, requoted as one `batchModify` over the websocket, with a position and loss limit, the dead man's switch, cancel on exit, a watchdog, and the time each stage of a requote takes). By default the market maker reads mainnet and signs every requote for testnet without sending it; `HL_SEND=1` trades on testnet. When the venue answers "does not exist" it prints the likely causes, the nonce, vault, expiry and network it signed with, each `Breakdown` stage and the recovered address next to the key's, never the key. `packages/core/examples/README.md` describes every example.
+
+Changed:
+
+- Signing an L1 action hashes the EIP-712 domain separator, the agent type hash and the source string from constants instead of for each signature, so the digest takes two keccak blocks instead of eight: about 1.8 us to 0.75 us on an Apple M5 Max, and about 1 us off each signature with either backend. The bytes signed are the same; tests hold each constant to the value it replaces. Nothing in k256 or libsecp256k1 changed.
+- The workspace lint for `unsafe_code` is `deny` instead of `forbid`, so the market maker's macOS thread priority module can allow it. The library still forbids it, in `lib.rs`.
+
+Benchmark harness in `bench/`:
+
+- `just bench-compare` also measures hyperliquid-sdk-rs 0.1.2, quicknode-hyperliquid-sdk 0.1.9, hyperliquid_rust_sdk 0.6.0, @nktkas/hyperliquid 0.33.3 (Node) and go-hyperliquid 0.47.3, each pinned by its own lockfile. The TypeScript and Go rows are skipped with a note when Node 22.12 and pnpm, or Go, are missing, and the QuickNode rows when `protoc` is missing. `just bench-doctor` lists node, pnpm, go and protoc.
+- `--profile release|release-lto|both` builds the Rust rows with Cargo's `release` profile, with a `release-lto` profile (fat LTO, one codegen unit), or both, and reports each.
+- Each results `.md` starts with one table that has one row per SDK and build, numbers only: signing median and p99, build + sign + body, parse rate, parse p99, allocations per frame, the two round trips and the live frame age.
+- A row whose signature differs from df-hyperliquid-core's no longer stops the run: it is timed and named as failing in the signing table. A competitor whose program fails is noted under Skipped.
+- `just bench-share` gives df-hyperliquid-core's speed divided by each competitor's, for parsing and for signing, in at most 280 characters; a figure below 1 means that competitor was faster. The PDF's headline tiles compare against the fastest other SDK on each test instead of hypersdk.
+
 ## 0.2.5
 
 No code changes to the crate. Benchmark harness in `bench/`:

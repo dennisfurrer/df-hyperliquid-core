@@ -14,7 +14,7 @@
 [![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
 [![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
 
-Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest order signing and websocket parsing of the SDKs benchmarked, and native or wasm transports.
+Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest websocket parsing of the SDKs benchmarked, the fastest order signing of them with the `secp256k1` feature, and native or wasm transports.
 
 Project page: [dfurrer.com/products/df-hyperliquid-core](https://dfurrer.com/products/df-hyperliquid-core). For how Hyperliquid itself works (HyperCore, the HyperEVM, perps, outcome markets, signing, rate limits), see [HyperBooks](https://hyperbooks.xyz), the Hyperliquid documentation by the same author, and its [list of Hyperliquid SDKs and developer tools](https://hyperbooks.xyz/start/developer-tools/).
 
@@ -91,11 +91,15 @@ graph TB
 
 | Example | What it does |
 |---|---|
-| `cargo run -p df-hyperliquid-core --example market_order` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
-| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --example signed_order` | Signs a post-only BTC limit buy 30% under the mid and the cancel for it, and prints both signed bodies; with `HL_SEND=1` it places the order on mainnet and cancels it |
-| `cargo run -p df-hyperliquid-core --example subscribe` | Opens the mainnet websocket, subscribes to BTC's book and trades, prints ten updates and exits |
-| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --example outcome_trade` | Lists the HIP-4 outcome markets with their titles, picks one with a bid, signs a post-only buy of Yes at half the bid and the cancel for it; with `HL_SEND=1` it places the order and cancels it |
+| `cargo run -p df-hyperliquid-core --release --example quickstart` | Reads what is listed, every mid, BTC's book and last hour of candles, and with `HL_ADDRESS` an account's value, positions, spot balances and open orders; no key |
+| `cargo run -p df-hyperliquid-core --release --example market_order` | Reads BTC's meta, book and context from mainnet, prints the unsigned market order for a $20 long |
+| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --release --example signed_order` | Signs a post-only BTC limit buy 30% under the mid and the cancel for it, and prints both signed bodies; with `HL_SEND=1` it places the order on mainnet and cancels it |
+| `cargo run -p df-hyperliquid-core --release --example subscribe` | Opens the mainnet websocket, subscribes to BTC's book and trades, prints ten updates and exits |
+| `HL_PRIVATE_KEY=0x... cargo run -p df-hyperliquid-core --release --example outcome_trade` | Lists the HIP-4 outcome markets with their titles, picks one with a bid, signs a post-only buy of Yes at half the bid and the cancel for it; with `HL_SEND=1` it places the order and cancels it |
 | `cargo build -p df-hyperliquid-core --example web_book --no-default-features --features sign,web --target wasm32-unknown-unknown` | Builds a wasm module that exports `btcMid()`, which reads BTC's book through the global `fetch`; bind it with `wasm-bindgen --target nodejs` or `--target web` |
+| `cargo run -p df-hyperliquid-core --release --example market_maker` | A quoting loop on BTC: two post-only quotes from the live touch, requoted as one `batchModify` over the websocket, with a position and loss limit, the dead man's switch, cancel on exit and a watchdog. By default it reads mainnet and signs every requote for testnet without sending, and prints the time each stage takes; `HL_SEND=1` trades on testnet |
+
+Each example, its environment variables and the market maker's design are in [examples/README.md](packages/core/examples/README.md).
 
 ## Feature parity
 
@@ -104,7 +108,7 @@ Full parity with the [Hyperliquid API docs](https://hyperliquid.gitbook.io/hyper
 How the signed actions are checked:
 
 - Against @nktkas/hyperliquid and the official Python SDK, byte for byte, in `tests/conformance`.
-- On testnet, with `just testnet`: every L1 action is signed by a new key that has no account and posted to `/exchange`. The node must read the action and recover that key's address, which shows it parsed every field and hashed the same bytes. Nothing can execute from an empty account. All 159 accepted actions pass (2026-11-24).
+- On testnet, with `just testnet`: every L1 action is signed by a new key that has no account and posted to `/exchange`. The node must read the action and recover that key's address, which shows it parsed every field and hashed the same bytes. Nothing can execute from an empty account. All 159 accepted actions pass, with either signing backend (2026-11-28).
 - The units of the numbers that cannot be undone (genesis amounts, gas, validator commission and stake, open interest caps) are confirmed against real mainnet and testnet deploys and the state they produced, and each one is named in its doc comment.
 
 | API area | Status | Module |
@@ -149,23 +153,24 @@ Not included:
 
 ## Benchmarks
 
-In the repository's own benchmarks on an Apple M5 Max, df-hyperliquid-core signs orders 1.3 times as fast as hypersdk with its defaults and 2.7 times as fast with the `secp256k1` feature, and parses recorded mainnet websocket frames 2.4 times as fast (2.7 times on books), with a lower p99 and fewer allocations per frame. Round trips to the venue are the same for all three SDKs, because the network takes almost all of the time. To run them yourself, offline and without a key:
+In the repository's own benchmarks on an Apple M5 Max, against hypersdk, hyperliquid-sdk-rs, quicknode-hyperliquid-sdk, hyperliquid_rust_sdk (the official Rust SDK), @nktkas/hyperliquid, go-hyperliquid and the official Python SDK, df-hyperliquid-core parsed recorded mainnet websocket frames 2.4 times as fast as the next fastest (hypersdk), with the lowest p99 per frame. Signing is not the fastest with the default build: go-hyperliquid, which signs through libsecp256k1, took 15.6 us against 25.2 us, and hyperliquid_rust_sdk was level at 24.5 us. With the `secp256k1` feature df-hyperliquid-core signed in 13.0 us, the fastest row. Round trips to the venue are about the same for every SDK that talks to it directly, because the network takes almost all of the time. Details, fairness notes and every row are in [bench/README.md](bench/README.md). To run them yourself, offline and without a key:
 
 ```sh
 just bench-compare
 ```
 
-| Measurement | df-hyperliquid-core | hypersdk 0.3.1 | hyperliquid-python-sdk 0.24.0 |
-|---|---|---|---|
-| Hash and sign one BTC order, median | 27.0 us (13.2 us with `secp256k1`) | 35.4 us | 2058.5 us (127.2 us with coincurve) |
-| Websocket parse, recorded frames | 1,113,937 frames/s | 458,203 frames/s | 216,734 frames/s (prices left as strings) |
-| Websocket parse, `l2Book` frames | 787,458 frames/s | 288,201 frames/s | 144,534 frames/s |
-| Websocket parse, p99 of one frame | 2.8 us | 4.7 us | 10.7 us |
-| Allocations per frame | 4.7 | 7.7 | not measured |
-| Info round trip (`l2Book`), median | 232.4 ms | 233.2 ms | 234.0 ms |
-| Exchange round trip (refused order), median | 242.3 ms | 246.2 ms | 250.3 ms |
+| Measurement | df-hyperliquid-core | Fastest other SDK |
+|---|---|---|
+| Hash and sign one BTC order, median | 25.2 us (13.0 us with `secp256k1`) | go-hyperliquid 15.6 us |
+| Build, sign and serialize the order body, median | 26.7 us (14.4 us with `secp256k1`) | go-hyperliquid 16.8 us |
+| Websocket parse, recorded frames | 1,119,244 frames/s | hypersdk 475,581 frames/s |
+| Websocket parse, `l2Book` frames | 798,732 frames/s | hypersdk 296,855 frames/s |
+| Websocket parse, p99 of one frame | 2.9 us | hypersdk 4.7 us |
+| Allocations per frame | 4.7 | hypersdk 7.7 |
+| Info round trip (`l2Book`), median | 332.9 ms | hyperliquid-python-sdk 324.3 ms (network bound) |
+| Exchange round trip (refused order), median | 363.9 ms | hyperliquid_rust_sdk 341.5 ms (network bound) |
 
-Measured on 2026-11-27, each offline figure the median of 5 runs ([results](bench/results/2026-11-27-180238-apple-m5-max.md), [PDF](bench/results/2026-11-27-180238-apple-m5-max.pdf)). The round trips differ by less than the spread between requests and show parity, not a ranking. The method, fairness notes and how to submit your own results are in [bench/README.md](bench/README.md).
+Measured on 2026-11-27 on mains power, each offline figure the median of 5 runs ([results](bench/results/2026-11-27-215626-apple-m5-max.md), [PDF](bench/results/2026-11-27-215626-apple-m5-max.pdf)). The round trips differ by less than the spread between requests and show parity, not a ranking. The gap between the k256-based signing rows can change with code generation alone; bench/README.md gives the figures. The method, fairness notes and how to submit your own results are in [bench/README.md](bench/README.md).
 
 ## Tests
 
