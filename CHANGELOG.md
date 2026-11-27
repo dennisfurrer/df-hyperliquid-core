@@ -2,7 +2,7 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
-## Unreleased
+## 0.2.3
 
 Added:
 
