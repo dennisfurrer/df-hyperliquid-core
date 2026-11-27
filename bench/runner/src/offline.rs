@@ -101,6 +101,21 @@ fn median_run(bench: &Path, sdk: &Sdk, args: &[&str], options: &Options, metric:
     Ok(chosen)
 }
 
+/// `value` as compact JSON with every object's keys sorted, so two SDKs that write the same
+/// action with its keys in another order compare equal.
+fn canonical(value: &Value) -> String {
+    match value {
+        Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let fields: Vec<String> = keys.iter().map(|key| format!("{}:{}", Value::from(key.as_str()), canonical(&map[*key]))).collect();
+            format!("{{{}}}", fields.join(","))
+        }
+        Value::Array(items) => format!("[{}]", items.iter().map(canonical).collect::<Vec<_>>().join(",")),
+        other => other.to_string(),
+    }
+}
+
 pub fn signature_check(bench: &Path, sdks: &[Sdk]) -> Result<Value> {
     progress("signature check: every SDK signs the same order with the same key and nonce");
     let quiet = Options { compare: false, network: false, quick: false, runs: 1, rounds: 1, live_secs: 5 };
@@ -111,16 +126,18 @@ pub fn signature_check(bench: &Path, sdks: &[Sdk]) -> Result<Value> {
         checks.push(check);
     }
     let distinct = |key: &str| {
-        let mut seen: Vec<String> = checks.iter().map(|check| check[key].to_string()).collect();
+        let mut seen: Vec<String> = checks.iter().map(|check| canonical(&check[key])).collect();
         seen.sort();
         seen.dedup();
         seen
     };
-    let (signatures, addresses, actions) = (distinct("signature"), distinct("address"), distinct("action"));
-    let equal = signatures.len() == 1 && addresses.len() == 1 && actions.len() == 1;
-    if !equal {
-        return Err(format!("the SDKs signed the fixed order differently; not timing anything: {signatures:?}"));
+    for key in ["signature", "address", "action"] {
+        let seen = distinct(key);
+        if seen.len() != 1 {
+            return Err(format!("the rows disagree on the {key}, so nothing is timed: {seen:#?}"));
+        }
     }
+    let equal = true;
     let signature = checks[0]["signature"].clone();
     let short: String = signature.as_str().unwrap_or_default().chars().take(18).collect();
     progress(&format!("signature check: all {} rows signed {short}...", checks.len()));
@@ -153,4 +170,18 @@ pub fn parsing(bench: &Path, sdks: &[Sdk], options: &Options) -> Result<Value> {
         rows.insert(sdk.name.to_owned(), row);
     }
     Ok(Value::Object(rows))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_same_action_with_its_keys_in_another_order_is_the_same() {
+        let a: Value = serde_json::from_str(r#"{"type":"order","orders":[{"a":0,"b":true}],"grouping":"na"}"#).unwrap();
+        let b: Value = serde_json::from_str(r#"{"grouping":"na","orders":[{"b":true,"a":0}],"type":"order"}"#).unwrap();
+        let c: Value = serde_json::from_str(r#"{"grouping":"na","orders":[{"b":false,"a":0}],"type":"order"}"#).unwrap();
+        assert_eq!(canonical(&a), canonical(&b));
+        assert_ne!(canonical(&a), canonical(&c));
+    }
 }
