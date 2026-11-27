@@ -1,11 +1,13 @@
-# Benchmarks of df-hyperliquid-core against hypersdk and the official Python SDK.
-# Its own workspace, so hypersdk never enters the main Cargo.lock. Build each binary on its
+# Benchmarks of df-hyperliquid-core against the other Hyperliquid SDKs.
+# Its own workspace, so no competitor enters the main Cargo.lock. Build each binary on its
 # own (`cargo build --release -p bench-df`, then `-p bench-hypersdk`) so cargo does not unify
-# the two SDKs' dependency features into one build: each binary is what a user of that SDK
-# alone would compile.
+# the SDKs' dependency features into one build: each binary is what a user of that SDK alone
+# would compile. The other Rust competitors are separate workspaces with their own Cargo.lock
+# (their alloy and ethers versions cannot share one dependency graph), and are excluded here.
 [workspace]
 resolver = "3"
 members = ["common", "df", "hypersdk", "runner"]
+exclude = ["lhermoso", "quicknode", "official-rust"]
 
 [workspace.package]
 version = "0.0.0"
@@ -14,3 +16,10 @@ publish = false
 
 [profile.release]
 debug = false
+
+# `--profile release-lto` or `--profile both`: the same code with fat link-time optimization and
+# one codegen unit, to show how much of a difference between rows code generation alone makes.
+[profile.release-lto]
+inherits = "release"
+lto = "fat"
+codegen-units = 1

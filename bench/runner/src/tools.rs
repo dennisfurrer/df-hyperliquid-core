@@ -8,6 +8,10 @@ pub struct Tools {
     pub rustc: Option<String>,
     pub c_compiler: Option<String>,
     pub uv: Option<String>,
+    pub node: Option<String>,
+    pub pnpm: Option<String>,
+    pub go: Option<String>,
+    pub protoc: Option<String>,
     pub just: Option<String>,
     pub git: Option<String>,
 }
@@ -28,6 +32,10 @@ pub fn find(bench: &Path) -> Tools {
         rustc: first_line("rustc", &["--version"], bench),
         c_compiler: first_line(&compiler, &["--version"], bench).map(|line| format!("{compiler}: {line}")),
         uv: first_line("uv", &["--version"], bench),
+        node: first_line("node", &["--version"], bench),
+        pnpm: first_line("pnpm", &["--version"], bench),
+        go: first_line("go", &["version"], bench),
+        protoc: first_line("protoc", &["--version"], bench),
         just: first_line("just", &["--version"], bench),
         git: first_line("git", &["--version"], bench),
     }
@@ -66,6 +74,32 @@ pub fn doctor(bench: &Path) {
     match &found.uv {
         Some(version) => line(true, "uv", &format!("{version}; runs the Python SDK rows in compare mode")),
         None => line(false, "uv", "the Python SDK rows are skipped; install from https://docs.astral.sh/uv/"),
+    }
+    match &found.node {
+        Some(version) => line(
+            true,
+            "node",
+            &format!("{version}; runs the @nktkas/hyperliquid rows in compare mode (needs 22.12 or newer)"),
+        ),
+        None => line(false, "node", "the @nktkas/hyperliquid rows are skipped; install Node 22.12 or newer"),
+    }
+    match &found.pnpm {
+        Some(version) => {
+            line(true, "pnpm", &format!("{version}; installs @nktkas/hyperliquid from bench/ts/pnpm-lock.yaml"))
+        }
+        None => line(false, "pnpm", "the @nktkas/hyperliquid rows are skipped; install from https://pnpm.io"),
+    }
+    match &found.go {
+        Some(version) => line(true, "go", &format!("{version}; builds the go-hyperliquid rows in compare mode")),
+        None => line(false, "go", "the go-hyperliquid rows are skipped; install from https://go.dev/dl/"),
+    }
+    match &found.protoc {
+        Some(version) => line(true, "protoc", &format!("{version}; quicknode-hyperliquid-sdk's build script needs it")),
+        None => line(
+            false,
+            "protoc",
+            "the quicknode-hyperliquid-sdk rows are skipped; install protobuf (brew install protobuf)",
+        ),
     }
     match &found.just {
         Some(version) => line(true, "just", &format!("{version}; optional, every command also runs with cargo")),

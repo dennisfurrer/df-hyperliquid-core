@@ -1,9 +1,11 @@
 //! The benchmark runner. It builds the benchmark binaries, runs them and writes
 //! `results/<date>-<cpu>.json` and `.md`. Commands:
 //!
-//! - `run`: df-hyperliquid-core alone, offline. `--compare` adds hypersdk and the Python SDK,
+//! - `run`: df-hyperliquid-core alone, offline. `--compare` adds the other SDKs (hypersdk,
+//!   hyperliquid-sdk-rs, quicknode-hyperliquid-sdk, hyperliquid_rust_sdk, @nktkas/hyperliquid,
+//!   go-hyperliquid and the Python SDK),
 //!   `--network` adds the round trips and the live websocket, `--quick` checks that everything
-//!   runs instead of measuring.
+//!   runs instead of measuring, `--profile release|release-lto|both` picks the Rust build profile.
 //! - `doctor`: which tools are installed and what each one enables.
 //! - `share [results.json]`: a summary of at most 280 characters to post.
 
@@ -24,7 +26,8 @@ use serde_json::{Value, json};
 
 pub type Result<T> = std::result::Result<T, String>;
 
-const USAGE: &str = "usage: bench-runner run [--compare] [--network] [--quick] [--runs N] [--rounds N] [--live-secs N]
+const USAGE: &str = "usage: bench-runner run [--compare] [--network] [--quick] [--profile release|release-lto|both]
+                        [--runs N] [--rounds N] [--live-secs N]
        bench-runner doctor
        bench-runner share [results.json]";
 
@@ -39,11 +42,22 @@ pub struct Options {
     /// Paced network rounds, after 3 warm-up rounds.
     pub rounds: usize,
     pub live_secs: u64,
+    /// The Rust build profiles: `release`, `release-lto`, or both in that order. The first is the
+    /// one every table ranks; the second adds columns beside it.
+    pub profiles: Vec<&'static str>,
 }
 
 impl Options {
     fn parse(args: &[String]) -> Result<Options> {
-        let mut options = Options { compare: false, network: false, quick: false, runs: 5, rounds: 100, live_secs: 60 };
+        let mut options = Options {
+            compare: false,
+            network: false,
+            quick: false,
+            runs: 5,
+            rounds: 100,
+            live_secs: 60,
+            profiles: vec![compile::RELEASE],
+        };
         let mut given = (None, None, None);
         let mut at = 0;
         while at < args.len() {
@@ -58,6 +72,15 @@ impl Options {
                 "--runs" => (given.0, at) = (Some(number(at)? as usize), at + 1),
                 "--rounds" => (given.1, at) = (Some(number(at)? as usize), at + 1),
                 "--live-secs" => (given.2, at) = (Some(number(at)?), at + 1),
+                "--profile" => {
+                    options.profiles = match args.get(at + 1).map(String::as_str) {
+                        Some("release") => vec![compile::RELEASE],
+                        Some("release-lto") => vec![compile::RELEASE_LTO],
+                        Some("both") => vec![compile::RELEASE, compile::RELEASE_LTO],
+                        _ => return Err(format!("--profile needs release, release-lto or both\n{USAGE}")),
+                    };
+                    at += 1;
+                }
                 other => return Err(format!("unknown option {other}\n{USAGE}")),
             }
             at += 1;
@@ -126,17 +149,19 @@ fn run(options: &Options) -> Result<()> {
             "network": options.network,
             "quick": options.quick,
             "runs": options.runs,
+            "profiles": options.profiles,
         },
         "machine": machine,
         "versions": versions,
     });
     let sdks = offline::sdks(&bench, &binaries, options);
     result["signature_check"] = offline::signature_check(&bench, &sdks)?;
-    result["signing"] = offline::signing(&bench, &sdks, options)?;
-    result["parsing"] = offline::parsing(&bench, &sdks, options)?;
+    result["copy_check"] = offline::copy_check(&bench, &sdks);
+    result["signing"] = offline::signing(&bench, &sdks, options, &mut skipped)?;
+    result["parsing"] = offline::parsing(&bench, &sdks, options, &mut skipped)?;
     if options.network {
         result["network"] = network::rounds(&bench, &binaries, options)?;
-        result["live"] = network::live(&bench, &binaries, options)?;
+        result["live"] = network::live(&bench, &binaries, options, &mut skipped)?;
     }
     result["skipped"] = Value::from(skipped);
     result["timing"] = json!({

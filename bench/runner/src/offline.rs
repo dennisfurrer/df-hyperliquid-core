@@ -13,6 +13,11 @@ use crate::{Options, Result, progress};
 pub const DF: &str = "df-hyperliquid-core";
 pub const DF_SECP: &str = "df-hyperliquid-core + secp256k1";
 pub const HYPERSDK: &str = "hypersdk";
+pub const LHERMOSO: &str = "hyperliquid-sdk-rs";
+pub const QUICKNODE: &str = "quicknode-hyperliquid-sdk";
+pub const OFFICIAL_RUST: &str = "hyperliquid_rust_sdk";
+pub const NKTKAS: &str = "@nktkas/hyperliquid";
+pub const GO: &str = "go-hyperliquid";
 pub const PY: &str = "hyperliquid-python-sdk";
 pub const PY_FAST: &str = "hyperliquid-python-sdk + coincurve";
 
@@ -20,6 +25,9 @@ pub const PY_FAST: &str = "hyperliquid-python-sdk + coincurve";
 /// coincurve, which eth-keys uses when coincurve is installed.
 const PURE_PYTHON: &str = "eth_keys.backends.NativeECCBackend";
 const COINCURVE: &str = "eth_keys.backends.CoinCurveECCBackend";
+
+/// Every competitor row, in the order the tables list them.
+pub const COMPETITORS: [&str; 8] = [HYPERSDK, LHERMOSO, QUICKNODE, OFFICIAL_RUST, NKTKAS, GO, PY, PY_FAST];
 
 /// One row: how to start its benchmark program, and whether it parses (the coincurve row signs
 /// only; the secp256k1 row parses exactly as the default build does).
@@ -30,6 +38,11 @@ pub struct Sdk {
     pub parses: bool,
     /// Signing samples for the Python rows, which are far slower.
     pub samples: Option<usize>,
+    /// The build profile of a Rust row, `None` for the others.
+    pub profile: Option<&'static str>,
+    /// A Rust row built with the second profile of `--profile both`: its figures go under
+    /// `"profiles"` in the row of the same name.
+    pub extra: bool,
 }
 
 impl Sdk {
@@ -52,27 +65,108 @@ fn python(backend: &str, name: &'static str, parses: bool, samples: usize) -> Sd
         env: vec![("ECC_BACKEND_CLASS".to_owned(), backend.to_owned())],
         parses,
         samples: Some(samples),
+        profile: None,
+        extra: false,
     }
 }
 
-fn rust(name: &'static str, path: &Path, parses: bool) -> Sdk {
-    Sdk { name, program: vec![path.display().to_string()], env: Vec::new(), parses, samples: None }
+fn rust(name: &'static str, path: &Path, parses: bool, profile: &'static str, extra: bool) -> Sdk {
+    Sdk {
+        name,
+        program: vec![path.display().to_string()],
+        env: Vec::new(),
+        parses,
+        samples: None,
+        profile: Some(profile),
+        extra,
+    }
+}
+
+/// The Rust rows of one profile's binaries.
+fn rust_rows(binaries: &Binaries, extra: bool) -> Vec<Sdk> {
+    let profile = binaries.profile;
+    let mut rows = vec![rust(DF, &binaries.df, true, profile, extra)];
+    if let Some(path) = &binaries.df_secp {
+        rows.push(rust(DF_SECP, path, false, profile, extra));
+    }
+    if let Some(path) = &binaries.hypersdk {
+        rows.push(rust(HYPERSDK, path, true, profile, extra));
+    }
+    for (name, path) in
+        [(LHERMOSO, &binaries.lhermoso), (QUICKNODE, &binaries.quicknode), (OFFICIAL_RUST, &binaries.official_rust)]
+    {
+        if let Some(path) = path {
+            rows.push(rust(name, path, true, profile, extra));
+        }
+    }
+    rows
 }
 
 pub fn sdks(_bench: &Path, binaries: &Binaries, options: &Options) -> Vec<Sdk> {
     let tenth = |n: usize| if options.quick { n / 10 } else { n };
-    let mut rows = vec![rust(DF, &binaries.df, true)];
-    if let Some(path) = &binaries.df_secp {
-        rows.push(rust(DF_SECP, path, false));
+    let mut rows = rust_rows(binaries, false);
+    if binaries.ts {
+        let program = ["node", "ts/bench.mjs"];
+        rows.push(Sdk {
+            name: NKTKAS,
+            program: program.iter().map(|part| (*part).to_owned()).collect(),
+            env: Vec::new(),
+            parses: true,
+            samples: None,
+            profile: None,
+            extra: false,
+        });
     }
-    if let Some(path) = &binaries.hypersdk {
-        rows.push(rust(HYPERSDK, path, true));
+    if let Some(path) = &binaries.go {
+        rows.push(Sdk {
+            name: GO,
+            program: vec![path.display().to_string()],
+            env: Vec::new(),
+            parses: true,
+            samples: None,
+            profile: None,
+            extra: false,
+        });
     }
     if binaries.python {
         rows.push(python(PURE_PYTHON, PY, true, tenth(2_000)));
         rows.push(python(COINCURVE, PY_FAST, false, tenth(5_000)));
     }
+    if let Some(other) = &binaries.other {
+        rows.extend(rust_rows(other, true));
+    }
     rows
+}
+
+/// A row's name for progress lines and notes: with its profile when it is the second one.
+fn label(sdk: &Sdk) -> String {
+    match (sdk.extra, sdk.profile) {
+        (true, Some(profile)) => format!("{} ({profile})", sdk.name),
+        _ => sdk.name.to_owned(),
+    }
+}
+
+/// Keeps a measured row: a first-profile row under its name with its profile, a second-profile
+/// row under `"profiles"` in the first-profile row of the same name.
+fn keep(rows: &mut Map<String, Value>, sdk: &Sdk, mut row: Value) {
+    if let Some(profile) = sdk.profile {
+        row["profile"] = Value::from(profile);
+    }
+    match (sdk.extra, sdk.profile) {
+        (true, Some(profile)) => {
+            if let Some(first) = rows.get_mut(sdk.name) {
+                first["profiles"][profile] = row;
+            }
+        }
+        _ => {
+            rows.insert(sdk.name.to_owned(), row);
+        }
+    }
+}
+
+/// Options for a single unmeasured call (`sign-check`, `verify-copy`).
+fn quiet() -> Options {
+    Options { compare: false, network: false, quick: false, runs: 1, rounds: 1, live_secs: 5, profiles: Vec::new() }
 }
 
 /// Runs a benchmark program once and reads the JSON object on its last line of output.
@@ -117,58 +211,138 @@ fn canonical(value: &Value) -> String {
     }
 }
 
+/// Every row signs the same order with the same key and nonce. A row whose program fails, or
+/// whose signature, address or action differs from df-hyperliquid-core's, is listed under
+/// `"failing"` with the reason; it is still timed, and the tables say it failed the check.
 pub fn signature_check(bench: &Path, sdks: &[Sdk]) -> Result<Value> {
     progress("signature check: every SDK signs the same order with the same key and nonce");
-    let quiet = Options { compare: false, network: false, quick: false, runs: 1, rounds: 1, live_secs: 5 };
+    let quiet = quiet();
     let mut checks = Vec::new();
-    for sdk in sdks {
-        let mut check = run_json(bench, sdk.command(&["sign-check"], &quiet))?;
-        check["row"] = Value::from(sdk.name);
-        checks.push(check);
-    }
-    let distinct = |key: &str| {
-        let mut seen: Vec<String> = checks.iter().map(|check| canonical(&check[key])).collect();
-        seen.sort();
-        seen.dedup();
-        seen
-    };
-    for key in ["signature", "address", "action"] {
-        let seen = distinct(key);
-        if seen.len() != 1 {
-            return Err(format!("the rows disagree on the {key}, so nothing is timed: {seen:#?}"));
+    let mut failing = Vec::new();
+    for sdk in sdks.iter().filter(|sdk| !sdk.extra) {
+        match run_json(bench, sdk.command(&["sign-check"], &quiet)) {
+            Ok(mut check) => {
+                check["row"] = Value::from(sdk.name);
+                checks.push(check);
+            }
+            Err(error) => failing.push(json!({ "row": sdk.name, "reason": first_line(&error) })),
         }
     }
-    let equal = true;
-    let signature = checks[0]["signature"].clone();
+    let reference = checks
+        .iter()
+        .find(|check| check["row"] == DF)
+        .cloned()
+        .ok_or("df-hyperliquid-core's sign-check did not run")?;
+    for check in &checks {
+        let differs: Vec<&str> = ["signature", "address", "action"]
+            .into_iter()
+            .filter(|key| canonical(&check[*key]) != canonical(&reference[*key]))
+            .collect();
+        if !differs.is_empty() {
+            failing.push(json!({
+                "row": check["row"],
+                "reason": format!("its {} differs from df-hyperliquid-core's", differs.join(", ")),
+            }));
+        }
+    }
+    let signature = reference["signature"].clone();
     let short: String = signature.as_str().unwrap_or_default().chars().take(18).collect();
-    progress(&format!("signature check: all {} rows signed {short}...", checks.len()));
-    Ok(json!({ "equal": equal, "signature": signature, "address": checks[0]["address"], "checks": checks }))
+    if failing.is_empty() {
+        progress(&format!("signature check: all {} rows signed {short}...", checks.len()));
+    } else {
+        for failed in &failing {
+            progress(&format!(
+                "signature check FAILED for {}: {}",
+                failed["row"].as_str().unwrap_or_default(),
+                failed["reason"].as_str().unwrap_or_default()
+            ));
+        }
+    }
+    Ok(json!({
+        "equal": failing.is_empty(),
+        "signature": signature,
+        "address": reference["address"],
+        "checks": checks,
+        "failing": failing,
+    }))
 }
 
-pub fn signing(bench: &Path, sdks: &[Sdk], options: &Options) -> Result<Value> {
+/// hyperliquid-sdk-rs and hyperliquid_rust_sdk sign through private code, which their harnesses
+/// copy. `verify-copy` runs each SDK's own public order call without reaching the venue and
+/// compares what it signs or posts with what the copy makes from the same order and nonce.
+pub fn copy_check(bench: &Path, sdks: &[Sdk]) -> Value {
+    let quiet = quiet();
+    let mut rows = Map::new();
+    for sdk in sdks.iter().filter(|sdk| !sdk.extra && [LHERMOSO, OFFICIAL_RUST].contains(&sdk.name)) {
+        progress(&format!("copy check: {}'s copied signing code against its own order call", sdk.name));
+        let row = match run_json(bench, sdk.command(&["verify-copy"], &quiet)) {
+            Ok(answer) => answer["verify_copy"].clone(),
+            Err(error) => json!({ "equal": false, "reason": first_line(&error) }),
+        };
+        if row["equal"].as_bool() != Some(true) {
+            progress(&format!("copy check FAILED for {}", sdk.name));
+        }
+        rows.insert(sdk.name.to_owned(), row);
+    }
+    Value::Object(rows)
+}
+
+/// The first line of an error, for a note.
+pub fn first_line(error: &str) -> String {
+    error.lines().find(|line| !line.trim().is_empty()).unwrap_or_default().chars().take(200).collect()
+}
+
+/// Runs `args` for one row: df-hyperliquid-core's failure stops the run, a competitor's is noted
+/// in `skipped` and its row left out.
+fn measure(
+    bench: &Path,
+    sdk: &Sdk,
+    args: &[&str],
+    options: &Options,
+    metric: fn(&Value) -> f64,
+    skipped: &mut Vec<String>,
+) -> Result<Option<Value>> {
+    match median_run(bench, sdk, args, options, metric) {
+        Ok(row) => Ok(Some(row)),
+        Err(error) if sdk.name != DF || sdk.extra => {
+            skipped.push(format!("{}: `{}` failed: {}", label(sdk), args[0], first_line(&error)));
+            Ok(None)
+        }
+        Err(error) => Err(error),
+    }
+}
+
+pub fn signing(bench: &Path, sdks: &[Sdk], options: &Options, skipped: &mut Vec<String>) -> Result<Value> {
     let mut rows = Map::new();
     for sdk in sdks {
-        progress(&format!("signing: {} ({} run{})", sdk.name, options.runs, if options.runs == 1 { "" } else { "s" }));
+        progress(&format!(
+            "signing: {} ({} run{})",
+            label(sdk),
+            options.runs,
+            if options.runs == 1 { "" } else { "s" }
+        ));
         let samples = sdk.samples.map(|n| n.to_string());
         let args: Vec<&str> = match &samples {
             Some(n) => vec!["sign", "--samples", n],
             None => vec!["sign"],
         };
-        let row = median_run(bench, sdk, &args, options, |run| run["sign"]["median_ns"].as_f64().unwrap_or(f64::MAX))?;
-        rows.insert(sdk.name.to_owned(), row);
+        let metric: fn(&Value) -> f64 = |run| run["sign"]["median_ns"].as_f64().unwrap_or(f64::MAX);
+        if let Some(row) = measure(bench, sdk, &args, options, metric, skipped)? {
+            keep(&mut rows, sdk, row);
+        }
     }
     Ok(Value::Object(rows))
 }
 
-pub fn parsing(bench: &Path, sdks: &[Sdk], options: &Options) -> Result<Value> {
+pub fn parsing(bench: &Path, sdks: &[Sdk], options: &Options, skipped: &mut Vec<String>) -> Result<Value> {
     let corpus = "data/frames.jsonl.gz";
     let mut rows = Map::new();
     for sdk in sdks.iter().filter(|sdk| sdk.parses) {
-        progress(&format!("parse: {} over the recorded corpus", sdk.name));
-        let row = median_run(bench, sdk, &["parse", "--corpus", corpus], options, |run| {
-            run["parse"]["all"]["frames_per_s"].as_f64().unwrap_or(0.0)
-        })?;
-        rows.insert(sdk.name.to_owned(), row);
+        progress(&format!("parse: {} over the recorded corpus", label(sdk)));
+        let metric: fn(&Value) -> f64 = |run| run["parse"]["all"]["frames_per_s"].as_f64().unwrap_or(0.0);
+        if let Some(row) = measure(bench, sdk, &["parse", "--corpus", corpus], options, metric, skipped)? {
+            keep(&mut rows, sdk, row);
+        }
     }
     Ok(Value::Object(rows))
 }

@@ -1,0 +1,15 @@
+{
+  "name": "hl-sdk-bench-ts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Benchmarks for nktkas's TypeScript SDK, @nktkas/hyperliquid, run next to the Rust ones.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@nktkas/hyperliquid": "0.33.3",
+    "undici": "6.21.1",
+    "viem": "2.58.8"
+  }
+}

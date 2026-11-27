@@ -12,7 +12,7 @@ use std::time::Duration;
 use serde_json::{Map, Value, json};
 
 use crate::compile::Binaries;
-use crate::offline::{DF, HYPERSDK, PY, run_json};
+use crate::offline::{DF, GO, HYPERSDK, LHERMOSO, NKTKAS, OFFICIAL_RUST, PY, QUICKNODE, first_line, run_json};
 use crate::{Options, Result, progress};
 
 const WARMUP_ROUNDS: usize = 3;
@@ -28,6 +28,21 @@ fn programs(binaries: &Binaries, args: &[&str]) -> Vec<(&'static str, Command)> 
     let mut programs = vec![(DF, rust(&binaries.df))];
     if let Some(path) = &binaries.hypersdk {
         programs.push((HYPERSDK, rust(path)));
+    }
+    for (name, path) in
+        [(LHERMOSO, &binaries.lhermoso), (QUICKNODE, &binaries.quicknode), (OFFICIAL_RUST, &binaries.official_rust)]
+    {
+        if let Some(path) = path {
+            programs.push((name, rust(path)));
+        }
+    }
+    if binaries.ts {
+        let mut command = Command::new("node");
+        command.arg("ts/bench.mjs").args(args);
+        programs.push((NKTKAS, command));
+    }
+    if let Some(path) = &binaries.go {
+        programs.push((GO, rust(path)));
     }
     if binaries.python {
         let mut command = Command::new("uv");
@@ -116,7 +131,13 @@ pub fn rounds(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Va
         let order: Vec<usize> = (0..workers.len()).map(|at| (at + round) % workers.len()).collect();
         for (test, name) in ["info", "exchange"].iter().enumerate() {
             for &at in &order {
-                let answer = workers[at].ask(name)?;
+                // A competitor whose program stopped answers every later request with an error,
+                // counted as a failed request; df-hyperliquid-core's stops the run.
+                let answer = match workers[at].ask(name) {
+                    Ok(answer) => answer,
+                    Err(error) if workers[at].name != DF => json!({ "ok": false, "ns": 0, "answer": error }),
+                    Err(error) => return Err(error),
+                };
                 if round >= WARMUP_ROUNDS {
                     let ok = answer["ok"].as_bool().unwrap_or(false);
                     let ns = answer["ns"].as_u64().unwrap_or(0);
@@ -142,6 +163,10 @@ pub fn rounds(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Va
                 Value::from(answers.iter().map(|(_, ns, _)| *ns).collect::<Vec<_>>()),
             );
         }
+        if let Some(route) = route(worker.name) {
+            row.insert("route".to_owned(), Value::from(route));
+            row.insert("ranked".to_owned(), Value::from(false));
+        }
         rows.insert(worker.name.to_owned(), Value::Object(row));
         worker.stop();
     }
@@ -150,11 +175,28 @@ pub fn rounds(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Va
     )
 }
 
-pub fn live(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Value> {
+/// Why quicknode-hyperliquid-sdk's live row does not apply, or `None` when a QuickNode endpoint
+/// is set in `QUICKNODE_ENDPOINT`. Its `Stream` is documented for a QuickNode endpoint; without
+/// one it sends subscriptions the public websocket refuses.
+pub fn quicknode_live_not_applicable() -> Option<&'static str> {
+    let set = std::env::var("QUICKNODE_ENDPOINT").is_ok_and(|endpoint| !endpoint.trim().is_empty());
+    (!set).then_some("its Stream needs a QuickNode endpoint, and none was set (QUICKNODE_ENDPOINT)")
+}
+
+/// What a round trip of `name` goes through, when it is not the venue's API directly.
+fn route(name: &str) -> Option<&'static str> {
+    (name == QUICKNODE).then_some(
+        "QuickNode's own service: its worker at send.hyperliquidapi.com, or the QuickNode endpoint when one is set",
+    )
+}
+
+pub fn live(bench: &Path, binaries: &Binaries, options: &Options, skipped: &mut Vec<String>) -> Result<Value> {
     let secs = options.live_secs.to_string();
     progress(&format!("live: BTC l2Book (fast), bbo and trades, every SDK at once for {secs} s"));
+    let quicknode_not_applicable = quicknode_live_not_applicable();
     let running: Vec<(&str, std::thread::JoinHandle<Result<Value>>)> = programs(binaries, &["live", "--secs", &secs])
         .into_iter()
+        .filter(|(name, _)| !(*name == QUICKNODE && quicknode_not_applicable.is_some()))
         .map(|(name, mut command)| {
             let bench = bench.to_path_buf();
             (
@@ -173,8 +215,16 @@ pub fn live(bench: &Path, binaries: &Binaries, options: &Options) -> Result<Valu
         .collect();
     let mut rows = Map::new();
     for (name, handle) in running {
-        let row = handle.join().map_err(|_| format!("{name}: live run panicked"))??;
-        rows.insert(name.to_owned(), row);
+        match handle.join().map_err(|_| format!("{name}: live run panicked"))? {
+            Ok(row) => {
+                rows.insert(name.to_owned(), row);
+            }
+            Err(error) if name != DF => skipped.push(format!("{name}: `live` failed: {}", first_line(&error))),
+            Err(error) => return Err(error),
+        }
+    }
+    if let (Some(reason), true) = (quicknode_not_applicable, binaries.quicknode.is_some()) {
+        rows.insert(QUICKNODE.to_owned(), json!({ "not_applicable": reason }));
     }
     Ok(json!({ "seconds": options.live_secs, "sdks": rows }))
 }

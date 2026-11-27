@@ -1,3 +1,5 @@
 /target
 # Quick runs only check that the harness runs; they are never committed.
 /results/*-quick.*
+# Installed by `pnpm install` in bench/ts.
+/ts/node_modules

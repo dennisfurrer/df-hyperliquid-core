@@ -3,7 +3,7 @@
 
 use serde_json::Value;
 
-use crate::offline::{DF, DF_SECP, HYPERSDK};
+use crate::offline::{COMPETITORS, DF, DF_SECP};
 use crate::pdf::{self, Font, PAGE_HEIGHT, PAGE_WIDTH, Page, Rgb};
 use crate::report::{Table, heading, tables};
 
@@ -88,27 +88,45 @@ fn band(layout: &mut Layout, result: &Value) {
     layout.y = 121.0 + 24.0;
 }
 
-/// The headline figures: ratios against hypersdk in compare mode, our own figures otherwise.
+/// The headline figures: in compare mode, ratios against the fastest other SDK on each test
+/// (below 1 when that SDK was faster); df-hyperliquid-core's own figures otherwise.
 fn tiles(layout: &mut Layout, result: &Value) {
     let f = |value: &Value| value.as_f64().unwrap_or(0.0);
     let sign = |name: &str| f(&result["signing"][name]["sign"]["median_ns"]);
     let parse = |name: &str, part: &str| f(&result["parsing"][name]["parse"][part]["frames_per_s"]);
+    let others = |table: &str| -> Vec<&str> {
+        COMPETITORS.into_iter().filter(|name| result[table].get(*name).is_some()).collect()
+    };
+    let fastest_parse = |part: &str| {
+        others("parsing")
+            .into_iter()
+            .filter(|name| parse(name, part) > 0.0)
+            .max_by(|a, b| parse(a, part).total_cmp(&parse(b, part)))
+    };
+    let fastest_sign =
+        others("signing").into_iter().filter(|name| sign(name) > 0.0).min_by(|a, b| sign(a).total_cmp(&sign(b)));
     let mut items: Vec<(String, String)> = Vec::new();
-    if result["parsing"].get(HYPERSDK).is_some() && parse(HYPERSDK, "all") > 0.0 && sign(DF) > 0.0 {
+    if let (Some(parser), Some(signer)) = (fastest_parse("all"), fastest_sign)
+        && sign(DF) > 0.0
+        && parse(DF, "all") > 0.0
+    {
         items.push((
-            format!("{:.1}x", parse(DF, "all") / parse(HYPERSDK, "all")),
-            "websocket parsing vs hypersdk".to_owned(),
+            format!("{:.1}x", parse(DF, "all") / parse(parser, "all")),
+            format!("websocket parsing vs {parser}, the fastest other parser"),
         ));
-        items.push((
-            format!("{:.1}x", parse(DF, "l2Book") / parse(HYPERSDK, "l2Book")),
-            "l2Book parsing vs hypersdk".to_owned(),
-        ));
-        items.push((format!("{:.1}x", sign(HYPERSDK) / sign(DF)), "order signing vs hypersdk".to_owned()));
-        if sign(DF_SECP) > 0.0 {
+        if let Some(books) = fastest_parse("l2Book") {
             items.push((
-                format!("{:.1}x", sign(HYPERSDK) / sign(DF_SECP)),
-                "signing with secp256k1 vs hypersdk".to_owned(),
+                format!("{:.1}x", parse(DF, "l2Book") / parse(books, "l2Book")),
+                format!("l2Book parsing vs {books}"),
             ));
+        }
+        items.push((
+            format!("{:.1}x", sign(signer) / sign(DF)),
+            format!("order signing vs {signer}, the fastest other signer"),
+        ));
+        if sign(DF_SECP) > 0.0 {
+            items
+                .push((format!("{:.1}x", sign(signer) / sign(DF_SECP)), format!("signing with secp256k1 vs {signer}")));
         }
     } else {
         items.push((format!("{:.1} us", sign(DF) / 1_000.0), "hash and sign one order".to_owned()));
@@ -249,6 +267,20 @@ mod tests {
     fn widths_follow_the_standard_metrics() {
         assert!((pdf::width("0123456789", Font::Regular, 10.0) - 55.6).abs() < 1e-9);
         assert!((pdf::width("abc", Font::Bold, 10.0) - 17.23).abs() < 1e-9);
+    }
+
+    #[test]
+    fn every_row_label_fits_the_first_column() {
+        use crate::offline::{COMPETITORS, DF_SECP, QUICKNODE};
+        // The first column is 150 points wide in a table of more than five columns and 175 in the
+        // others, with 8 points of padding on each side. The round-trip tables have five.
+        let mut labels: Vec<(String, f64)> = COMPETITORS.iter().map(|name| ((*name).to_owned(), 150.0)).collect();
+        labels.extend([(DF.to_owned(), 150.0), (DF_SECP.to_owned(), 150.0)]);
+        labels.push((format!("{QUICKNODE}, via QuickNode"), 175.0));
+        for (label, column) in labels {
+            let width = pdf::width(&label, Font::Regular, 8.0);
+            assert!(width <= column - 16.0, "{label} is {width:.1} points wide");
+        }
     }
 
     #[test]
