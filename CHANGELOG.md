@@ -2,6 +2,10 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.4
+
+No code changes. The README's benchmarks are from the reproducible harness in `bench/` (`just bench-compare`, offline, no key needed), at the tag `bench-2026-11-27`.
+
 ## 0.2.3
 
 Added:
