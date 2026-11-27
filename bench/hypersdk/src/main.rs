@@ -9,8 +9,8 @@ use std::time::{Duration, Instant};
 
 use bench_common::{
     CountingAlloc,
-    FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, SIGN_SAMPLES, SIGN_WARMUP, args, flag,
-    load_corpus, parse_report, summary_ns, time_each, warm,
+    FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag,
+    load_corpus, parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
 };
 use futures::StreamExt;
 use hypersdk::Decimal;
@@ -112,21 +112,27 @@ fn sign() -> Result<Value> {
     // Hash and sign an order action that is already built. `sign_sync` takes the action by
     // value, so each call signs a clone of it.
     let hash_and_sign = || action.clone().sign_sync(&signer, FIXED_NONCE, None, None, Chain::Mainnet).ok();
-    warm(SIGN_WARMUP, hash_and_sign);
-    let signed = time_each(SIGN_SAMPLES, hash_and_sign);
+    warm(sign_warmup(), hash_and_sign);
+    let signed = time_each(sign_samples(), hash_and_sign);
 
     // From typed price and size to the JSON body `/exchange` takes.
     let build_sign_body = || -> Option<Vec<u8>> {
         let request = Action::Order(order(px, sz)).sign_sync(&signer, FIXED_NONCE, None, None, Chain::Mainnet).ok()?;
         serde_json::to_vec(&request).ok()
     };
-    warm(SIGN_WARMUP, build_sign_body);
-    let bodies = time_each(SIGN_SAMPLES, build_sign_body);
+    warm(sign_warmup(), build_sign_body);
+    let bodies = time_each(sign_samples(), build_sign_body);
+
+    // The clone alone, so the fairness notes can say what it adds to hash + sign.
+    let cloned = || action.clone();
+    warm(sign_warmup(), cloned);
+    let clones = time_each(sign_samples(), cloned);
 
     Ok(json!({
         "sdk": "hypersdk",
         "sign": summary_ns(&signed),
         "build_sign_body": summary_ns(&bodies),
+        "clone_action": summary_ns(&clones),
     }))
 }
 

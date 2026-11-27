@@ -5,14 +5,15 @@
 //! - `parse --corpus <path>`: decode the recorded websocket frames.
 //! - `serve --px <price> --sz <size>`: answer `info` and `exchange` lines on stdin, one JSON
 //!   line each, for the paced network rounds `run.py` drives.
+//! - `mid`: BTC's mid on mainnet, for the price of the refused order in the network rounds.
 //! - `live --secs <n>`: BTC `l2Book` (fast), `bbo` and `trades` from mainnet for `n` seconds.
 
 use std::error::Error;
 use std::time::{Duration, Instant};
 
 use bench_common::{
-    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, SIGN_SAMPLES, SIGN_WARMUP, args, flag,
-    load_corpus, parse_report, summary_ns, time_each, warm,
+    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag,
+    load_corpus, parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
 };
 use df_hyperliquid_core::account::{LocalKey, Signature, recover};
 use df_hyperliquid_core::client::ApiError;
@@ -45,8 +46,9 @@ async fn main() -> Result<()> {
             let sz: Dec = flag(&args, "--sz").ok_or("--sz <size>")?.parse()?;
             return serve(px, sz).await;
         }
+        Some("mid") => mid().await?,
         Some("live") => live(flag(&args, "--secs").ok_or("--secs <n>")?.parse()?).await?,
-        _ => return Err("usage: bench-df sign-check | sign | parse | serve | live".into()),
+        _ => return Err("usage: bench-df sign-check | sign | parse | serve | mid | live".into()),
     };
     println!("{report}");
     Ok(())
@@ -84,8 +86,8 @@ fn sign() -> Result<Value> {
 
     // Hash and sign an order action that is already built: msgpack, keccak, EIP-712, ECDSA.
     let hash_and_sign = || key.sign_digest(&place.digest(FIXED_NONCE, None, Network::Mainnet));
-    warm(SIGN_WARMUP, hash_and_sign);
-    let signed = time_each(SIGN_SAMPLES, hash_and_sign);
+    warm(sign_warmup(), hash_and_sign);
+    let signed = time_each(sign_samples(), hash_and_sign);
 
     // From typed price and size to the JSON body `/exchange` takes.
     let build_sign_body = || -> Option<String> {
@@ -93,15 +95,15 @@ fn sign() -> Result<Value> {
         let signature = key.sign_digest(&place.digest(FIXED_NONCE, None, Network::Mainnet)).ok()?;
         Some(place.body(FIXED_NONCE, &signature, None))
     };
-    warm(SIGN_WARMUP, build_sign_body);
-    let bodies = time_each(SIGN_SAMPLES, build_sign_body);
+    warm(sign_warmup(), build_sign_body);
+    let bodies = time_each(sign_samples(), build_sign_body);
 
     // Recover the signer: what `Client::send` does for a wallet signer before posting.
     let digest = place.digest(FIXED_NONCE, None, Network::Mainnet);
     let signature = key.sign_digest(&digest)?;
     let recovered = || recover(&digest, &signature);
-    warm(SIGN_WARMUP, recovered);
-    let recoveries = time_each(SIGN_SAMPLES, recovered);
+    warm(sign_warmup(), recovered);
+    let recoveries = time_each(sign_samples(), recovered);
 
     Ok(json!({
         "sdk": SDK,
@@ -115,6 +117,14 @@ fn parse(path: &str) -> Result<Value> {
     let corpus = load_corpus(path)?;
     let report = parse_report(&corpus, |text| decode(text).is_ok());
     Ok(json!({ "sdk": SDK, "parse": report }))
+}
+
+/// BTC's mid on the first perp dex, as the venue writes it.
+async fn mid() -> Result<Value> {
+    let client = Client::reader(Native::new(), Network::Mainnet, clock);
+    let mids = df_hyperliquid_core::markets::mids::all_mids(&client, df_hyperliquid_core::markets::Dex::Main).await?;
+    let btc = mids.get("BTC").ok_or("no BTC mid")?;
+    Ok(json!({ "sdk": SDK, "mid": btc.to_wire() }))
 }
 
 /// A fresh random key that has never held anything: the venue has no account for it.

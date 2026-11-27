@@ -1,3 +1,3 @@
 /target
-/py/.venv
-__pycache__/
+# Quick runs only check that the harness runs; they are never committed.
+/results/*-quick.*

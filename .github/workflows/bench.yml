@@ -1,0 +1,44 @@
+name: bench
+
+# Proves the benchmark instructions work on Linux and macOS: the quick runs only check that every
+# command builds and runs. Figures from shared CI machines are never published.
+
+on:
+  push:
+    branches: [main]
+    paths: ["bench/**", "packages/core/**", "justfile", "rust-toolchain.toml", ".github/workflows/bench.yml"]
+  pull_request:
+    paths: ["bench/**", "packages/core/**", "justfile", "rust-toolchain.toml", ".github/workflows/bench.yml"]
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  quick:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      # The toolchain pinned in rust-toolchain.toml.
+      - run: rustup toolchain install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: bench
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - uses: astral-sh/setup-uv@v6
+
+      - run: just bench-doctor
+      - run: just bench --quick
+      - run: just bench-compare --quick
+      # The plain cargo form from bench/README.md, for people without just.
+      - run: cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- doctor

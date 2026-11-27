@@ -81,3 +81,20 @@ fuzz target="decode" secs="300":
     dict=""
     if [ -f {{target}}.dict ]; then dict="-dict={{target}}.dict"; fi
     cargo +nightly fuzz run {{target}} corpus/{{target}} -- $dict -max_total_time={{secs}} -max_len=65536
+
+# Benchmarks (bench/README.md). df-hyperliquid-core alone, offline. Options: --network for the
+# round trips and the live websocket, --quick to check that everything runs.
+bench *args:
+    @cargo run --quiet --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run {{args}}
+
+# The same against hypersdk and the official Python SDK, each at a pinned version.
+bench-compare *args:
+    @cargo run --quiet --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run --compare {{args}}
+
+# Which tools the benchmarks found, and what each missing one skips.
+bench-doctor:
+    @cargo run --quiet --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- doctor
+
+# A summary of the latest results in at most 280 characters, to post.
+bench-share *args:
+    @cargo run --quiet --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- share {{args}}

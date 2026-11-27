@@ -30,6 +30,33 @@ pub const SIGN_SAMPLES: usize = 20_000;
 pub const PARSE_WARMUP_PASSES: usize = 3;
 pub const PARSE_PASSES: usize = 20;
 
+/// Whether the runner asked for a quick run (`BENCH_QUICK=1`): a tenth of the signing samples
+/// and a quarter of the parse passes, to check that everything runs rather than to measure.
+#[must_use]
+pub fn quick() -> bool {
+    std::env::var("BENCH_QUICK").is_ok_and(|value| value == "1")
+}
+
+/// [`SIGN_WARMUP`], or a tenth of it in a quick run.
+#[must_use]
+pub fn sign_warmup() -> usize {
+    if quick() { SIGN_WARMUP / 10 } else { SIGN_WARMUP }
+}
+
+/// [`SIGN_SAMPLES`], or a tenth of it in a quick run.
+#[must_use]
+pub fn sign_samples() -> usize {
+    if quick() { SIGN_SAMPLES / 10 } else { SIGN_SAMPLES }
+}
+
+fn parse_warmup_passes() -> usize {
+    if quick() { 1 } else { PARSE_WARMUP_PASSES }
+}
+
+fn parse_passes() -> usize {
+    if quick() { PARSE_PASSES / 4 } else { PARSE_PASSES }
+}
+
 /// The system allocator, counting every allocation and reallocation. Each Rust binary installs it
 /// as its global allocator, so the parse report can give allocations per frame. The count is one
 /// relaxed atomic add a call, the same for both SDKs.
@@ -142,18 +169,19 @@ pub fn load_corpus(path: &str) -> Result<Vec<RecordedFrame>, String> {
 }
 
 /// Decodes every frame of `frames` with `decode` ([`PARSE_WARMUP_PASSES`] untimed passes, then
-/// [`PARSE_PASSES`] timed ones) and reports frames/s and MB/s over the timed passes. `decode`
+/// [`PARSE_PASSES`] timed ones, fewer in a quick run) and reports frames/s and MB/s over the timed passes. `decode`
 /// answers whether the frame read into the SDK's type.
 pub fn parse_throughput(frames: &[&RecordedFrame], mut decode: impl FnMut(&str) -> bool) -> Value {
     let bytes: usize = frames.iter().map(|frame| frame.text.len()).sum();
     let failed = frames.iter().filter(|frame| !decode(&frame.text)).count();
-    for _ in 0..PARSE_WARMUP_PASSES {
+    let passes_count = parse_passes();
+    for _ in 0..parse_warmup_passes() {
         for frame in frames {
             black_box(decode(black_box(&frame.text)));
         }
     }
-    let mut passes = Vec::with_capacity(PARSE_PASSES);
-    for _ in 0..PARSE_PASSES {
+    let mut passes = Vec::with_capacity(passes_count);
+    for _ in 0..passes_count {
         let start = Instant::now();
         for frame in frames {
             black_box(decode(black_box(&frame.text)));
@@ -184,11 +212,11 @@ pub fn parse_throughput(frames: &[&RecordedFrame], mut decode: impl FnMut(&str) 
         "frames": frames.len(),
         "bytes": bytes,
         "failed": failed,
-        "passes": PARSE_PASSES,
-        "frames_per_s": (frames.len() * PARSE_PASSES) as f64 / seconds,
-        "mb_per_s": (bytes * PARSE_PASSES) as f64 / seconds / 1e6,
+        "passes": passes_count,
+        "frames_per_s": (frames.len() * passes_count) as f64 / seconds,
+        "mb_per_s": (bytes * passes_count) as f64 / seconds / 1e6,
         "median_pass_ns": percentile(&pass_ns, 0.5),
-        "ns_per_frame": seconds * 1e9 / (frames.len() * PARSE_PASSES) as f64,
+        "ns_per_frame": seconds * 1e9 / (frames.len() * passes_count) as f64,
         "frame_median_ns": percentile(&frame_ns, 0.5),
         "frame_p99_ns": percentile(&frame_ns, 0.99),
         "allocations_per_frame": allocated as f64 / frames.len().max(1) as f64,

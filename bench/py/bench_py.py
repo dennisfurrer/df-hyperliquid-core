@@ -36,9 +36,11 @@ FIXED_ASSET = 0
 FIXED_PX = 50000.0
 FIXED_SZ = 0.001
 
-SIGN_WARMUP = 200
-PARSE_WARMUP_PASSES = 3
-PARSE_PASSES = 20
+# A quick run (BENCH_QUICK=1) checks that everything runs rather than measuring.
+QUICK = os.environ.get("BENCH_QUICK") == "1"
+SIGN_WARMUP = 20 if QUICK else 200
+PARSE_WARMUP_PASSES = 1 if QUICK else 3
+PARSE_PASSES = 5 if QUICK else 20
 
 
 def flag(name, default=None):
