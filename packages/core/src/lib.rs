@@ -13,6 +13,8 @@
 //!
 //! Money is exact decimals, never floats. Features: `sign` and `native` (default), `web`.
 
+#![forbid(unsafe_code)]
+
 pub mod account;
 pub mod client;
 pub mod deploy;

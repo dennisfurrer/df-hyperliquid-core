@@ -60,7 +60,7 @@ offline = []
 __test-internals = []
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
 # Reads the recorded mainnet corpus in bench/data for the direct reader's check.
 flate2 = "1.1"
 
@@ -92,3 +92,11 @@ required-features = ["native", "sign"]
 [[example]]
 name = "web_book"
 required-features = ["web"]
+
+[[example]]
+name = "quickstart"
+required-features = ["native"]
+
+[[example]]
+name = "market_maker"
+required-features = ["native", "sign"]

@@ -18,6 +18,8 @@ wasm:
 # corpus in bench/data; the live suite is skipped here.
 test:
     cargo test --workspace
+    # The examples' own unit tests: the market maker's quoting, inventory, timing and safety logic.
+    cargo test -p df-hyperliquid-core --examples
     cargo test -p df-hyperliquid-core --features offline --lib -- offline what_is_signed
     cargo test -p df-hyperliquid-core --lib -- --ignored mainnet_corpus
     cargo test -p df-hyperliquid-core --features secp256k1 --lib

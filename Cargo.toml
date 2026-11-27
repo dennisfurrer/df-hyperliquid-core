@@ -40,7 +40,8 @@ web-sys = "0.3.106"
 wasm-bindgen-test = "=0.3.79"
 
 [workspace.lints.rust]
-unsafe_code = "forbid"
+# Denied, not forbidden, so one example module may allow it; the library forbids it in lib.rs.
+unsafe_code = "deny"
 # Every public item says what it is; docs.rs shows nothing undocumented.
 missing_docs = "deny"
 unsafe_op_in_unsafe_fn = "deny"
