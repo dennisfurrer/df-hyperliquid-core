@@ -8,9 +8,8 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use bench_common::{
-    CountingAlloc,
-    FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag,
-    load_corpus, parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
+    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag, load_corpus,
+    parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
 };
 use futures::StreamExt;
 use hypersdk::Decimal;
@@ -50,8 +49,11 @@ impl log::Log for CountUnparsed {
 
 static LOGGER: CountUnparsed = CountUnparsed;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    bench_common::runtime()?.block_on(run())
+}
+
+async fn run() -> Result<()> {
     let args = args();
     let report = match args.first().map(String::as_str) {
         Some("sign-check") => sign_check()?,

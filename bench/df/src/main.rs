@@ -12,8 +12,8 @@ use std::error::Error;
 use std::time::{Duration, Instant};
 
 use bench_common::{
-    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag,
-    load_corpus, parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
+    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, args, flag, load_corpus,
+    parse_report, sign_samples, sign_warmup, summary_ns, time_each, warm,
 };
 use df_hyperliquid_core::account::{LocalKey, Signature, recover};
 use df_hyperliquid_core::client::ApiError;
@@ -31,11 +31,13 @@ type Result<T> = std::result::Result<T, Box<dyn Error>>;
 static ALLOCATOR: CountingAlloc = CountingAlloc;
 
 /// The row this build reports as: the default build, or the libsecp256k1 backend.
-const SDK: &str =
-    if cfg!(feature = "secp256k1") { "df-hyperliquid-core + secp256k1" } else { "df-hyperliquid-core" };
+const SDK: &str = if cfg!(feature = "secp256k1") { "df-hyperliquid-core + secp256k1" } else { "df-hyperliquid-core" };
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
+    bench_common::runtime()?.block_on(run())
+}
+
+async fn run() -> Result<()> {
     let args = args();
     let report = match args.first().map(String::as_str) {
         Some("sign-check") => sign_check()?,

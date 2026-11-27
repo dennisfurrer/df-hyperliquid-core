@@ -142,6 +142,16 @@ pub fn heading(result: &Value) -> Vec<String> {
             result["started_utc"].as_str().unwrap_or_default()
         ),
     ];
+    let power = &machine["power"];
+    if let (Some(source), mode) = (power["source"].as_str(), power["mode"].as_str()) {
+        lines.push(match mode {
+            Some(mode) => format!("Power: {source}, {mode} mode"),
+            None => format!("Power: {source}"),
+        });
+    }
+    if let Some(warning) = crate::machine::power_warning(power) {
+        lines.push(format!("WARNING: {warning}."));
+    }
     if options["quick"].as_bool() == Some(true) {
         lines.push("QUICK RUN: fewer samples, to check that the harness runs. Not for publishing.".to_owned());
     }
@@ -429,8 +439,7 @@ pub fn summary(result: &Value) -> Result<String> {
     );
     let version = |name: &str| result["versions"][name].as_str().unwrap_or("?").to_owned();
     let mut parts = Vec::new();
-    if let Some(hyper) = result["parsing"].get(HYPERSDK) {
-        let _ = hyper;
+    if result["parsing"].get(HYPERSDK).is_some() {
         let mut line = format!("vs hypersdk {}:", version(HYPERSDK));
         if let (Some(all), Some(books)) =
             (ratio(parse(DF, "all"), parse(HYPERSDK, "all")), ratio(parse(DF, "l2Book"), parse(HYPERSDK, "l2Book")))
@@ -457,8 +466,16 @@ pub fn summary(result: &Value) -> Result<String> {
     }
     let head = format!("df-hyperliquid-core {} on {machine}", version(DF));
     let mut text = if parts.is_empty() {
-        format!("{head}: sign {} us, parse {} frames/s", us(sign(DF)), thousands(parse(DF, "all")))
+        format!(
+            "{head}, df-hyperliquid-core only, no comparison: sign {} us, parse {} frames/s",
+            us(sign(DF)),
+            thousands(parse(DF, "all"))
+        )
     } else {
+        if result["parsing"].get(HYPERSDK).is_none() {
+            // First, so it stays when the Python part is dropped below.
+            parts.insert(0, "no hypersdk comparison".to_owned());
+        }
         format!("{head}, {}", parts.join("; "))
     };
     text.push_str(". github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench");
@@ -486,5 +503,54 @@ pub fn share(bench: &Path, given: Option<PathBuf>) -> Result<()> {
         line.chars().count(),
         path.file_name().map_or_else(String::new, |name| name.to_string_lossy().into_owned())
     );
+    if let Some(warning) = crate::machine::power_warning(&result["machine"]["power"]) {
+        eprintln!("Note: this run was {warning}.");
+    }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{Value, json};
+
+    use super::summary;
+    use crate::offline::{DF, HYPERSDK, PY, PY_FAST};
+
+    fn result(rows: &[&str]) -> Value {
+        let mut result = json!({
+            "options": { "quick": false },
+            "machine": { "cpu": "Apple M5 Max", "os": "macOS 26.5", "arch": "aarch64" },
+            "versions": { DF: "0.2.5", HYPERSDK: "0.1.0", PY: "0.20.0" },
+            "signing": {},
+            "parsing": {},
+        });
+        for name in rows {
+            result["signing"][*name] = json!({ "sign": { "median_ns": 30_000.0 } });
+            result["parsing"][*name] =
+                json!({ "parse": { "all": { "frames_per_s": 500_000.0 }, "l2Book": { "frames_per_s": 300_000.0 } } });
+        }
+        result["signing"][PY_FAST] = json!({ "sign": { "median_ns": 90_000.0 } });
+        result
+    }
+
+    #[test]
+    fn a_run_without_competitors_says_it_is_no_comparison() {
+        let text = summary(&result(&[DF])).unwrap();
+        assert!(text.contains("df-hyperliquid-core only, no comparison"), "{text}");
+    }
+
+    #[test]
+    fn a_run_without_hypersdk_says_so() {
+        let text = summary(&result(&[DF, PY])).unwrap();
+        assert!(text.contains("no hypersdk comparison"), "{text}");
+        assert!(text.contains("vs Python SDK"), "{text}");
+    }
+
+    #[test]
+    fn a_compare_run_gives_ratios() {
+        let text = summary(&result(&[DF, HYPERSDK, PY])).unwrap();
+        assert!(text.contains("vs hypersdk 0.1.0"), "{text}");
+        assert!(!text.contains("no comparison") && !text.contains("no hypersdk"), "{text}");
+        assert!(text.chars().count() <= 280);
+    }
 }

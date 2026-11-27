@@ -4,8 +4,8 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::fs::File;
 use std::hint::black_box;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::io::{BufRead, BufReader};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use flate2::read::GzDecoder;
@@ -90,6 +90,42 @@ unsafe impl GlobalAlloc for CountingAlloc {
 #[must_use]
 pub fn allocations() -> u64 {
     ALLOCATIONS.load(Ordering::Relaxed)
+}
+
+/// Asks macOS to run the calling thread at the user-interactive quality of service, which makes
+/// the scheduler much more likely to keep it on a performance core. macOS does not pass this on
+/// to threads the caller starts later, so each thread that does timed work calls it. Returns
+/// whether the class was set; elsewhere it does nothing and returns `false`.
+#[cfg(target_os = "macos")]
+pub fn prefer_performance_cores() -> bool {
+    // From <pthread/qos.h>: QOS_CLASS_USER_INTERACTIVE.
+    const USER_INTERACTIVE: u32 = 0x21;
+    unsafe extern "C" {
+        fn pthread_set_qos_class_self_np(class: u32, relative_priority: i32) -> i32;
+    }
+    // SAFETY: the call only changes the scheduling class of the calling thread.
+    unsafe { pthread_set_qos_class_self_np(USER_INTERACTIVE, 0) == 0 }
+}
+
+/// Does nothing outside macOS.
+#[cfg(not(target_os = "macos"))]
+pub fn prefer_performance_cores() -> bool {
+    false
+}
+
+/// A multi-threaded tokio runtime whose threads, and the calling thread, ask for performance
+/// cores first (see [`prefer_performance_cores`]).
+///
+/// # Errors
+/// When tokio cannot start its threads.
+pub fn runtime() -> std::io::Result<tokio::runtime::Runtime> {
+    prefer_performance_cores();
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .on_thread_start(|| {
+            prefer_performance_cores();
+        })
+        .build()
 }
 
 /// Unix milliseconds from the system clock.

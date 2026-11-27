@@ -201,7 +201,7 @@ pub fn render(result: &Value) -> Vec<u8> {
     band(&mut layout, result);
     tiles(&mut layout, result);
     for line in heading(result) {
-        let warn = line.starts_with("QUICK RUN");
+        let warn = line.starts_with("QUICK RUN") || line.starts_with("WARNING");
         layout.paragraph(&line, if warn { Font::Bold } else { Font::Regular }, 8.0, if warn { WARN } else { MUTED });
     }
     layout.y += 4.0;

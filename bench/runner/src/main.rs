@@ -114,6 +114,9 @@ fn run(options: &Options) -> Result<()> {
     let versions = report::versions(&bench, &binaries);
     let cpu = machine["cpu"].as_str().unwrap_or("unknown CPU").to_owned();
     progress(&format!("{} on {cpu}", if options.compare { "compare" } else { "df-hyperliquid-core" }));
+    if let Some(warning) = machine::power_warning(&machine["power"]) {
+        progress(&format!("WARNING: {warning}"));
+    }
 
     let mut result = json!({
         "schema": 1,

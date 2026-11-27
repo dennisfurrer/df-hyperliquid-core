@@ -18,7 +18,7 @@ command beside it, so `just` is optional.
 | `just bench` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run` | df-hyperliquid-core alone, offline |
 | `just bench-compare` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run --compare` | the same against hypersdk and the official Python SDK |
 | `just bench-doctor` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- doctor` | which tools were found, and what a missing one skips |
-| `just bench-share` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- share` | the latest results in at most 280 characters, to post |
+| `just bench-share` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- share` | the latest results in at most 280 characters, to post; a run without competitors says "df-hyperliquid-core only, no comparison" |
 
 Options for `bench` and `bench-compare`, added after the command (`just bench-compare --network`):
 
@@ -108,8 +108,15 @@ results will include it.
 - Keccak runs on the ARMv8.2 SHA3 instructions on Apple silicon and other ARMv8.2 CPUs, and on
   the portable path elsewhere, including x86-64. The signing gap may differ on x86-64. The
   published results are from Apple silicon; results from other machines are welcome (below).
-- Laptops on battery, low-power modes and other load change the figures. The offline tests run
-  one process at a time.
+- Laptops on battery, low-power modes and other load change the figures. The runner records the
+  power source and energy mode (`pmset` on macOS, `/sys/class/power_supply` and the ACPI platform
+  profile on Linux) and prints a warning on battery or in low power mode; the warning is also in
+  the `.md` and `.pdf`, and `bench-share` repeats it. The offline tests run one process at a time.
+- On macOS every benchmark program asks for the user-interactive quality of service
+  (`pthread_set_qos_class_self_np`) on each thread that does timed work: the main thread, every
+  tokio worker, and the Python main thread. The scheduler then keeps them on performance cores
+  more reliably, which makes laptop results steadier. macOS does not pass the class on to
+  threads started later, so each thread asks for itself.
 - The Python figures depend on the CPython version, which `py/uv.lock` pins (3.13).
 
 ## Method
@@ -125,8 +132,8 @@ results will include it.
 ## Results files
 
 Every run writes `results/<date>-<hhmmss>-<cpu>.json`, `.md` and `.pdf`; `-df` marks a
-df-hyperliquid-core run alone. Each records the CPU, cores, memory, OS and architecture (never the
-host or user name), the rustc version, df-hyperliquid-core's version and git commit, the
+df-hyperliquid-core run alone. Each records the CPU, cores, memory, OS, architecture, power source
+and energy mode (never the host or user name), the rustc version, df-hyperliquid-core's version and git commit, the
 competitors' pinned versions, the options, every run's figures, every raw network sample, what
 was skipped, and the build and benchmark times. The `.pdf` is the same tables laid out to read
 and share.
@@ -209,7 +216,7 @@ Age is the local clock minus the venue's timestamp; it compares the SDKs with ea
 
 ## Submit your results
 
-Run `just bench-compare`, then open an issue with the
+Run `just bench-compare` on mains power and outside low power mode, then open an issue with the
 [benchmark result template](https://github.com/dennisfurrer/df-hyperliquid-core/issues/new?template=benchmark-result.yml)
 and paste the JSON file from `bench/results/`. `just bench-share` prints a line to post.
 

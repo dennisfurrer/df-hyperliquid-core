@@ -310,7 +310,20 @@ def live():
     return {"sdk": "hyperliquid-python-sdk", "live": report}
 
 
+def prefer_performance_cores():
+    """Asks macOS to run this thread at the user-interactive quality of service, as the Rust
+    binaries do, so the scheduler keeps it on a performance core. The timed signing and parsing
+    run on this thread. Does nothing elsewhere."""
+    if sys.platform != "darwin":
+        return
+    import ctypes
+
+    user_interactive = 0x21  # QOS_CLASS_USER_INTERACTIVE in <pthread/qos.h>
+    ctypes.CDLL("/usr/lib/libSystem.B.dylib").pthread_set_qos_class_self_np(user_interactive, 0)
+
+
 def main():
+    prefer_performance_cores()
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "serve":
         serve()

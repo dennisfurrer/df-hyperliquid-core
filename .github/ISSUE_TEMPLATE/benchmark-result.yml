@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thank you for running the benchmark. Please run `just bench-compare` (not `--quick`) on an
-        otherwise idle machine, on mains power, then paste the JSON file it wrote to `bench/results/`.
+        otherwise idle machine, on mains power and outside low power mode, then paste the JSON file it wrote to `bench/results/`.
         The file names the CPU, never the host or user.
   - type: input
     id: share
