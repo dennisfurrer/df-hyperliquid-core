@@ -203,3 +203,21 @@ fn an_expiry_follows_the_vault_marker() {
         connection_id_expiring(&msgpack, 7, None, Some(6_000))
     );
 }
+
+#[test]
+fn the_fixed_constants_are_what_the_encoders_compute() {
+    assert_eq!(EXCHANGE_SEPARATOR, Domain::EXCHANGE.separator());
+    assert_eq!(AGENT_TYPE_HASH, keccak256(b"Agent(string source,bytes32 connectionId)"));
+    assert_eq!(SOURCE_MAINNET, keccak256(b"a"));
+    assert_eq!(SOURCE_TESTNET, keccak256(b"b"));
+}
+
+#[test]
+fn the_agent_digest_equals_the_typed_struct_digest() {
+    for seed in 0u8..=255 {
+        let id = keccak256(&[seed]);
+        for network in [Network::Mainnet, Network::Testnet] {
+            assert_eq!(agent_digest(id, network), phantom_agent(id, network).digest(&Domain::EXCHANGE));
+        }
+    }
+}
