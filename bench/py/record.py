@@ -7,6 +7,12 @@ Writes one frame a line, in arrival order, gzipped:
 
     uv run python record.py --out ../data/frames.jsonl.gz --per-channel 2000 --books 150
 
+With --coverage it records the frames the parse corpus lacks, for the crate's tests rather than
+the benchmark: bbo frames, fast books (`"fast":true`, 5 levels a side) and bucketed books
+(nSigFigs 5, with `spread`), --per-channel of each, from the --books most traded perps:
+
+    uv run python record.py --coverage --out ../data/coverage.jsonl.gz --per-channel 500 --books 20
+
 It uses websocket-client directly, not any of the SDKs under test, so the corpus is the same
 bytes for all of them.
 """
@@ -23,6 +29,7 @@ import websocket
 URL = "wss://api.hyperliquid.xyz/ws"
 TRADE_COINS = ["BTC", "ETH", "SOL", "HYPE", "XRP", "DOGE"]
 CHANNELS = ("l2Book", "trades")
+COVERAGE = ("bbo", "fast", "spread")
 
 
 def flag(name, default):
@@ -50,12 +57,22 @@ def main():
     per_channel = int(flag("--per-channel", "2000"))
     max_secs = int(flag("--max-secs", "1200"))
     book_coins = busiest_perps(int(flag("--books", "150")))
+    coverage = "--coverage" in sys.argv
 
-    counts = {channel: 0 for channel in CHANNELS}
+    counts = {kind: 0 for kind in (COVERAGE if coverage else CHANNELS)}
     lines = []
     done = threading.Event()
 
+    def subscribe(ws, subscription):
+        ws.send(json.dumps({"method": "subscribe", "subscription": subscription}))
+
     def on_open(ws):
+        if coverage:
+            for coin in book_coins:
+                subscribe(ws, {"type": "bbo", "coin": coin})
+                subscribe(ws, {"type": "l2Book", "coin": coin, "fast": True})
+                subscribe(ws, {"type": "l2Book", "coin": coin, "nSigFigs": 5})
+            return
         for coin in TRADE_COINS:
             ws.send(json.dumps({"method": "subscribe", "subscription": {"type": "trades", "coin": coin}}))
         for coin in book_coins:
@@ -63,9 +80,13 @@ def main():
 
     def on_message(ws, text):
         try:
-            channel = json.loads(text).get("channel")
+            frame = json.loads(text)
         except ValueError:
             return
+        channel = frame.get("channel")
+        if coverage and channel == "l2Book":
+            data = frame.get("data") or {}
+            channel = "fast" if data.get("fast") else "spread" if "spread" in data else None
         if channel in counts and counts[channel] < per_channel:
             counts[channel] += 1
             lines.append(text)

@@ -1,20 +1,20 @@
 //! df-hyperliquid-core benchmarks. Each subcommand prints one JSON object on stdout:
 //!
 //! - `sign-check`: the signature of the fixed order, for the cross-SDK check.
-//! - `sign`: hash and sign the fixed order, and build, sign and serialize it.
+//! - `sign`: hash and sign the fixed order, build, sign and serialize it, and recover a signature.
 //! - `parse --corpus <path>`: decode the recorded websocket frames.
 //! - `serve --px <price> --sz <size>`: answer `info` and `exchange` lines on stdin, one JSON
 //!   line each, for the paced network rounds `run.py` drives.
-//! - `live --secs <n>`: BTC `l2Book` and `trades` from mainnet for `n` seconds.
+//! - `live --secs <n>`: BTC `l2Book` (fast), `bbo` and `trades` from mainnet for `n` seconds.
 
 use std::error::Error;
 use std::time::{Duration, Instant};
 
 use bench_common::{
-    FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, SIGN_SAMPLES, SIGN_WARMUP, args, flag,
+    CountingAlloc, FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, SIGN_SAMPLES, SIGN_WARMUP, args, flag,
     load_corpus, parse_report, summary_ns, time_each, warm,
 };
-use df_hyperliquid_core::account::{LocalKey, Signature};
+use df_hyperliquid_core::account::{LocalKey, Signature, recover};
 use df_hyperliquid_core::client::ApiError;
 use df_hyperliquid_core::client::native::{Feed, Native, clock};
 use df_hyperliquid_core::live::{Event, Frame, Session, Subscription, decode};
@@ -25,6 +25,13 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+#[global_allocator]
+static ALLOCATOR: CountingAlloc = CountingAlloc;
+
+/// The row this build reports as: the default build, or the libsecp256k1 backend.
+const SDK: &str =
+    if cfg!(feature = "secp256k1") { "df-hyperliquid-core + secp256k1" } else { "df-hyperliquid-core" };
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -61,7 +68,7 @@ fn sign_check() -> Result<Value> {
     let place = fixed_order()?;
     let signature = key.sign_digest(&place.digest(FIXED_NONCE, None, Network::Mainnet))?;
     Ok(json!({
-        "sdk": "df-hyperliquid-core",
+        "sdk": SDK,
         "address": key.address().to_hex(),
         "signature": hex65(&signature),
         "action": serde_json::from_str::<Value>(&place.wire())?,
@@ -89,17 +96,25 @@ fn sign() -> Result<Value> {
     warm(SIGN_WARMUP, build_sign_body);
     let bodies = time_each(SIGN_SAMPLES, build_sign_body);
 
+    // Recover the signer: what `Client::send` does for a wallet signer before posting.
+    let digest = place.digest(FIXED_NONCE, None, Network::Mainnet);
+    let signature = key.sign_digest(&digest)?;
+    let recovered = || recover(&digest, &signature);
+    warm(SIGN_WARMUP, recovered);
+    let recoveries = time_each(SIGN_SAMPLES, recovered);
+
     Ok(json!({
-        "sdk": "df-hyperliquid-core",
+        "sdk": SDK,
         "sign": summary_ns(&signed),
         "build_sign_body": summary_ns(&bodies),
+        "recover": summary_ns(&recoveries),
     }))
 }
 
 fn parse(path: &str) -> Result<Value> {
     let corpus = load_corpus(path)?;
     let report = parse_report(&corpus, |text| decode(text).is_ok());
-    Ok(json!({ "sdk": "df-hyperliquid-core", "parse": report }))
+    Ok(json!({ "sdk": SDK, "parse": report }))
 }
 
 /// A fresh random key that has never held anything: the venue has no account for it.
@@ -155,7 +170,8 @@ async fn live(secs: u64) -> Result<Value> {
     let deadline = tokio::time::Instant::now() + Duration::from_secs(secs);
     let mut feed = Feed::start(Session::new(Network::Mainnet));
     let btc = || "BTC".to_owned();
-    feed.subscribe(Subscription::L2Book { coin: btc(), n_sig_figs: None, mantissa: None, fast: false }).await?;
+    feed.subscribe(Subscription::L2Book { coin: btc(), n_sig_figs: None, mantissa: None, fast: true }).await?;
+    feed.subscribe(Subscription::Bbo { coin: btc() }).await?;
     feed.subscribe(Subscription::Trades { coin: btc() }).await?;
     while let Ok(Some(event)) = tokio::time::timeout_at(deadline, feed.next()).await {
         match event {
@@ -164,6 +180,10 @@ async fn live(secs: u64) -> Result<Value> {
                 Frame::Book(book) => {
                     tally.book_frames += 1;
                     tally.aged(book.time);
+                }
+                Frame::Bbo(bbo) => {
+                    tally.bbo_frames += 1;
+                    tally.aged(bbo.time);
                 }
                 Frame::Trades(trades) => {
                     tally.trade_frames += 1;
@@ -179,5 +199,5 @@ async fn live(secs: u64) -> Result<Value> {
         }
     }
     feed.close();
-    Ok(json!({ "sdk": "df-hyperliquid-core", "live": tally.report(secs) }))
+    Ok(json!({ "sdk": SDK, "live": tally.report(secs) }))
 }

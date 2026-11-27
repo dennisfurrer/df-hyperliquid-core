@@ -178,6 +178,12 @@ def throughput(frames, decode):
             decode(text)
         passes.append(time.perf_counter_ns() - start)
     seconds = sum(passes) / 1e9
+    frame_ns = []
+    for text in texts:
+        start = time.perf_counter_ns()
+        decode(text)
+        frame_ns.append(time.perf_counter_ns() - start)
+    frame_ns.sort()
     return {
         "frames": len(texts),
         "bytes": size,
@@ -187,6 +193,9 @@ def throughput(frames, decode):
         "mb_per_s": size * PARSE_PASSES / seconds / 1e6,
         "median_pass_ns": percentile(sorted(passes), 0.5),
         "ns_per_frame": seconds * 1e9 / (len(texts) * PARSE_PASSES),
+        "frame_median_ns": percentile(frame_ns, 0.5),
+        "frame_p99_ns": percentile(frame_ns, 0.99),
+        "allocations_per_frame": None,
     }
 
 
@@ -252,7 +261,7 @@ def serve():
 def live():
     secs = int(flag("--secs"))
     lock = threading.Lock()
-    tally = {"book_frames": 0, "trade_frames": 0, "trades": 0, "age_ms": []}
+    tally = {"book_frames": 0, "bbo_frames": 0, "trade_frames": 0, "trades": 0, "age_ms": []}
 
     def now_ms():
         return int(time.time() * 1000)
@@ -260,6 +269,11 @@ def live():
     def on_book(message):
         with lock:
             tally["book_frames"] += 1
+            tally["age_ms"].append(max(0, now_ms() - message["data"]["time"]))
+
+    def on_bbo(message):
+        with lock:
+            tally["bbo_frames"] += 1
             tally["age_ms"].append(max(0, now_ms() - message["data"]["time"]))
 
     def on_trades(message):
@@ -271,7 +285,8 @@ def live():
 
     start = time.monotonic()
     info = Info(constants.MAINNET_API_URL, skip_ws=False)
-    info.subscribe({"type": "l2Book", "coin": "BTC"}, on_book)
+    info.subscribe({"type": "l2Book", "coin": "BTC", "fast": True}, on_book)
+    info.subscribe({"type": "bbo", "coin": "BTC"}, on_bbo)
     info.subscribe({"type": "trades", "coin": "BTC"}, on_trades)
     time.sleep(max(0.0, secs - (time.monotonic() - start)))
     with lock:
@@ -279,6 +294,7 @@ def live():
         report = {
             "seconds": secs,
             "book_frames": tally["book_frames"],
+            "bbo_frames": tally["bbo_frames"],
             "trade_frames": tally["trade_frames"],
             "trades": tally["trades"],
             "other_frames": None,

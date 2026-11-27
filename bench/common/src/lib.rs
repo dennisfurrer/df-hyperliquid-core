@@ -1,8 +1,10 @@
 //! What the two Rust benchmark binaries share: the fixed signing input, the timing harnesses,
 //! the summary statistics and the recorded websocket corpus. Nothing here depends on an SDK.
 
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::fs::File;
 use std::hint::black_box;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::io::{BufRead, BufReader};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -27,6 +29,41 @@ pub const SIGN_SAMPLES: usize = 20_000;
 /// Untimed passes over the corpus, then timed passes.
 pub const PARSE_WARMUP_PASSES: usize = 3;
 pub const PARSE_PASSES: usize = 20;
+
+/// The system allocator, counting every allocation and reallocation. Each Rust binary installs it
+/// as its global allocator, so the parse report can give allocations per frame. The count is one
+/// relaxed atomic add a call, the same for both SDKs.
+pub struct CountingAlloc;
+
+static ALLOCATIONS: AtomicU64 = AtomicU64::new(0);
+
+// SAFETY: every call goes straight to `System` with the caller's arguments.
+unsafe impl GlobalAlloc for CountingAlloc {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+        unsafe { System.alloc(layout) }
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        unsafe { System.dealloc(ptr, layout) }
+    }
+
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+        unsafe { System.alloc_zeroed(layout) }
+    }
+
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
+        unsafe { System.realloc(ptr, layout, new_size) }
+    }
+}
+
+/// Allocations and reallocations so far, when [`CountingAlloc`] is the global allocator.
+#[must_use]
+pub fn allocations() -> u64 {
+    ALLOCATIONS.load(Ordering::Relaxed)
+}
 
 /// Unix milliseconds from the system clock.
 #[must_use]
@@ -127,6 +164,22 @@ pub fn parse_throughput(frames: &[&RecordedFrame], mut decode: impl FnMut(&str) 
     let seconds = total.as_secs_f64();
     let mut pass_ns: Vec<u64> = passes.iter().map(|pass| pass.as_nanos() as u64).collect();
     pass_ns.sort_unstable();
+    // One more pass, each frame timed on its own, for the spread across frames.
+    let mut frame_ns: Vec<u64> = frames
+        .iter()
+        .map(|frame| {
+            let start = Instant::now();
+            black_box(decode(black_box(&frame.text)));
+            start.elapsed().as_nanos() as u64
+        })
+        .collect();
+    frame_ns.sort_unstable();
+    // And one counted pass.
+    let before = allocations();
+    for frame in frames {
+        black_box(decode(black_box(&frame.text)));
+    }
+    let allocated = allocations() - before;
     json!({
         "frames": frames.len(),
         "bytes": bytes,
@@ -136,6 +189,9 @@ pub fn parse_throughput(frames: &[&RecordedFrame], mut decode: impl FnMut(&str) 
         "mb_per_s": (bytes * PARSE_PASSES) as f64 / seconds / 1e6,
         "median_pass_ns": percentile(&pass_ns, 0.5),
         "ns_per_frame": seconds * 1e9 / (frames.len() * PARSE_PASSES) as f64,
+        "frame_median_ns": percentile(&frame_ns, 0.5),
+        "frame_p99_ns": percentile(&frame_ns, 0.99),
+        "allocations_per_frame": allocated as f64 / frames.len().max(1) as f64,
     })
 }
 
@@ -170,6 +226,7 @@ pub fn flag(args: &[String], name: &str) -> Option<String> {
 #[derive(Default)]
 pub struct LiveTally {
     pub book_frames: u64,
+    pub bbo_frames: u64,
     pub trade_frames: u64,
     pub trades: u64,
     pub other_frames: u64,
@@ -191,6 +248,7 @@ impl LiveTally {
         json!({
             "seconds": seconds,
             "book_frames": self.book_frames,
+            "bbo_frames": self.bbo_frames,
             "trade_frames": self.trade_frames,
             "trades": self.trades,
             "other_frames": self.other_frames,

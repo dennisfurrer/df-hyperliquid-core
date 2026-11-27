@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
 
 use bench_common::{
+    CountingAlloc,
     FIXED_ASSET, FIXED_KEY, FIXED_NONCE, FIXED_PX, FIXED_SZ, LiveTally, SIGN_SAMPLES, SIGN_WARMUP, args, flag,
     load_corpus, parse_report, summary_ns, time_each, warm,
 };
@@ -23,6 +24,9 @@ use serde_json::{Value, json};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
+
+#[global_allocator]
+static ALLOCATOR: CountingAlloc = CountingAlloc;
 
 /// hypersdk drops a websocket frame it cannot read and logs `unable to parse` at warn level.
 /// This logger only counts those lines, so the live run can report them.
@@ -184,7 +188,8 @@ async fn live(secs: u64) -> Result<Value> {
     let mut tally = LiveTally::default();
     let deadline = tokio::time::Instant::now() + Duration::from_secs(secs);
     let mut ws = hypercore::mainnet_ws();
-    ws.subscribe(Subscription::L2Book { coin: "BTC".into(), n_sig_figs: None, mantissa: None, fast: false });
+    ws.subscribe(Subscription::L2Book { coin: "BTC".into(), n_sig_figs: None, mantissa: None, fast: true });
+    ws.subscribe(Subscription::Bbo { coin: "BTC".into() });
     ws.subscribe(Subscription::Trades { coin: "BTC".into() });
     while let Ok(Some(event)) = tokio::time::timeout_at(deadline, ws.next()).await {
         match event {
@@ -193,6 +198,10 @@ async fn live(secs: u64) -> Result<Value> {
             Event::Message(Incoming::L2Book(book)) => {
                 tally.book_frames += 1;
                 tally.aged(book.time);
+            }
+            Event::Message(Incoming::Bbo(bbo)) => {
+                tally.bbo_frames += 1;
+                tally.aged(bbo.time);
             }
             Event::Message(Incoming::Trades(trades)) => {
                 tally.trade_frames += 1;

@@ -8,6 +8,8 @@ cd "$(dirname "$0")"
 # One binary at a time, so cargo does not unify the two SDKs' dependency features.
 cargo build --release --locked -p bench-df
 cargo build --release --locked -p bench-hypersdk
+# df-hyperliquid-core with its libsecp256k1 backend, in its own target directory.
+cargo build --release --locked -p bench-df --features secp256k1 --target-dir target/secp256k1
 
 uv sync --project py --frozen
 

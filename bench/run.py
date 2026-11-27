@@ -4,11 +4,13 @@ Started by run.sh, which builds the Rust binaries and the Python environment fir
 
 1. Signature check: the three SDKs sign the same order with the same key and nonce; the run
    stops if any signature differs.
-2. Signing time, offline, one SDK after another.
-3. Websocket parse throughput over the recorded corpus in data/.
+2. Signing time, offline, one SDK after another, BENCH_OFFLINE_RUNS times (default 5); the run
+   with the median time is reported and every run's median is kept.
+3. Websocket parse throughput over the recorded corpus in data/, the same way.
 4. Info and exchange round trips on mainnet: one long-lived worker process per SDK, driven
    in paced, interleaved rounds so the three share network conditions.
-5. Live websocket: the three SDKs subscribe at the same time for the same 60 seconds.
+5. Live websocket: the three SDKs subscribe to the same BTC channels at the same time for the
+   same 60 seconds.
 
 Only the standard library is used here; the SDKs run in their own processes.
 """
@@ -27,6 +29,7 @@ from pathlib import Path
 BENCH = Path(__file__).resolve().parent
 PY = BENCH / "py"
 DF = BENCH / "target" / "release" / "bench-df"
+DF_SECP = BENCH / "target" / "secp256k1" / "release" / "bench-df"
 HYPERSDK = BENCH / "target" / "release" / "bench-hypersdk"
 CORPUS = BENCH / "data" / "frames.jsonl.gz"
 
@@ -34,6 +37,7 @@ ROUNDS = int(os.environ.get("BENCH_ROUNDS", "100"))
 WARMUP_ROUNDS = 3
 GAP_S = float(os.environ.get("BENCH_GAP_S", "0.3"))
 LIVE_SECS = int(os.environ.get("BENCH_LIVE_SECS", "60"))
+OFFLINE_RUNS = int(os.environ.get("BENCH_OFFLINE_RUNS", "5"))
 PY_SIGN_SAMPLES_NATIVE = 2_000
 PY_SIGN_SAMPLES_COINCURVE = 5_000
 
@@ -41,6 +45,7 @@ NATIVE = "eth_keys.backends.NativeECCBackend"
 COINCURVE = "eth_keys.backends.CoinCurveECCBackend"
 
 DF_NAME = "df-hyperliquid-core"
+DF_SECP_NAME = "df-hyperliquid-core + secp256k1"
 HYPERSDK_NAME = "hypersdk"
 PY_NAME = "hyperliquid-python-sdk"
 PY_FAST_NAME = "hyperliquid-python-sdk + coincurve"
@@ -124,6 +129,7 @@ def versions():
 def signature_check():
     checks = [
         run_json([str(DF), "sign-check"]),
+        run_json([str(DF_SECP), "sign-check"]),
         run_json([str(HYPERSDK), "sign-check"]),
         run_json(py_command("sign-check"), env=py_env(NATIVE)),
         run_json(py_command("sign-check"), env=py_env(COINCURVE)),
@@ -141,24 +147,39 @@ def signature_check():
     return {"equal": same, "signature": signatures.pop(), "address": addresses.pop(), "checks": checks}
 
 
+def median_run(command, metric, env=None):
+    """Runs `command` OFFLINE_RUNS times and keeps the run whose `metric` is the median; every
+    run's metric is kept beside it."""
+    runs = [run_json(command, env=env) for _ in range(OFFLINE_RUNS)]
+    ranked = sorted(runs, key=metric)
+    chosen = ranked[len(ranked) // 2]
+    chosen["runs"] = [metric(run) for run in runs]
+    return chosen
+
+
 def signing():
-    log("signing: df-hyperliquid-core")
-    df = run_json([str(DF), "sign"])
-    log("signing: hypersdk")
-    hyper = run_json([str(HYPERSDK), "sign"])
+    by_sign = lambda run: run["sign"]["median_ns"]  # noqa: E731
+    log(f"signing: df-hyperliquid-core, {OFFLINE_RUNS} runs")
+    df = median_run([str(DF), "sign"], by_sign)
+    log(f"signing: df-hyperliquid-core + secp256k1, {OFFLINE_RUNS} runs")
+    df_secp = median_run([str(DF_SECP), "sign"], by_sign)
+    log(f"signing: hypersdk, {OFFLINE_RUNS} runs")
+    hyper = median_run([str(HYPERSDK), "sign"], by_sign)
     log("signing: hyperliquid-python-sdk (pure Python ECDSA, the default install)")
     native = run_json(py_command("sign", "--samples", str(PY_SIGN_SAMPLES_NATIVE)), env=py_env(NATIVE))
     log("signing: hyperliquid-python-sdk with coincurve")
     fast = run_json(py_command("sign", "--samples", str(PY_SIGN_SAMPLES_COINCURVE)), env=py_env(COINCURVE))
-    return {DF_NAME: df, HYPERSDK_NAME: hyper, PY_NAME: native, PY_FAST_NAME: fast}
+    return {DF_NAME: df, DF_SECP_NAME: df_secp, HYPERSDK_NAME: hyper, PY_NAME: native, PY_FAST_NAME: fast}
 
 
 def parsing():
-    log("parse: decoding the recorded corpus")
+    log(f"parse: decoding the recorded corpus, {OFFLINE_RUNS} runs each")
+    by_rate = lambda run: run["parse"]["all"]["frames_per_s"]  # noqa: E731
+    corpus = ["parse", "--corpus", str(CORPUS)]
     return {
-        DF_NAME: run_json([str(DF), "parse", "--corpus", str(CORPUS)]),
-        HYPERSDK_NAME: run_json([str(HYPERSDK), "parse", "--corpus", str(CORPUS)]),
-        PY_NAME: run_json(py_command("parse", "--corpus", str(CORPUS)), env=py_env(NATIVE)),
+        DF_NAME: median_run([str(DF), *corpus], by_rate),
+        HYPERSDK_NAME: median_run([str(HYPERSDK), *corpus], by_rate),
+        PY_NAME: median_run(py_command(*corpus), by_rate, env=py_env(NATIVE)),
     }
 
 
@@ -269,7 +290,7 @@ def network():
 
 
 def live():
-    log(f"live: the three SDKs subscribe to BTC l2Book and trades at the same time for {LIVE_SECS} s")
+    log(f"live: the three SDKs subscribe to BTC l2Book (fast), bbo and trades at once for {LIVE_SECS} s")
     secs = str(LIVE_SECS)
     commands = {
         DF_NAME: ([str(DF), "live", "--secs", secs], None),
@@ -306,6 +327,14 @@ def markdown(report):
         lines.append(f"| {name} | {us(a['median_ns'])} | {us(a['p99_ns'])} | {a['ops_per_s']:,.0f} | "
                      f"{us(b['median_ns'])} | {us(b['p99_ns'])} | {b['ops_per_s']:,.0f} |")
 
+    lines.append("\n### Recovering the signer from a signature (offline)\n")
+    lines.append("| SDK | median (us) | p99 (us) | ops/s |")
+    lines.append("|---|---:|---:|---:|")
+    for name, row in sign.items():
+        if "recover" in row:
+            r = row["recover"]
+            lines.append(f"| {name} | {us(r['median_ns'])} | {us(r['p99_ns'])} | {r['ops_per_s']:,.0f} |")
+
     net = report["network"]
     for test, title in (("info", "Info round trip: POST /info l2Book BTC"),
                         ("exchange", "Exchange round trip: sign and POST /exchange, refused order")):
@@ -320,22 +349,28 @@ def markdown(report):
             lines.append(f"| {name} | {s['median_ms']:.2f} | {s['p90_ms']:.2f} | {s['p99_ms']:.2f} | "
                          f"{s['min_ms']:.2f} | {s['max_ms']:.2f} | {row[f'{test}_failed']} |")
 
-    lines.append(f"\n### Websocket parse throughput ({report['parsing'][DF_NAME]['parse']['all']['frames']} recorded frames)\n")
-    lines.append("| SDK | all frames/s | all MB/s | l2Book frames/s | trades frames/s | ns per frame | frames not read |")
-    lines.append("|---|---:|---:|---:|---:|---:|---:|")
+    frames = report["parsing"][DF_NAME]["parse"]["all"]["frames"]
+    lines.append(f"\n### Websocket parse throughput ({frames} recorded frames)\n")
+    lines.append("| SDK | all frames/s | all MB/s | l2Book frames/s | trades frames/s | ns per frame | "
+                 "p99 ns per frame | allocations per frame | frames not read |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|")
     for name, row in report["parsing"].items():
         p = row["parse"]
+        allocations = p["all"]["allocations_per_frame"]
+        allocations = "-" if allocations is None else f"{allocations:.1f}"
         lines.append(f"| {name} | {p['all']['frames_per_s']:,.0f} | {p['all']['mb_per_s']:,.1f} | "
                      f"{p['l2Book']['frames_per_s']:,.0f} | {p['trades']['frames_per_s']:,.0f} | "
-                     f"{p['all']['ns_per_frame']:,.0f} | {p['all']['failed']} |")
+                     f"{p['all']['ns_per_frame']:,.0f} | {p['all']['frame_p99_ns']:,} | {allocations} | "
+                     f"{p['all']['failed']} |")
 
-    lines.append(f"\n### Live websocket, BTC l2Book and trades, {LIVE_SECS} s, all three at once\n")
-    lines.append("| SDK | l2Book frames | trades frames | trades | frames not read | age median (ms) | age p99 (ms) |")
-    lines.append("|---|---:|---:|---:|---:|---:|---:|")
+    lines.append(f"\n### Live websocket, BTC l2Book (fast), bbo and trades, {LIVE_SECS} s, all three at once\n")
+    lines.append("| SDK | l2Book frames | bbo frames | trades frames | trades | frames not read | "
+                 "age median (ms) | age p99 (ms) |")
+    lines.append("|---|---:|---:|---:|---:|---:|---:|---:|")
     for name, row in report["live"].items():
         unreadable = "not reported" if row["unreadable"] is None else row["unreadable"]
-        lines.append(f"| {name} | {row['book_frames']} | {row['trade_frames']} | {row['trades']} | {unreadable} | "
-                     f"{row['age_ms_median']} | {row['age_ms_p99']} |")
+        lines.append(f"| {name} | {row['book_frames']} | {row['bbo_frames']} | {row['trade_frames']} | "
+                     f"{row['trades']} | {unreadable} | {row['age_ms_median']} | {row['age_ms_p99']} |")
     return "\n".join(lines) + "\n"
 
 

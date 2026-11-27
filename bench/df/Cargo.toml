@@ -14,3 +14,7 @@ df-hyperliquid-core = { path = "../../packages/core" }
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "io-std", "io-util"] }
 serde_json = "1"
 getrandom = "0.3"
+
+[features]
+# Signs and recovers through libsecp256k1; run.py builds this into its own target directory.
+secp256k1 = ["df-hyperliquid-core/secp256k1"]
