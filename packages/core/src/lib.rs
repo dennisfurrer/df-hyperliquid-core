@@ -23,6 +23,10 @@ pub mod trade;
 pub mod transfer;
 pub mod utils;
 
+#[cfg(fuzzing)]
+#[doc(hidden)]
+pub mod fuzz;
+
 #[cfg(test)]
 pub(crate) mod test_support;
 

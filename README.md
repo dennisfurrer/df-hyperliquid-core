@@ -77,6 +77,16 @@ graph TB
     client --> evm
 ```
 
+## Cargo features
+
+| Feature | Default | What it adds |
+|---|---|---|
+| `sign` | yes | Signing and recovery through k256, pure Rust. Without it, actions build and hash but nothing signs. |
+| `native` | yes | HTTP and websocket for native programs: reqwest and tokio-tungstenite. |
+| `web` | no | HTTP and websocket for the browser and Workers: fetch and WebSocket. |
+| `secp256k1` | no | On native targets, signing and recovery through libsecp256k1, the C library Bitcoin Core uses: about twice as fast to sign and five times as fast to recover, with the same bytes. Needs a C compiler for the target, which matters for musl and cross builds. No effect on wasm. |
+| `offline` | no | The transports refuse anything signed, for a dependent's test build. |
+
 ## Examples
 
 | Example | What it does |
@@ -160,14 +170,18 @@ packages/core
 │   ├── mocked         whole journeys through Client against a fake venue that checks every signature
 │   └── live           mainnet, read only: every read, websocket channel and HyperEVM read
 ├── fixtures           recorded venue answers
-└── vectors            what other implementations produce
+├── vectors            what other implementations produce
+└── fuzz               the frame readers, the decimal readers and the two signing backends
 ```
+
+The direct frame reader is also checked against 5,500 recorded mainnet frames in `bench/data` (books, fast books, bucketed books, best bid and offer, trades) by `just test`.
 
 | Command | What it runs |
 |---|---|
-| `just check` | format, lint, unit, conformance, mocked, the browser transport in Node, docs |
+| `just check` | format, lint, unit, conformance, mocked, the browser transport in Node, docs; with and without `secp256k1`, and for wasm |
 | `just live` | the live suite against mainnet, each answer held against its recording |
 | `just cover` | line coverage of everything but the live suite |
+| `just fuzz <target> <secs>` | one fuzz target (`decode`, `dec` or `backends`), on nightly with cargo-fuzz |
 
 ## Used in production
 

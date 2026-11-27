@@ -18,6 +18,9 @@ pub use account::{
     UserEvent, UserFills, UserFundings, UserState, WebData3,
 };
 pub use feed::{Event, FeedError};
+#[cfg(feature = "__test-internals")]
+#[doc(hidden)]
+pub use frame::reads_directly;
 pub use frame::{Ack, Answer, BadFrame, Frame, Method, Refusal, Reply, decode};
 pub use market::{BadDiff, Bbo, L2, L2Diff, L2Level, Mids};
 pub use request::{PING, Post, post, subscribe, unsubscribe};

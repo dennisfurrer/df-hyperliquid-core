@@ -2,6 +2,19 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## Unreleased
+
+Added:
+
+- Feature `secp256k1`: on native targets, signing and recovery go through libsecp256k1 (the C library Bitcoin Core uses) instead of k256. Signing takes about half the time and recovery about a fifth, with the same bytes: both follow RFC 6979 and give low-s signatures, and recovery refuses the same signatures (a high `s`, a bad `v`, an `r` or `s` out of range). Tests and a fuzz target compare the two backends. Each key gets its own libsecp256k1 signing context, blinded with 32 bytes from the operating system's random source, and the key is wiped on drop. The build needs a C compiler for the target. Off by default; no effect on wasm.
+- `Signer::signature_is_known_good`, `false` by default. When `true`, `Client::send` and `Client::send_user` do not recover the signature before posting it in a release build. `LocalKey` returns `true`, since it signs with the key its address comes from; a wallet, remote signer or hardware module must keep `false`. With k256 this takes about 80 us of CPU off every order sent with a local key.
+
+Changed:
+
+- `live::decode` reads `l2Book`, `trades` and `bbo` frames straight from the text when they are in the venue's compact layout, and reads every other data frame in one pass instead of two. A frame in any other spelling, and every frame that does not read, goes through the previous two-pass reader, so results and error messages are unchanged. Tests check that the readers give the same frame for every recorded frame, every cut of one, a set of changed copies and 5,500 mainnet frames in `bench/data`, and a fuzz target checks that `decode` gives the same answer as the two-pass reader for any text. On the recorded mainnet corpus, about 4.3 times as many frames a second as 0.2.2, with a third of the allocations on `l2Book`.
+- `Dec::parse` reads up to nineteen digits in a `u64` before falling back to the `i128` reader, and `Address` reads hex through a lookup table. Same results.
+- `Subscription::L2Book` documents how often the venue sends a book: without `fast`, BTC came about every 7 s on mainnet in November 2026, though the venue's docs say at most every 0.5 s.
+
 ## 0.2.2
 
 Changed:

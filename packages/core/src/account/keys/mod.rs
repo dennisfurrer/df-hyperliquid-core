@@ -4,6 +4,8 @@
 
 pub mod agents;
 pub mod builder;
+#[cfg(feature = "sign")]
+pub(crate) mod curve;
 pub mod multi_sig;
 pub mod signer;
 pub mod signers;

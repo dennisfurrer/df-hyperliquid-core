@@ -165,3 +165,24 @@ fn a_local_key_signs_typed_data_as_the_trait_and_never_shows_itself() {
     assert!(shown.contains("0x14791697260e4c9a71f18484c9f997b308e59325"), "{shown}");
     assert!(!shown.contains("0123456789012345678901234567890123456789012345678901234567890123"), "{shown}");
 }
+
+/// A signer that only says who it is, as a wallet would; it never signs.
+struct Wallet(Address);
+
+impl Signer for Wallet {
+    fn address(&self) -> Address {
+        self.0
+    }
+
+    fn sign_typed(&self, _: &Domain, _: &TypedStruct<'_>) -> impl Future<Output = Result<Signature, SignError>> {
+        std::future::ready(Err(SignError::Sign))
+    }
+}
+
+/// Only a local key vouches for its own signatures; any other signer is recovered before posting.
+#[test]
+fn only_a_local_key_s_signatures_are_known_good() {
+    let local = key(&ONE);
+    assert!(local.signature_is_known_good());
+    assert!(!Wallet(local.address()).signature_is_known_good());
+}

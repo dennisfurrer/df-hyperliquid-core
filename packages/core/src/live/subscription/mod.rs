@@ -58,6 +58,12 @@ pub enum Subscription {
     },
     /// `n_sig_figs` groups levels to 2 to 5 significant figures; `mantissa` (1, 2 or 5) groups
     /// further, with 5 figures only. `fast` gives 5 levels a side more often, not 20.
+    ///
+    /// How often a book comes matters more than the venue's docs suggest. They say a book is sent
+    /// at most every 0.5 s, but on mainnet in November 2026 a BTC book without `fast` came about
+    /// every 7 s, so a program that waits for it holds a stale book. With `fast` it came about
+    /// twice a second, 5 levels a side. For the best bid and ask alone, [`Subscription::Bbo`] is
+    /// sent on every block where they change (about ten times a second for BTC).
     L2Book {
         /// The coin.
         coin: String,

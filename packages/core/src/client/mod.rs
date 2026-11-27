@@ -159,8 +159,13 @@ impl<H: Http, S: Signer> Client<H, S> {
         Ok(exchange(&self.api, action.body(&signature, network)).await?)
     }
 
-    /// The signature must recover to the signer before it is posted.
+    /// The signature must recover to the signer before it is posted. A signer whose signatures are
+    /// known good ([`Signer::signature_is_known_good`], a [`crate::account::LocalKey`]) is not
+    /// recovered in a release build: it signed with the key its address comes from.
     fn check(&self, digest: &[u8; 32], signature: &crate::account::Signature) -> Result<(), SignError> {
+        if self.signer.signature_is_known_good() && !cfg!(debug_assertions) {
+            return Ok(());
+        }
         crate::account::verify(digest, signature, self.signer.address())
     }
 }

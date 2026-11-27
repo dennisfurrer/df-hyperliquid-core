@@ -4,10 +4,16 @@
 //! [`Frame::Other`], kept as written; a frame that does not read is a [`BadFrame`], never a panic.
 
 pub mod control;
+mod hot;
+pub(crate) mod one_pass;
 pub mod read;
 pub mod reply;
+mod scan;
 
 pub use control::{Ack, Method, Refusal};
+#[cfg(feature = "__test-internals")]
+#[doc(hidden)]
+pub use read::reads_directly;
 pub use read::{BadFrame, decode};
 pub use reply::{Answer, Reply};
 

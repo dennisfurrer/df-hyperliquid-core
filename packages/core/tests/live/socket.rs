@@ -16,6 +16,8 @@ use std::path::PathBuf;
 
 use df_hyperliquid_core::Network;
 use df_hyperliquid_core::client::native::Feed;
+#[cfg(feature = "__test-internals")]
+use df_hyperliquid_core::live::reads_directly;
 use df_hyperliquid_core::live::{Answer, Event, Frame, Post, Session, Subscription};
 use df_hyperliquid_core::markets::{Book, Interval};
 use df_hyperliquid_core::utils::Address;
@@ -274,6 +276,12 @@ async fn held(checks: impl IntoIterator<Item = Check>) {
         if !reads(&frame) {
             let read: String = format!("{frame:?}").chars().take(200).collect();
             failures.push(format!("{subscription}: read as {read}"));
+        }
+        // `just live` builds with `__test-internals`: the venue must still write the layout the
+        // direct reader takes, or `decode` has quietly moved these channels to the serde path.
+        #[cfg(feature = "__test-internals")]
+        if ["l2Book", "trades", "bbo"].contains(&subscription.channel()) && !reads_directly(&text) {
+            failures.push(format!("{subscription}: no longer in the layout the direct reader takes"));
         }
         let live: Value = serde_json::from_str(&text).unwrap();
         let recording = match recording {

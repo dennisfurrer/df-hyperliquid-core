@@ -84,3 +84,21 @@ fn an_unknown_channel_is_kept_and_what_does_not_read_names_its_channel() {
         assert!(error.to_string().starts_with(&format!("a `{channel}` frame did not read")), "{error}");
     }
 }
+
+/// The one-pass reader gives the frame the two-pass reader gives, for every recorded frame and
+/// every cut of one, and takes nothing the two-pass reader refuses.
+#[test]
+fn one_pass_and_two_passes_read_the_same_frame() {
+    let mut in_one = 0;
+    for (name, text) in all() {
+        let step = if text.len() > 2_000 { 97 } else { 1 };
+        let cuts = (0..=text.len()).step_by(step).filter(|end| text.is_char_boundary(*end)).map(|end| &text[..end]);
+        for cut in cuts.chain([text.as_str()]) {
+            if let Ok(frame) = decode_in_one(cut) {
+                in_one += 1;
+                assert_eq!(Ok(frame), decode_in_two(cut), "{name}: {cut}");
+            }
+        }
+    }
+    assert!(in_one > 0, "no recorded frame read in one pass");
+}

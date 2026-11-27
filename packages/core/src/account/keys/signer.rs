@@ -7,20 +7,20 @@ use std::fmt;
 use std::future::Future;
 
 #[cfg(feature = "sign")]
-use k256::ecdsa::{RecoveryId, Signature as CurveSignature, SigningKey, VerifyingKey};
+use k256::ecdsa::{Signature as CurveSignature, SigningKey, VerifyingKey};
 use serde::{Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "sign")]
 use zeroize::{ZeroizeOnDrop, Zeroizing};
 
+#[cfg(feature = "sign")]
+use crate::account::keys::curve::{address_of_coordinates, backend};
 use crate::utils::address::Address;
 #[cfg(feature = "sign")]
 use crate::utils::hex;
 use crate::utils::json::Json;
 use crate::utils::sign::eip712::{Domain, TypedStruct};
-#[cfg(feature = "sign")]
-use crate::utils::sign::keccak::keccak256;
 
-const V_OFFSET: u8 = 27;
+pub(crate) const V_OFFSET: u8 = 27;
 
 /// `{r, s, v}`: low-s, `v = 27 + recovery id`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -167,14 +167,11 @@ impl Serialize for Signature {
     }
 }
 
-/// The address that signed `digest`.
+/// The address that signed `digest`. With the `secp256k1` feature on a native target
+/// libsecp256k1 recovers it, otherwise k256; both refuse the same signatures.
 #[cfg(feature = "sign")]
 pub fn recover(digest: &[u8; 32], signature: &Signature) -> Result<Address, SignError> {
-    let recovery_id = signature.recovery_id().and_then(RecoveryId::from_byte).ok_or(SignError::BadV(signature.v))?;
-    let curve_signature = CurveSignature::from_slice(&signature.to_compact()).map_err(|_| SignError::Malformed)?;
-    let key = VerifyingKey::recover_from_prehash(digest, &curve_signature, recovery_id)
-        .map_err(|_| SignError::Unrecoverable)?;
-    Ok(address_of_public_key(&key))
+    backend::recover(digest, signature)
 }
 
 /// Recovers `signature` and requires `expected`: what every wallet signature
@@ -193,11 +190,7 @@ pub fn verify(digest: &[u8; 32], signature: &Signature, expected: Address) -> Re
 #[must_use]
 pub fn address_of_public_key(key: &VerifyingKey) -> Address {
     let point = key.to_encoded_point(false);
-    let coordinates = &point.as_bytes()[1..];
-    let hash = keccak256(coordinates);
-    let mut bytes = [0u8; 20];
-    bytes.copy_from_slice(&hash[12..]);
-    Address::from_bytes(bytes)
+    address_of_coordinates(point.as_bytes().get(1..).unwrap_or_default())
 }
 
 /// Whoever signs for an account. In the browser that is the wallet, handed
@@ -210,6 +203,16 @@ pub trait Signer {
     /// Signs `data` under `domain` as EIP-712 typed data.
     fn sign_typed(&self, domain: &Domain, data: &TypedStruct<'_>)
     -> impl Future<Output = Result<Signature, SignError>>;
+
+    /// `true` only when this signer computes every signature itself from the private key behind
+    /// [`Signer::address`], so a signature cannot recover to any other address. Then
+    /// [`crate::Client`] does not recover the signature before posting it (in release builds; a
+    /// debug build still does). `false` by default, and it must stay `false` for a wallet, a
+    /// remote signer or a hardware module: each can sign as another account, and recovery is what
+    /// catches that before anything is posted.
+    fn signature_is_known_good(&self) -> bool {
+        false
+    }
 }
 
 /// If `k256` ever stops wiping its key on drop, this stops compiling.
@@ -225,6 +228,7 @@ const _: fn() = || {
 pub struct LocalKey {
     key: SigningKey,
     address: Address,
+    signing: backend::Key,
 }
 
 #[cfg(feature = "sign")]
@@ -233,7 +237,8 @@ impl LocalKey {
     pub fn from_bytes(secret: &[u8; 32]) -> Result<Self, SignError> {
         let key = SigningKey::from_bytes(secret.into()).map_err(|_| SignError::NotAKey)?;
         let address = address_of_public_key(key.verifying_key());
-        Ok(LocalKey { key, address })
+        let signing = backend::Key::new(&key)?;
+        Ok(LocalKey { key, address, signing })
     }
 
     /// Thirty-two bytes of hex, `0x` optional. A rejected key is never quoted back.
@@ -249,16 +254,16 @@ impl LocalKey {
         self.address
     }
 
-    /// RFC 6979, so the same digest always signs the same; low-s.
+    /// RFC 6979, so the same digest always signs the same; low-s. With the `secp256k1` feature on
+    /// a native target libsecp256k1 signs, otherwise k256; both give the same bytes.
     pub fn sign_digest(&self, digest: &[u8; 32]) -> Result<Signature, SignError> {
-        let (signature, recovery_id): (CurveSignature, RecoveryId) =
-            self.key.sign_prehash_recoverable(digest).map_err(|_| SignError::Sign)?;
-        let bytes = signature.to_bytes();
-        let mut r = [0u8; 32];
-        let mut s = [0u8; 32];
-        r.copy_from_slice(&bytes[..32]);
-        s.copy_from_slice(&bytes[32..]);
-        Ok(Signature { r, s, v: recovery_id.to_byte() + V_OFFSET })
+        self.signing.sign(&self.key, digest)
+    }
+
+    /// The k256 key, for the tests and the fuzz target that hold the two backends together.
+    #[cfg(all(any(test, fuzzing), feature = "secp256k1", not(target_arch = "wasm32")))]
+    pub(crate) const fn curve_key(&self) -> &SigningKey {
+        &self.key
     }
 }
 
@@ -274,6 +279,11 @@ impl Signer for LocalKey {
         data: &TypedStruct<'_>,
     ) -> impl Future<Output = Result<Signature, SignError>> {
         std::future::ready(self.sign_digest(&data.digest(domain)))
+    }
+
+    /// The signature is made here from the key the address comes from.
+    fn signature_is_known_good(&self) -> bool {
+        true
     }
 }
 

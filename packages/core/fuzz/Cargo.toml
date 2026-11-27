@@ -1,0 +1,38 @@
+# Fuzzing for df-hyperliquid-core, its own workspace so libfuzzer never enters the crate's lock.
+# Run from the repository root with `just fuzz` (nightly and cargo-fuzz).
+[package]
+name = "df-hyperliquid-core-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4.13"
+df-hyperliquid-core = { path = "..", default-features = false, features = ["secp256k1"] }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "decode"
+path = "fuzz_targets/decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "dec"
+path = "fuzz_targets/dec.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "backends"
+path = "fuzz_targets/backends.rs"
+test = false
+doc = false
+bench = false

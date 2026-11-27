@@ -40,3 +40,40 @@ fn the_venue_s_strings_read_and_floats_do_not() {
     assert!(serde_json::from_str::<Dec>(r#""1e5""#).is_err());
     assert_eq!(serde_json::to_string(&dec("12.50")).unwrap(), r#""12.5""#);
 }
+
+/// Fields, not value: the two readers must agree on `units` and `scale`, not only on equality.
+fn fields(read: Result<Dec, BadDec>) -> Result<(i128, u32), BadDec> {
+    read.map(|dec| (dec.units, dec.scale))
+}
+
+/// The short reader takes only texts the long one reads, and reads them to the same fields: every
+/// text of up to five characters from a small alphabet, then longer digit strings around the
+/// nineteen-digit edge.
+#[test]
+fn the_short_reader_agrees_with_the_long_one() {
+    let alphabet = b"-+.0159 x";
+    let mut texts: Vec<String> = Vec::new();
+    let mut layer: Vec<String> = vec![String::new()];
+    for _ in 0..5 {
+        layer = layer.iter().flat_map(|text| alphabet.iter().map(move |&c| format!("{text}{}", c as char))).collect();
+        texts.extend(layer.iter().cloned());
+    }
+    let mut seed: u64 = 0x9e37_79b9_7f4a_7c15;
+    for _ in 0..200_000 {
+        seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407);
+        let len = 15 + (seed >> 59) as usize % 8;
+        let text: String = (0..len)
+            .map(|at| {
+                let pick = (seed.rotate_left(at as u32 * 7) >> 32) % 13;
+                b"-.012345678909"[pick as usize] as char
+            })
+            .collect();
+        texts.push(text);
+    }
+    for text in &texts {
+        if let Some(short) = Dec::parse_short(text.as_bytes()) {
+            assert_eq!(Ok((short.units, short.scale)), fields(Dec::parse_long(text)), "{text:?}");
+        }
+        assert_eq!(fields(Dec::parse(text)), fields(Dec::parse_long(text)), "{text:?}");
+    }
+}

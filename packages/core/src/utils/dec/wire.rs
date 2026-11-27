@@ -27,6 +27,52 @@ impl Dec {
     /// Reads what the venue writes: an optional sign, digits, and at most one
     /// point. No exponent, since the venue never sends one.
     pub fn parse(text: &str) -> Result<Dec, BadDec> {
+        match Dec::parse_short(text.as_bytes()) {
+            Some(dec) => Ok(dec),
+            None => Dec::parse_long(text),
+        }
+    }
+
+    /// What the venue sends almost always: an optional `-`, then at most nineteen digits and one
+    /// point, which fit in a `u64`. Anything else (a `+`, spaces, more digits, a stray character)
+    /// is `None` and goes to [`Dec::parse_long`], which reads it or says why not. Both give the
+    /// same `units` and `scale` for every text this one reads.
+    pub(crate) fn parse_short(text: &[u8]) -> Option<Dec> {
+        let (negative, body) = match text.split_first() {
+            Some((b'-', rest)) => (true, rest),
+            _ => (false, text),
+        };
+        if body.len() > 19 {
+            return None;
+        }
+        let mut units: u64 = 0;
+        let mut point: Option<usize> = None;
+        for (at, &byte) in body.iter().enumerate() {
+            match byte {
+                b'0'..=b'9' => units = units * 10 + u64::from(byte - b'0'),
+                b'.' if point.is_none() => point = Some(at),
+                _ => return None,
+            }
+        }
+        let digits = body.len() - usize::from(point.is_some());
+        if digits == 0 {
+            return None;
+        }
+        // At most eighteen places: nineteen bytes hold at most eighteen digits after a point.
+        let mut scale = point.map_or(0, |at| (body.len() - at - 1) as u32);
+        while scale > 0 && units.is_multiple_of(10) {
+            units /= 10;
+            scale -= 1;
+        }
+        if units == 0 {
+            scale = 0;
+        }
+        let units = i128::from(units);
+        Some(Dec { units: if negative { -units } else { units }, scale })
+    }
+
+    /// Every spelling [`Dec::parse`] takes, and the reason for one it does not.
+    pub(crate) fn parse_long(text: &str) -> Result<Dec, BadDec> {
         let bad = || BadDec::NotANumber(text.to_owned());
         let body = text.trim();
         let (negative, body) = match body.strip_prefix('-') {

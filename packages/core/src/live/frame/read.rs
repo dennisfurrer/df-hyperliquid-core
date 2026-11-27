@@ -4,11 +4,12 @@
 use std::{borrow::Cow, fmt};
 
 use crate::client::ExchangeResponse;
-use crate::live::{Ack, Answer, Frame, Method, Refusal, Reply};
-use crate::markets::context::{PerpCtx, SpotCtx};
+use crate::live::{Ack, Answer, Frame, Method, Reply};
 use crate::utils::Json;
 use serde::Deserialize;
 use serde_json::value::RawValue;
+
+use super::one_pass::{channel_of, decode_in_one, is_plain, plain};
 
 /// A frame that did not read: the channel it named, when it got that far, and why.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,30 +70,37 @@ struct RawInfo<'a> {
     data: Option<&'a RawValue>,
 }
 
-#[derive(Deserialize)]
-struct Active<C> {
-    coin: String,
-    ctx: C,
-}
-
-#[derive(Deserialize)]
-struct DexCtxs {
-    dex: String,
-    ctxs: Vec<PerpCtx>,
-}
-
-#[derive(Deserialize)]
-struct EveryDexCtxs {
-    ctxs: Vec<(String, Vec<PerpCtx>)>,
-}
-
-#[derive(Deserialize)]
-struct Note {
-    notification: String,
-}
-
-/// Reads one text frame.
+/// Reads one text frame. `l2Book`, `trades` and `bbo` in the venue's own compact layout are read
+/// straight from the text. Other frames are read in one pass when they are
+/// `{"channel":..,"data":..}` in that order with nothing else, as the venue writes every data frame.
+/// Anything else, and every frame that does not read, is read in two passes (the frame with its
+/// data kept as written, then the data), which gives the same frame or says why not.
 pub fn decode(text: &str) -> Result<Frame, BadFrame> {
+    if let Some(frame) = super::hot::read(text) {
+        return Ok(frame);
+    }
+    if channel_of(text).is_some_and(is_plain)
+        && let Ok(frame) = decode_in_one(text)
+    {
+        return Ok(frame);
+    }
+    decode_in_two(text)
+}
+
+/// Whether [`decode`] reads `text` with its direct reader: an `l2Book`, `trades` or `bbo` frame in
+/// the venue's compact layout. For the live suite, which checks that the venue still writes that
+/// layout: behind the `__test-internals` feature, outside the crate's API and its semver promise.
+/// It reads the frame again, so it is not for every frame of a running program.
+#[cfg(feature = "__test-internals")]
+#[doc(hidden)]
+#[must_use]
+pub fn reads_directly(text: &str) -> bool {
+    super::hot::read(text).is_some()
+}
+
+/// Two passes: the frame with its data kept as written, then the data read for its channel. Reads
+/// every frame [`decode`] takes and names the reason for one it does not.
+pub(crate) fn decode_in_two(text: &str) -> Result<Frame, BadFrame> {
     let head: Head<'_> = serde_json::from_str(text)
         .map_err(|error| BadFrame { channel: None, detail: format!("{error} in {}", shown(text)) })?;
     let channel = head.channel.as_ref();
@@ -105,51 +113,14 @@ pub fn decode(text: &str) -> Result<Frame, BadFrame> {
             let echo = Json::parse(ack.subscription.get()).map_err(|error| typed.fail(error.to_string()))?;
             Frame::Ack(Ack { method: ack.method, echo })
         }
-        "error" => Frame::Error(Refusal { message: typed.read()? }),
         "post" => Frame::Post(typed.reply()?),
-        "allMids" => Frame::AllMids(typed.read()?),
-        "l2Book" => Frame::Book(typed.read()?),
-        "trades" => Frame::Trades(typed.read()?),
-        "bbo" => Frame::Bbo(typed.read()?),
-        "candle" => Frame::Candle(typed.read()?),
-        "activeAssetCtx" => {
-            let active: Active<PerpCtx> = typed.read()?;
-            Frame::AssetCtx { coin: active.coin, ctx: active.ctx }
-        }
-        "activeSpotAssetCtx" => {
-            let active: Active<SpotCtx> = typed.read()?;
-            Frame::SpotAssetCtx { coin: active.coin, ctx: active.ctx }
-        }
-        "activeAssetData" => Frame::AssetData(typed.read()?),
-        "userFills" => Frame::UserFills(typed.read()?),
-        "orderUpdates" => Frame::OrderUpdates(typed.read()?),
-        "user" => Frame::UserEvent(typed.read()?),
-        "userFundings" => Frame::UserFundings(typed.read()?),
-        "userNonFundingLedgerUpdates" => Frame::Ledger(typed.read()?),
-        "clearinghouseState" => Frame::ClearinghouseState(typed.read()?),
-        "allDexsClearinghouseState" => Frame::AllDexsClearinghouseState(typed.read()?),
-        "openOrders" => Frame::OpenOrders(typed.read()?),
-        "spotState" => Frame::SpotState(typed.read()?),
-        "twapStates" => Frame::TwapStates(typed.read()?),
-        "userTwapSliceFills" => Frame::TwapSliceFills(typed.read()?),
-        "userTwapHistory" => Frame::TwapHistory(typed.read()?),
-        "notification" => Frame::Notification(typed.read::<Note>()?.notification),
-        "webData3" => Frame::WebData3(typed.read()?),
-        "allDexsAssetCtxs" => Frame::AllDexsAssetCtxs(typed.read::<EveryDexCtxs>()?.ctxs),
-        "assetCtxs" => {
-            let dex: DexCtxs = typed.read()?;
-            Frame::AssetCtxs { dex: dex.dex, ctxs: dex.ctxs }
-        }
-        "spotAssetCtxs" => Frame::SpotAssetCtxs(typed.read()?),
         "outcomeMetaUpdates" => {
             Frame::OutcomeMetaUpdates(Json::parse(typed.data()?).map_err(|error| typed.fail(error.to_string()))?)
         }
-        "fastAssetCtxs" => Frame::FastAssetCtxs(typed.read()?),
-        "userHistoricalOrders" => Frame::HistoricalOrders(typed.read()?),
-        "l2" => Frame::L2(typed.read()?),
-        "pac" => Frame::Pac(typed.read()?),
-        "sac" => Frame::Sac(typed.read()?),
-        other => Frame::Other { channel: other.to_owned(), data: data.unwrap_or_default().to_owned() },
+        other => match typed.plain() {
+            Some(frame) => frame?,
+            None => Frame::Other { channel: other.to_owned(), data: data.unwrap_or_default().to_owned() },
+        },
     })
 }
 
@@ -171,6 +142,21 @@ impl<'a> Typed<'a> {
     fn read<T: Deserialize<'a>>(&self) -> Result<T, BadFrame> {
         let data = self.data()?;
         serde_json::from_str(data).map_err(|error| self.fail(format!("{error} in {}", shown(data))))
+    }
+
+    /// The data of a channel [`plain`] knows, read as `serde_json::from_str` would; `None` for
+    /// any other channel.
+    fn plain(&self) -> Option<Result<Frame, BadFrame>> {
+        if !is_plain(self.channel) {
+            return None;
+        }
+        let data = match self.data() {
+            Ok(data) => data,
+            Err(error) => return Some(Err(error)),
+        };
+        let mut de = serde_json::Deserializer::from_str(data);
+        let frame = plain(self.channel, &mut de)?.and_then(|frame| de.end().map(|()| frame));
+        Some(frame.map_err(|error| self.fail(format!("{error} in {}", shown(data)))))
     }
 
     fn reply(&self) -> Result<Reply, BadFrame> {

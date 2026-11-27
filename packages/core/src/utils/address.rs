@@ -62,12 +62,27 @@ impl Address {
     }
 }
 
+/// Each byte's value as a hex digit, or [`NOT_HEX`]: one lookup a digit instead of three ranges.
+const HEX: [u8; 256] = {
+    let mut table = [NOT_HEX; 256];
+    let mut byte = 0;
+    while byte < 256 {
+        table[byte] = match byte as u8 {
+            digit @ b'0'..=b'9' => digit - b'0',
+            digit @ b'a'..=b'f' => digit - b'a' + 10,
+            digit @ b'A'..=b'F' => digit - b'A' + 10,
+            _ => NOT_HEX,
+        };
+        byte += 1;
+    }
+    table
+};
+const NOT_HEX: u8 = 0xff;
+
 const fn hex_digit(byte: u8) -> Option<u8> {
-    match byte {
-        b'0'..=b'9' => Some(byte - b'0'),
-        b'a'..=b'f' => Some(byte - b'a' + 10),
-        b'A'..=b'F' => Some(byte - b'A' + 10),
-        _ => None,
+    match HEX[byte as usize] {
+        NOT_HEX => None,
+        digit => Some(digit),
     }
 }
 

@@ -58,6 +58,12 @@ impl Dec {
         Dec { units: whole as i128, scale: 0 }
     }
 
+    /// `units` and `scale` as held, for the fuzz target that holds the two readers together.
+    #[cfg(fuzzing)]
+    pub(crate) const fn parts(self) -> (i128, u32) {
+        (self.units, self.scale)
+    }
+
     /// The same value with no trailing zeros behind the point.
     #[must_use]
     fn normal(mut self) -> Dec {
