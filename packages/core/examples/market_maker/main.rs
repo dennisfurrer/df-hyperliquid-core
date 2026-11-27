@@ -80,7 +80,7 @@ use std::time::{Duration, Instant};
 use df_hyperliquid_core::account::{self, LocalKey, Signature};
 use df_hyperliquid_core::client::native::{Feed, Native, clock};
 use df_hyperliquid_core::client::{Accepted, ApiError, ExchangeResponse, exchange};
-use df_hyperliquid_core::live::{self, Answer, Event, Frame, Post, Session, Subscription};
+use df_hyperliquid_core::live::{self, Answer, Event, FeedError, Frame, Post, Refused, Session, Subscription};
 use df_hyperliquid_core::markets::{Dex, Side, perps};
 use df_hyperliquid_core::trade::answer::orders;
 use df_hyperliquid_core::trade::{
@@ -105,6 +105,11 @@ const WARM_EVERY: Duration = Duration::from_millis(1);
 
 /// The venue's words for a post-only order that would have crossed: normal in a fast market.
 const WOULD_CROSS: [&str; 2] = ["Post only order would have immediately matched", "badAloPx"];
+
+/// The venue's words for a modify of a quote that filled or was cancelled after the modify was
+/// sent: normal when quotes fill, because `orderUpdates` reports the fill after the modify left.
+/// The side is dropped and the next touch places a new quote.
+const ALREADY_GONE: &str = "Cannot modify canceled or filled order";
 
 /// The settings read from the environment.
 struct Config {
@@ -641,7 +646,9 @@ impl Maker {
         self.stats.requotes += 1;
         self.last_requote = Some(Instant::now());
 
-        // What the quotes become once the requests are taken.
+        // What the quotes become once the requests are taken; `before` restores a side whose
+        // request could not be sent.
+        let before = self.resting.clone();
         for (side, _, order) in &plan.modify {
             self.resting.insert(
                 *side,
@@ -669,8 +676,27 @@ impl Maker {
             self.budget.used = self.budget.used.saturating_add(requests);
             for (body, signed, sides, action) in bodies {
                 let sent = Instant::now();
-                let id = feed.post(Post::action(&body)?).await?;
-                self.pending.insert(id, Pending { sent, sides, action, signed, switch: false });
+                match feed.post(Post::action(&body)?).await {
+                    Ok(id) => {
+                        self.pending.insert(id, Pending { sent, sides, action, signed, switch: false });
+                    }
+                    // The socket is reconnecting and nothing was sent, so the quotes this request
+                    // would have changed are as they were. The next touch after the reconnect
+                    // requotes them.
+                    Err(FeedError::Refused(Refused::Closed)) => {
+                        let touched =
+                            if sides.is_empty() { plan.cancel.iter().map(|(side, _)| *side).collect() } else { sides };
+                        for side in touched {
+                            match before.get(&side) {
+                                Some(resting) => self.resting.insert(side, *resting),
+                                None => self.resting.remove(&side),
+                            };
+                        }
+                        self.stats.unsent += 1;
+                        println!("not sent: the websocket is reconnecting; the quotes stay as they were");
+                    }
+                    Err(error) => return Err(error.into()),
+                }
             }
         }
         self.plan = plan;
@@ -805,6 +831,8 @@ impl Maker {
     fn count_refusal(&mut self, message: &str) {
         if WOULD_CROSS.iter().any(|words| message.contains(words)) {
             self.stats.would_cross += 1;
+        } else if message.contains(ALREADY_GONE) {
+            self.stats.already_gone += 1;
         } else {
             self.stats.refused += 1;
             println!("refused: {message}");
@@ -832,8 +860,18 @@ impl Maker {
         let (body, signed) = self.sign(&action)?;
         self.budget.used = self.budget.used.saturating_add(1);
         let sent = Instant::now();
-        let id = feed.post(Post::action(&body)?).await?;
-        self.pending.insert(id, Pending { sent, sides: Vec::new(), action: Box::new(action), signed, switch: true });
+        match feed.post(Post::action(&body)?).await {
+            Ok(id) => {
+                self.pending
+                    .insert(id, Pending { sent, sides: Vec::new(), action: Box::new(action), signed, switch: true });
+            }
+            // The switch was set 15 s ahead, so a refresh missed while the socket reconnects is
+            // made up by the next one, 5 s later.
+            Err(FeedError::Refused(Refused::Closed)) => {
+                println!("switch refresh not sent: the websocket is reconnecting");
+            }
+            Err(error) => return Err(error.into()),
+        }
         Ok(())
     }
 

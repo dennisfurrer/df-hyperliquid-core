@@ -30,7 +30,13 @@ what it shows, the environment variables it reads and the command that runs it.
   (default 1) behind the best price on its own side, so a quote cannot cross.
   `HL_SPREAD_BPS=0 HL_BEHIND_TICKS=0` quotes at the best bid and ask, still post-only, for a thin
   testnet book. A post-only quote the venue still refuses as crossing (it happens in a fast
-  market) is counted as normal and quoted again.
+  market) is counted as normal and quoted again. So is "Cannot modify canceled or filled order",
+  the answer to a modify of a quote that filled while the modify was on its way: the venue
+  reports the fill after the modify has left. The next touch places a new quote on that side.
+- When the websocket drops it dials again. A request that cannot be sent meanwhile is not held to
+  send later; the quotes stay as they were and the next touch after the reconnect requotes them.
+  A request sent before the drop whose answer was lost holds requoting until the watchdog cancels
+  everything over HTTP.
 - Cuts each size to the lot and raises it to the venue's $10 minimum order value when it falls
   under, checked before anything is sent.
 - Requotes only when a price moves a tick or more, as one `batchModify` keyed by client order id,

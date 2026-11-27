@@ -65,6 +65,11 @@ pub struct Stats {
     /// Post-only quotes the venue refused because they would have crossed: normal in a fast
     /// market.
     pub would_cross: u64,
+    /// Modifies of a quote that filled or was cancelled after the modify was sent: normal when
+    /// quotes fill.
+    pub already_gone: u64,
+    /// Requests not sent because the websocket was reconnecting.
+    pub unsent: u64,
     /// Other refusals.
     pub refused: u64,
 }
@@ -106,7 +111,13 @@ impl Stats {
                 None => "no answers yet".to_owned(),
             };
             lines.push(format!("  send to answer     {millis}"));
-            lines.push(format!("  refused: {} would have crossed (normal), {} other", self.would_cross, self.refused));
+            lines.push(format!(
+                "  refused: {} would have crossed (normal), {} modified after a fill or cancel (normal), {} other",
+                self.would_cross, self.already_gone, self.refused
+            ));
+            if self.unsent > 0 {
+                lines.push(format!("  not sent while the websocket reconnected: {}", self.unsent));
+            }
         }
         lines.join("\n")
     }
@@ -132,5 +143,19 @@ mod tests {
         assert_eq!(Samples::default().median_p99(), None);
         assert_eq!(tenths(25_340, 1_000), "25.3");
         assert_eq!(tenths(25_350, 1_000), "25.4");
+    }
+
+    #[test]
+    fn the_report_counts_normal_refusals_apart_from_the_rest() {
+        let stats = Stats { would_cross: 2, already_gone: 3, refused: 1, ..Stats::default() };
+        let report = stats.report(Duration::from_secs(60), true);
+        assert!(
+            report.contains(
+                "refused: 2 would have crossed (normal), 3 modified after a fill or cancel (normal), 1 other"
+            )
+        );
+        assert!(!report.contains("not sent"), "nothing about reconnects when every request was sent");
+        let reconnected = Stats { unsent: 4, ..Stats::default() }.report(Duration::from_secs(60), true);
+        assert!(reconnected.contains("not sent while the websocket reconnected: 4"));
     }
 }
