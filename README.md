@@ -14,7 +14,7 @@
 [![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
 [![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
 
-Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest order signing of the SDKs benchmarked, and native or wasm transports.
+Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest order signing and websocket parsing of the SDKs benchmarked, and native or wasm transports.
 
 Project page: [dfurrer.com/products/df-hyperliquid-core](https://dfurrer.com/products/df-hyperliquid-core). For how Hyperliquid itself works (HyperCore, the HyperEVM, perps, outcome markets, signing, rate limits), see [HyperBooks](https://hyperbooks.xyz), the Hyperliquid documentation by the same author, and its [list of Hyperliquid SDKs and developer tools](https://hyperbooks.xyz/start/developer-tools/).
 
@@ -149,16 +149,19 @@ Not included:
 
 ## Benchmarks
 
-df-hyperliquid-core has the fastest order signing of the three SDKs measured: 1.4 times hypersdk and 5 times the official Python SDK with coincurve. hypersdk parses websocket frames faster. Round trips to the venue are the same for all three, because the network takes almost all of the time.
+df-hyperliquid-core signs orders and parses websocket frames faster than the other SDKs measured. With its defaults it signs 1.3 times as fast as hypersdk, and 2.6 times as fast with the `secp256k1` feature. It parses recorded mainnet frames 2.4 times as fast as hypersdk (2.7 times on books), with a lower p99 and fewer allocations per frame. Round trips to the venue are the same for all three SDKs, because the network takes almost all of the time.
 
 | Measurement | df-hyperliquid-core | hypersdk 0.3.1 | hyperliquid-python-sdk 0.24.0 |
 |---|---|---|---|
-| Hash and sign one BTC order, median | 25.5 us | 35.7 us | 2056.7 us (129.1 us with coincurve) |
-| Websocket parse, recorded frames | 252,879 frames/s | 447,251 frames/s | 218,252 frames/s (prices left as strings) |
-| Info round trip (`l2Book`), median | 258.6 ms | 257.1 ms | 263.7 ms |
-| Exchange round trip (refused order), median | 277.5 ms | 275.4 ms | 279.4 ms |
+| Hash and sign one BTC order, median | 25.6 us (13.1 us with `secp256k1`) | 33.8 us | 2017.0 us (122.2 us with coincurve) |
+| Websocket parse, recorded frames | 1,145,475 frames/s | 477,986 frames/s | 224,450 frames/s (prices left as strings) |
+| Websocket parse, `l2Book` frames | 823,194 frames/s | 301,107 frames/s | 147,679 frames/s |
+| Websocket parse, p99 of one frame | 2.9 us | 4.7 us | 10.5 us |
+| Allocations per frame | 4.7 | 7.7 | not measured |
+| Info round trip (`l2Book`), median | 237.9 ms | 238.8 ms | 238.7 ms |
+| Exchange round trip (refused order), median | 266.9 ms | 262.7 ms | 257.1 ms |
 
-Measured on 2026-11-24 on one Apple M5 Max, from Zurich. The method, p99 figures, raw samples and the command to rerun them are in [bench/README.md](bench/README.md).
+Measured on 2026-11-27 on one Apple M5 Max, from Zurich, each offline figure the median of 5 runs. The round trips differ by less than the spread between requests and show parity, not a ranking. The method, p99 figures, raw samples and the command to rerun them are in [bench/README.md](bench/README.md).
 
 ## Tests
 
