@@ -86,23 +86,29 @@ HL_MIN_REQUOTE_MS=100`, median and p99 in microseconds:
 | `secp256k1` | off | 1.7 / 3.1 | 6.7 / 19.2 | 102.3 / 223.9 | 114.3 / 236.0 | 16 |
 | `secp256k1` | on | 0.6 / 2.4 | 2.8 / 4.1 | 26.5 / 111.4 | 32.3 / 126.4 | 22 |
 
-The benchmark (`bench/results/2026-11-27-215626-apple-m5-max.json`) measures the same steps in a
-tight loop: 26.7 us to build, sign and write an order's body with the default signer and 14.4 us
-with `secp256k1` (median), and 1,119,244 websocket frames a second, the fastest websocket parsing
+A 10-minute testnet run with `HL_SEND=1` on 2026-11-28 (BTC, default signer, `HL_SPREAD_BPS=1
+HL_MIN_REQUOTE_MS=200`, no `HL_SPIN`) signed and sent 280 requotes and got 73 fills: build and sign
+121.3 / 219.0 us, frame to signed 135.3 / 281.7 us, and 762.8 ms median from sending to the
+venue's answer, over the websocket from Zurich. 40 modifies were refused because the quote had
+filled first, which is normal, and nothing else was refused.
+
+The benchmark (`bench/results/2026-11-28-001007-apple-m5-max.json`) measures the same steps in a
+tight loop: 25.6 us to build, sign and write an order's body with the default signer and 12.6 us
+with `secp256k1` (median), and 1,181,464 websocket frames a second, the fastest websocket parsing
 of the SDKs benchmarked; with the `secp256k1` feature, df-hyperliquid-core has the fastest signing
 of them.
 
-Without `HL_SPIN` a requote takes two to four times as long as the benchmark. Nothing recovers a
+Without `HL_SPIN` a requote takes four to five times as long as the benchmark. Nothing recovers a
 signature on this path in any build; the difference comes from scheduling and caches. Between frames the
 quoting thread sleeps, macOS runs it on a slower core or clock when it wakes, and the signing
 code and tables have left the cache: the same signature takes about 23 us in a tight loop in this
 program and about 52 us when it follows a pause. `HL_SPIN=1` keeps the thread busy and signs a
-throwaway digest each idle millisecond, which brings a requote to the benchmark's level at the
+throwaway digest each idle millisecond, which brings a requote close to the benchmark's level at the
 cost of one core at 100%. A requote also does more than the benchmark's single order: it hashes a
 two-order `batchModify`.
 
 Either way the SDK spends well under a millisecond per requote, against a network round trip of
-hundreds of milliseconds (the same results file: 332.9 ms median for an info read and 363.9 ms for
+hundreds of milliseconds (the same results file: 345.2 ms median for an info read and 375.4 ms for
 an order, from Zurich). The SDK is not the bottleneck.
 
 ### What protects resting orders

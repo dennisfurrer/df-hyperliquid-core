@@ -1,0 +1,490 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Title (df-hyperliquid-core benchmark, Apple M5 Max) /Producer (df-hyperliquid-core bench-runner) >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 11693 >>
+stream
+0.043 0.063 0.125 rg 0.00 723.89 595.28 118.00 re f
+0.176 0.847 0.612 rg 0.00 720.89 595.28 3.00 re f
+BT 1.000 1.000 1.000 rg /F2 24.00 Tf 40.00 789.89 Td (df-hyperliquid-core) Tj ET
+BT 0.796 0.835 0.882 rg /F1 12.00 Tf 40.00 767.89 Td (Benchmark results) Tj ET
+BT 0.176 0.847 0.612 rg /F1 9.00 Tf 40.00 741.89 Td (Apple M5 Max  |  macOS 26.5.2  |  aarch64) Tj ET
+BT 0.796 0.835 0.882 rg /F1 9.00 Tf 450.73 789.89 Td (2026-11-28 00:10:07 UTC) Tj ET
+BT 0.796 0.835 0.882 rg /F1 9.00 Tf 439.73 773.89 Td (compare, offline and network) Tj ET
+0.941 0.992 0.973 rg 40.00 630.89 121.32 66.00 re f
+0.176 0.847 0.612 rg 40.00 630.89 3.00 66.00 re f
+BT 0.082 0.502 0.239 rg /F2 24.00 Tf 54.00 662.89 Td (2.5x) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 54.00 647.89 Td (websocket parsing vs) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 54.00 637.89 Td (hypersdk, the fastest other) Tj ET
+0.941 0.992 0.973 rg 171.32 630.89 121.32 66.00 re f
+0.176 0.847 0.612 rg 171.32 630.89 3.00 66.00 re f
+BT 0.082 0.502 0.239 rg /F2 24.00 Tf 185.32 662.89 Td (2.8x) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 185.32 647.89 Td (l2Book parsing vs hypersdk) Tj ET
+0.941 0.992 0.973 rg 302.64 630.89 121.32 66.00 re f
+0.176 0.847 0.612 rg 302.64 630.89 3.00 66.00 re f
+BT 0.082 0.502 0.239 rg /F2 24.00 Tf 316.64 662.89 Td (0.6x) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 316.64 647.89 Td (order signing vs) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 316.64 637.89 Td (go-hyperliquid, the fastest) Tj ET
+0.941 0.992 0.973 rg 433.96 630.89 121.32 66.00 re f
+0.176 0.847 0.612 rg 433.96 630.89 3.00 66.00 re f
+BT 0.082 0.502 0.239 rg /F2 24.00 Tf 447.96 662.89 Td (1.3x) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 447.96 647.89 Td (signing with secp256k1 vs) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 447.96 637.89 Td (go-hyperliquid) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 601.29 Td (Machine: Apple M5 Max, 18 cores, 128 GB, macOS 26.5.2, aarch64) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 589.69 Td (Versions: df-hyperliquid-core 0.2.6 \(commit 1e0c0f5\), hypersdk 0.3.1, hyperliquid-sdk-rs 0.1.2, quicknode-hyperliquid-sdk 0.1.9,) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 578.09 Td (hyperliquid_rust_sdk 0.6.0, @nktkas/hyperliquid 0.33.3, go-hyperliquid 0.47.3, hyperliquid-python-sdk 0.24.0; rustc 1.94.1 \(e408947bf) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 566.49 Td (2026-03-25\)) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 554.89 Td (Run: compare, offline and network, 5 runs per row with the median run reported, started 2026-11-28T00:10:07Z) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 543.29 Td (Rust build profiles: release \(cargo's default release profile\) in the main columns, release-lto \(fat link-time optimization, one codegen unit\) in the) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 531.69 Td (columns marked release-lto) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 520.09 Td (Go build: cgo on; go-ethereum signs with libsecp256k1 \(C\) through cgo, go-ethereum crypto/secp256k1) Tj ET
+BT 0.392 0.455 0.545 rg /F1 8.00 Tf 40.00 508.49 Td (Power: AC Power, automatic mode) Tj ET
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 490.49 Td (Signing one BTC limit order \(offline\)) Tj ET
+0.945 0.961 0.976 rg 40.00 436.49 515.28 46.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 470.49 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 201.41 470.49 Td (hash + sign) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 200.79 461.49 Td (median \(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 275.00 470.49 Td (p99 \(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 316.29 470.49 Td (build + sign +) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 318.38 461.49 Td (body median) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 350.89 452.49 Td (\(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 396.76 470.49 Td (p99 \(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 444.92 470.49 Td (hash + sign) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 458.06 461.49 Td (median,) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 448.88 452.49 Td (release-lto) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 472.65 443.49 Td (\(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 498.93 470.49 Td (build + sign +) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 498.93 461.49 Td (body median,) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 509.76 452.49 Td (release-lto) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 533.53 443.49 Td (\(us\)) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 424.99 Td (df-hyperliquid-core) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 424.99 Td (23.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 424.99 Td (26.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 424.99 Td (25.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 424.99 Td (28.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 424.99 Td (22.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 424.99 Td (23.5) Tj ET
+0.973 0.980 0.988 rg 40.00 402.49 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 407.99 Td (df-hyperliquid-core + secp256k1) Tj ET
+BT 0.082 0.502 0.239 rg /F2 8.00 Tf 227.31 407.99 Td (11.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 407.99 Td (15.1) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 407.99 Td (12.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 407.99 Td (16.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 407.99 Td (11.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 407.99 Td (12.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 390.99 Td (hypersdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 390.99 Td (33.1) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 390.99 Td (38.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 390.99 Td (33.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 390.99 Td (36.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 390.99 Td (30.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 390.99 Td (31.3) Tj ET
+0.973 0.980 0.988 rg 40.00 368.49 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 373.99 Td (hyperliquid-sdk-rs) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 373.99 Td (33.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 373.99 Td (42.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 373.99 Td (35.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 373.99 Td (44.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 373.99 Td (31.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 373.99 Td (32.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 356.99 Td (quicknode-hyperliquid-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 356.99 Td (33.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 356.99 Td (36.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 356.99 Td (34.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 356.99 Td (43.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 356.99 Td (31.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 356.99 Td (32.5) Tj ET
+0.973 0.980 0.988 rg 40.00 334.49 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 339.99 Td (hyperliquid_rust_sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 339.99 Td (24.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 339.99 Td (27.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 339.99 Td (25.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 339.99 Td (27.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 470.83 339.99 Td (22.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 339.99 Td (24.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 322.99 Td (@nktkas/hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 222.86 322.99 Td (169.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 283.74 322.99 Td (274.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 344.62 322.99 Td (171.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 405.50 322.99 Td (273.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 483.74 322.99 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 322.99 Td (-) Tj ET
+0.973 0.980 0.988 rg 40.00 300.49 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 305.99 Td (go-hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 227.31 305.99 Td (15.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 288.19 305.99 Td (18.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 349.07 305.99 Td (16.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 409.95 305.99 Td (20.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 483.74 305.99 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 305.99 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 288.99 Td (hyperliquid-python-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 218.42 288.99 Td (1995.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 279.30 288.99 Td (2063.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 340.18 288.99 Td (2019.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 401.06 288.99 Td (2175.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 483.74 288.99 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 288.99 Td (-) Tj ET
+0.973 0.980 0.988 rg 40.00 266.49 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 271.99 Td (hyperliquid-python-sdk + coincurve) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 222.86 271.99 Td (119.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 283.74 271.99 Td (146.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 344.62 271.99 Td (126.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 405.50 271.99 Td (153.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 483.74 271.99 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 271.99 Td (-) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 266.49 m 555.28 266.49 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 253.61 Td (Same signature from every row: yes. hyperliquid-sdk-rs signs through private code, which its harness copies; the copy made the same bytes as the SDK's) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 242.74 Td (own order call. hyperliquid_rust_sdk signs through private code, which its harness copies; the copy made the same bytes as the SDK's own order call.) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 231.86 Td (hypersdk's sign_sync takes the action by value, so its timed call signs a clone; the clone alone takes 41 ns at the median.) Tj ET
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 209.86 Td (Recovering the signer from a signature \(offline\)) Tj ET
+0.945 0.961 0.976 rg 40.00 182.86 515.28 19.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 189.86 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 278.34 189.86 Td (median \(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 405.10 189.86 Td (p99 \(us\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 463.50 189.86 Td (median, release-lto \(us\)) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 171.36 Td (df-hyperliquid-core) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 304.86 171.36 Td (76.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 418.29 171.36 Td (89.1) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 171.36 Td (67.3) Tj ET
+0.973 0.980 0.988 rg 40.00 148.86 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 154.36 Td (df-hyperliquid-core + secp256k1) Tj ET
+BT 0.082 0.502 0.239 rg /F2 8.00 Tf 304.86 154.36 Td (13.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 418.29 154.36 Td (17.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 531.71 154.36 Td (13.9) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 148.86 m 555.28 148.86 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 135.99 Td (Client::send recovers a wallet's signature before posting; a local key's is not recovered in a release build.) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 40.00 m 555.28 40.00 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 26.00 Td (Method and how to rerun: github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 540.68 26.00 Td (1 / 3) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 15089 >>
+stream
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 787.89 Td (Websocket parse \(4,000 recorded mainnet frames, offline\)) Tj ET
+0.945 0.961 0.976 rg 40.00 742.89 515.28 37.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 767.89 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 192.91 767.89 Td (all frames/s) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 261.36 767.89 Td (l2Book) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 255.52 758.89 Td (frames/s) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 316.04 767.89 Td (trades) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 307.70 758.89 Td (frames/s) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 364.05 767.89 Td (p99 per) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 354.48 758.89 Td (frame \(ns\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 403.73 767.89 Td (allocations) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 408.74 758.89 Td (per frame) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 465.51 767.89 Td (not read) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 538.94 767.89 Td (all) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 514.35 758.89 Td (frames/s,) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 509.76 749.89 Td (release-lto) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 731.39 Td (df-hyperliquid-core) Tj ET
+BT 0.082 0.502 0.239 rg /F2 8.00 Tf 198.60 731.39 Td (1,181,464) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 731.39 Td (850,861) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 302.96 731.39 Td (2,012,997) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 370.72 731.39 Td (3,125) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 431.79 731.39 Td (4.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 731.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 511.70 731.39 Td (1,277,827) Tj ET
+0.973 0.980 0.988 rg 40.00 708.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 714.39 Td (hypersdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 714.39 Td (481,312) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 714.39 Td (301,944) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 302.96 714.39 Td (1,302,955) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 370.72 714.39 Td (4,500) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 431.79 714.39 Td (7.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 714.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 518.37 714.39 Td (476,893) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 697.39 Td (hyperliquid-sdk-rs) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 697.39 Td (347,538) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 697.39 Td (222,589) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 697.39 Td (888,477) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 370.72 697.39 Td (5,750) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 427.35 697.39 Td (85.1) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 697.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 518.37 697.39 Td (349,305) Tj ET
+0.973 0.980 0.988 rg 40.00 674.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 680.39 Td (quicknode-hyperliquid-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 680.39 Td (202,720) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 680.39 Td (125,692) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 680.39 Td (527,935) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 366.27 680.39 Td (11,542) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 422.90 680.39 Td (182.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 680.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 518.37 680.39 Td (216,092) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 663.39 Td (hyperliquid_rust_sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 663.39 Td (299,969) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 663.39 Td (184,910) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 663.39 Td (870,835) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 370.72 663.39 Td (6,584) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 427.35 663.39 Td (81.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 663.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 518.37 663.39 Td (326,548) Tj ET
+0.973 0.980 0.988 rg 40.00 640.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 646.39 Td (@nktkas/hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 646.39 Td (290,177) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 646.39 Td (174,732) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 646.39 Td (851,203) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 370.72 646.39 Td (7,250) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 440.25 646.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 646.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 646.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 629.39 Td (go-hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 209.72 629.39 Td (75,252) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 261.90 629.39 Td (51,123) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 629.39 Td (139,684) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 366.27 629.39 Td (48,500) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 427.35 629.39 Td (29.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 629.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 629.39 Td (-) Tj ET
+0.973 0.980 0.988 rg 40.00 606.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 612.39 Td (hyperliquid-python-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 205.27 612.39 Td (224,195) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 257.45 612.39 Td (145,189) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 309.64 612.39 Td (475,271) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 366.27 612.39 Td (10,208) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 440.25 612.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 490.65 612.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 544.62 612.39 Td (-) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 606.89 m 555.28 606.89 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 594.01 Td (What each row reads a frame into: df-hyperliquid-core: typed values with exact decimals; hypersdk: typed values with exact decimals; hyperliquid-sdk-rs:) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 583.14 Td (typed values with strings, with simd-json; quicknode-hyperliquid-sdk: an untyped serde_json::Value; hyperliquid_rust_sdk: typed values with strings;) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 572.26 Td (@nktkas/hyperliquid: JSON.parse objects, dispatched as events; go-hyperliquid: typed values with float64 book levels; hyperliquid-python-sdk: dicts of) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 561.39 Td (strings. Allocations are counted where the runtime can count them.) Tj ET
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 539.39 Td (Info round trip: POST /info l2Book BTC \(100 requests per SDK\)) Tj ET
+0.945 0.961 0.976 rg 40.00 512.39 515.28 19.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 519.39 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 247.89 519.39 Td (median \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 346.30 519.39 Td (p90 \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 431.37 519.39 Td (p99 \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 527.69 519.39 Td (failed) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 500.89 Td (df-hyperliquid-core) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 500.89 Td (345.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 500.89 Td (454.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 500.89 Td (518.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 500.89 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 478.39 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 483.89 Td (hypersdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 483.89 Td (330.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 483.89 Td (462.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 483.89 Td (623.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 483.89 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 466.89 Td (hyperliquid-sdk-rs) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 466.89 Td (313.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 466.89 Td (416.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 466.89 Td (496.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 466.89 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 444.39 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 449.89 Td (quicknode-hyperliquid-sdk, via QuickNode) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 449.89 Td (719.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 449.89 Td (928.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 437.75 449.89 Td (1188.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 449.89 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 432.89 Td (hyperliquid_rust_sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 432.89 Td (322.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 432.89 Td (452.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 432.89 Td (633.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 432.89 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 410.39 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 415.89 Td (@nktkas/hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 415.89 Td (346.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 415.89 Td (464.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 415.89 Td (656.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 415.89 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 398.89 Td (go-hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 398.89 Td (345.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 398.89 Td (467.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 398.89 Td (611.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 398.89 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 376.39 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 381.89 Td (hyperliquid-python-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 381.89 Td (341.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 381.89 Td (509.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 381.89 Td (570.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 381.89 Td (0) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 376.39 m 555.28 376.39 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 363.51 Td (Almost all of a round trip is the network and the venue, so these show parity, not a ranking. quicknode-hyperliquid-sdk, via QuickNode: its requests go) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 352.64 Td (through QuickNode's own service: its worker at send.hyperliquidapi.com, or the QuickNode endpoint when one is set, not to the venue's API directly, so its) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 341.76 Td (row measures a different path and is not ranked with the others.) Tj ET
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 319.76 Td (Exchange round trip: refused post-only order from an empty key \(100 requests per SDK\)) Tj ET
+0.945 0.961 0.976 rg 40.00 292.76 515.28 19.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 299.76 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 247.89 299.76 Td (median \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 346.30 299.76 Td (p90 \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 431.37 299.76 Td (p99 \(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 527.69 299.76 Td (failed) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 281.26 Td (df-hyperliquid-core) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 281.26 Td (375.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 281.26 Td (462.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 281.26 Td (671.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 281.26 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 258.76 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 264.26 Td (hypersdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 264.26 Td (334.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 264.26 Td (453.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 264.26 Td (640.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 264.26 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 247.26 Td (hyperliquid-sdk-rs) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 247.26 Td (357.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 247.26 Td (510.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 247.26 Td (587.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 247.26 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 224.76 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 230.26 Td (quicknode-hyperliquid-sdk, via QuickNode) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 267.61 230.26 Td (1133.9) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 352.68 230.26 Td (1430.1) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 437.75 230.26 Td (1661.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 230.26 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 213.26 Td (hyperliquid_rust_sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 213.26 Td (338.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 213.26 Td (417.8) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 213.26 Td (576.0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 213.26 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 190.76 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 196.26 Td (@nktkas/hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 196.26 Td (359.2) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 196.26 Td (458.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 196.26 Td (568.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 196.26 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 179.26 Td (go-hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 179.26 Td (352.7) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 179.26 Td (455.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 179.26 Td (550.3) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 179.26 Td (0) Tj ET
+0.973 0.980 0.988 rg 40.00 156.76 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 162.26 Td (hyperliquid-python-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 272.05 162.26 Td (366.4) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 357.12 162.26 Td (500.6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 442.19 162.26 Td (610.5) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 542.83 162.26 Td (0) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 156.76 m 555.28 156.76 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 143.89 Td (Almost all of a round trip is the network and the venue, so these show parity, not a ranking. quicknode-hyperliquid-sdk, via QuickNode: its requests go) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 133.01 Td (through QuickNode's own service: its worker at send.hyperliquidapi.com, or the QuickNode endpoint when one is set, not to the venue's API directly, so its) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 122.14 Td (row measures a different path and is not ranked with the others.) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 40.00 m 555.28 40.00 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 26.00 Td (Method and how to rerun: github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 540.68 26.00 Td (2 / 3) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 5601 >>
+stream
+BT 0.059 0.090 0.165 rg /F2 11.00 Tf 40.00 787.89 Td (Live websocket, BTC l2Book \(fast\), bbo and trades, 60 s, every SDK at once) Tj ET
+0.945 0.961 0.976 rg 40.00 751.89 515.28 28.00 re f
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 48.00 767.89 Td (SDK) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 217.88 767.89 Td (l2Book) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 290.01 767.89 Td (bbo) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 315.45 767.89 Td (trades frames) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 395.93 767.89 Td (not read) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 445.13 767.89 Td (age median) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 470.57 758.89 Td (\(ms\)) Tj ET
+BT 0.392 0.455 0.545 rg /F2 7.50 Tf 501.43 767.89 Td (age p99 \(ms\)) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 740.39 Td (df-hyperliquid-core) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 229.54 740.39 Td (111) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 740.39 Td (335) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 740.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 421.07 740.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 740.39 Td (299) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 740.39 Td (531) Tj ET
+0.973 0.980 0.988 rg 40.00 717.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 723.39 Td (hypersdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 229.54 723.39 Td (111) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 723.39 Td (336) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 723.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 421.07 723.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 723.39 Td (294) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 723.39 Td (548) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 706.39 Td (hyperliquid-sdk-rs) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 238.43 706.39 Td (6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 706.39 Td (334) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 706.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 422.86 706.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 706.39 Td (308) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 706.39 Td (546) Tj ET
+0.973 0.980 0.988 rg 40.00 683.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 689.39 Td (hyperliquid_rust_sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 238.43 689.39 Td (6) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 301.10 689.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 689.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 421.07 689.39 Td (0) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 689.39 Td (287) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 689.39 Td (562) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 672.39 Td (@nktkas/hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 229.54 672.39 Td (111) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 672.39 Td (333) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 672.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 422.86 672.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 672.39 Td (330) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 672.39 Td (579) Tj ET
+0.973 0.980 0.988 rg 40.00 649.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 655.39 Td (go-hyperliquid) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 229.54 655.39 Td (111) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 655.39 Td (335) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 655.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 422.86 655.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 655.39 Td (288) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 655.39 Td (531) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 638.39 Td (hyperliquid-python-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 229.54 638.39 Td (110) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 290.42 638.39 Td (334) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 355.74 638.39 Td (71) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 422.86 638.39 Td (-) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 473.06 638.39 Td (311) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 533.94 638.39 Td (561) Tj ET
+0.973 0.980 0.988 rg 40.00 615.89 515.28 17.00 re f
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 48.00 621.39 Td (quicknode-hyperliquid-sdk) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 231.76 621.39 Td (n/a) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 292.64 621.39 Td (n/a) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 353.52 621.39 Td (n/a) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 414.40 621.39 Td (n/a) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 475.28 621.39 Td (n/a) Tj ET
+BT 0.059 0.090 0.165 rg /F1 8.00 Tf 536.16 621.39 Td (n/a) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 615.89 m 555.28 615.89 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 603.01 Td (Age is the local clock minus the venue's timestamp; it compares the SDKs with each other. hyperliquid-sdk-rs, hyperliquid_rust_sdk have no fast l2Book) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 592.14 Td (option, so they get the normal book, sent less often. hyperliquid_rust_sdk has no bbo subscription. quicknode-hyperliquid-sdk: not applicable, its Stream) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 581.26 Td (needs a QuickNode endpoint, and none was set \(QUICKNODE_ENDPOINT\); it is left out of the age columns.) Tj ET
+0.886 0.910 0.941 RG 0.75 w 40.00 40.00 m 555.28 40.00 l S
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 40.00 26.00 Td (Method and how to rerun: github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench) Tj ET
+BT 0.392 0.455 0.545 rg /F1 7.50 Tf 540.68 26.00 Td (3 / 3) Tj ET
+endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000128 00000 n 
+0000000225 00000 n 
+0000000327 00000 n 
+0000000446 00000 n 
+0000000588 00000 n 
+0000012333 00000 n 
+0000012475 00000 n 
+0000027616 00000 n 
+0000027760 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R /Info 5 0 R >>
+startxref
+33413
+%%EOF

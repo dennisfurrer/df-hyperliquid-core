@@ -153,7 +153,7 @@ Not included:
 
 ## Benchmarks
 
-In the repository's own benchmarks on an Apple M5 Max, against hypersdk, hyperliquid-sdk-rs, quicknode-hyperliquid-sdk, hyperliquid_rust_sdk (the official Rust SDK), @nktkas/hyperliquid, go-hyperliquid and the official Python SDK, df-hyperliquid-core parsed recorded mainnet websocket frames 2.4 times as fast as the next fastest (hypersdk), with the lowest p99 per frame. Signing is not the fastest with the default build: go-hyperliquid, which signs through libsecp256k1, took 15.6 us against 25.2 us, and hyperliquid_rust_sdk was level at 24.5 us. With the `secp256k1` feature df-hyperliquid-core signed in 13.0 us, the fastest row. Round trips to the venue are about the same for every SDK that talks to it directly, because the network takes almost all of the time. Details, fairness notes and every row are in [bench/README.md](bench/README.md). To run them yourself, offline and without a key:
+In the repository's own benchmarks on an Apple M5 Max, against hypersdk, hyperliquid-sdk-rs, quicknode-hyperliquid-sdk, hyperliquid_rust_sdk (the official Rust SDK), @nktkas/hyperliquid, go-hyperliquid and the official Python SDK, df-hyperliquid-core parsed recorded mainnet websocket frames 2.5 times as fast as the next fastest (hypersdk), with the lowest p99 per frame and the fewest allocations, both with cargo's default release profile and with fat LTO. Signing is not the fastest with the default build: go-hyperliquid, which signs through libsecp256k1, took 15.2 us against 23.8 us, and hyperliquid_rust_sdk was level at 24.5 us; hypersdk, hyperliquid-sdk-rs and quicknode-hyperliquid-sdk took about 33 us. With the `secp256k1` feature df-hyperliquid-core signed in 11.3 us, the fastest row. Round trips to the venue are about the same for every SDK that talks to it directly, because the network takes almost all of the time. To run them yourself, offline and without a key:
 
 ```sh
 just bench-compare
@@ -161,16 +161,16 @@ just bench-compare
 
 | Measurement | df-hyperliquid-core | Fastest other SDK |
 |---|---|---|
-| Hash and sign one BTC order, median | 25.2 us (13.0 us with `secp256k1`) | go-hyperliquid 15.6 us |
-| Build, sign and serialize the order body, median | 26.7 us (14.4 us with `secp256k1`) | go-hyperliquid 16.8 us |
-| Websocket parse, recorded frames | 1,119,244 frames/s | hypersdk 475,581 frames/s |
-| Websocket parse, `l2Book` frames | 798,732 frames/s | hypersdk 296,855 frames/s |
-| Websocket parse, p99 of one frame | 2.9 us | hypersdk 4.7 us |
+| Hash and sign one BTC order, median | 23.8 us (11.3 us with `secp256k1`) | go-hyperliquid 15.2 us |
+| Build, sign and serialize the order body, median | 25.6 us (12.6 us with `secp256k1`) | hyperliquid_rust_sdk 25.4 us, go-hyperliquid 16.8 us |
+| Websocket parse, recorded frames | 1,181,464 frames/s | hypersdk 481,312 frames/s |
+| Websocket parse, `l2Book` frames | 850,861 frames/s | hypersdk 301,944 frames/s |
+| Websocket parse, p99 of one frame | 3.1 us | hypersdk 4.5 us |
 | Allocations per frame | 4.7 | hypersdk 7.7 |
-| Info round trip (`l2Book`), median | 332.9 ms | hyperliquid-python-sdk 324.3 ms (network bound) |
-| Exchange round trip (refused order), median | 363.9 ms | hyperliquid_rust_sdk 341.5 ms (network bound) |
+| Info round trip (`l2Book`), median | 345.2 ms | hyperliquid-sdk-rs 313.6 ms (network bound) |
+| Exchange round trip (refused order), median | 375.4 ms | hypersdk 334.7 ms (network bound) |
 
-Measured on 2026-11-27 on mains power, each offline figure the median of 5 runs ([results](bench/results/2026-11-27-215626-apple-m5-max.md), [PDF](bench/results/2026-11-27-215626-apple-m5-max.pdf)). The round trips differ by less than the spread between requests and show parity, not a ranking. The gap between the k256-based signing rows can change with code generation alone; bench/README.md gives the figures. The method, fairness notes and how to submit your own results are in [bench/README.md](bench/README.md).
+Measured on 2026-11-28 on mains power, each offline figure the median of 5 runs ([results](bench/results/2026-11-28-001007-apple-m5-max.md), [PDF](bench/results/2026-11-28-001007-apple-m5-max.pdf)). The results file starts with one table that has a row for every SDK and build. The round trips differ by less than the spread between requests and show parity, not a ranking. The method, fairness notes and how to submit your own results are in [bench/README.md](bench/README.md).
 
 ## Tests
 
