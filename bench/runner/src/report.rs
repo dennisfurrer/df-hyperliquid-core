@@ -701,6 +701,21 @@ fn ratio(ours: f64, theirs: f64) -> Option<f64> {
     (ours > 0.0 && theirs > 0.0).then_some(ours / theirs)
 }
 
+/// The Rust competitors, which all sign with k256, the pure-Rust secp256k1 library
+/// df-hyperliquid-core uses by default.
+pub const PURE_RUST: [&str; 4] = [HYPERSDK, LHERMOSO, QUICKNODE, OFFICIAL_RUST];
+
+/// Whether `name` signed with libsecp256k1 (C) in this run, the library the
+/// `df-hyperliquid-core + secp256k1` row uses: go-hyperliquid when it was built with cgo, and the
+/// Python SDK with coincurve.
+pub fn signs_with_c(result: &Value, name: &str) -> bool {
+    match name {
+        GO => result["versions"]["go_build"]["cgo"].as_bool() == Some(true),
+        PY_FAST => true,
+        _ => false,
+    }
+}
+
 /// The competitors in the share text, by a short name: it has room for at most 280 characters.
 const SHORT_NAMES: [(&str, &str); 7] = [
     (HYPERSDK, "hypersdk"),
@@ -717,7 +732,9 @@ fn figure(ratio: f64) -> String {
 }
 
 /// At most 280 characters: df-hyperliquid-core's speed over each competitor's, for parsing and
-/// for signing, and the machine. A ratio below 1 means that competitor was faster.
+/// for signing, and the machine. A ratio below 1 means that competitor was faster. Signing
+/// compares like with like: an SDK that signs with libsecp256k1 (C) against the `secp256k1` row,
+/// when it ran, and every other SDK against the default build (k256, pure Rust).
 pub fn summary(result: &Value) -> Result<String> {
     if result["options"]["quick"].as_bool() == Some(true) {
         return Err("a quick run is only a check that the harness runs; run `just bench-compare` for numbers to share"
@@ -733,9 +750,15 @@ pub fn summary(result: &Value) -> Result<String> {
     );
     let version = |name: &str| result["versions"][name].as_str().unwrap_or("?").to_owned();
     let head = format!("df-hyperliquid-core {} on {machine}", version(DF));
-    let ratios = |skip_python: bool| -> (Vec<String>, Vec<String>) {
+    let short_head = format!(
+        "df-hyperliquid-core {} on {}",
+        version(DF),
+        result["machine"]["cpu"].as_str().unwrap_or("unknown CPU")
+    );
+    let ratios = |skip_python: bool| -> (Vec<String>, Vec<String>, Vec<String>) {
         let mut parsed = Vec::new();
         let mut signed = Vec::new();
+        let mut signed_c = Vec::new();
         for (name, short) in SHORT_NAMES {
             if (skip_python && name == PY)
                 || result["signing"].get(name).is_none() && result["parsing"].get(name).is_none()
@@ -746,44 +769,52 @@ pub fn summary(result: &Value) -> Result<String> {
                 parsed.push(format!("{short} {}", figure(ratio)));
             }
             // The Python SDK's faster backend, libsecp256k1 through coincurve, when it ran.
-            let theirs = if name == PY && sign(PY_FAST) > 0.0 { sign(PY_FAST) } else { sign(name) };
-            if let Some(ratio) = ratio(theirs, sign(DF)) {
+            let backend = if name == PY && sign(PY_FAST) > 0.0 { PY_FAST } else { name };
+            if signs_with_c(result, backend) && sign(DF_SECP) > 0.0 {
+                if let Some(ratio) = ratio(sign(backend), sign(DF_SECP)) {
+                    signed_c.push(format!("{short} {}", figure(ratio)));
+                }
+            } else if let Some(ratio) = ratio(sign(backend), sign(DF)) {
                 signed.push(format!("{short} {}", figure(ratio)));
             }
         }
-        (parsed, signed)
+        (parsed, signed, signed_c)
     };
-    let text = |skip_python: bool, link: bool| -> Option<String> {
-        let (parsed, signed) = ratios(skip_python);
-        if parsed.is_empty() && signed.is_empty() {
+    let text = |skip_python: bool, link: bool, short_machine: bool| -> Option<String> {
+        let (parsed, signed, signed_c) = ratios(skip_python);
+        if parsed.is_empty() && signed.is_empty() && signed_c.is_empty() {
             return None;
         }
+        let head = if short_machine { &short_head } else { &head };
         let mut text = format!("{head}. df speed / theirs, below 1 = slower.");
         if !parsed.is_empty() {
             text.push_str(&format!(" Parse: {}.", parsed.join(", ")));
         }
         if !signed.is_empty() {
-            text.push_str(&format!(" Sign: {}.", signed.join(", ")));
+            text.push_str(&format!(" Sign, k256: {}.", signed.join(", ")));
+        }
+        if !signed_c.is_empty() {
+            text.push_str(&format!(" Sign, libsecp256k1: {}.", signed_c.join(", ")));
         }
         if link {
             text.push_str(" github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench");
         }
         Some(text)
     };
-    let Some(full) = text(false, true) else {
+    let Some(full) = text(false, true, false) else {
         return Ok(format!(
             "{head}, df-hyperliquid-core only, no comparison: sign {} us, parse {} frames/s. github.com/dennisfurrer/df-hyperliquid-core/tree/main/bench",
             us(sign(DF)),
             thousands(parse(DF))
         ));
     };
-    // Drop the link first, then the Python figures, to stay within one post.
+    // Drop the link first, then the Python figures, then the OS, to stay within one post.
     let mut chosen = full;
-    for (skip_python, link) in [(false, false), (true, false)] {
+    for (skip_python, link, short_machine) in [(false, false, false), (true, false, false), (true, false, true)] {
         if chosen.chars().count() <= 280 {
             break;
         }
-        chosen = text(skip_python, link).unwrap_or_default();
+        chosen = text(skip_python, link, short_machine).unwrap_or_default();
     }
     Ok(chosen.chars().take(280).collect())
 }
@@ -810,7 +841,7 @@ mod tests {
     use serde_json::{Value, json};
 
     use super::{markdown, summary};
-    use crate::offline::{COMPETITORS, DF, GO, HYPERSDK, PY, PY_FAST, QUICKNODE};
+    use crate::offline::{COMPETITORS, DF, DF_SECP, GO, HYPERSDK, PY, PY_FAST, QUICKNODE};
 
     fn result(rows: &[&str]) -> Value {
         let mut result = json!({
@@ -860,7 +891,18 @@ mod tests {
         let mut result = result(&[DF, HYPERSDK, GO]);
         result["signing"][GO]["sign"]["median_ns"] = json!(15_000.0);
         let text = summary(&result).unwrap();
-        assert!(text.contains("Sign: hypersdk 1.0, go 0.5"), "{text}");
+        assert!(text.contains("Sign, k256: hypersdk 1.0, go 0.5"), "{text}");
+    }
+
+    #[test]
+    fn signing_is_compared_like_with_like() {
+        let mut result = result(&[DF, HYPERSDK, GO, PY]);
+        result["versions"]["go_build"] = json!({ "cgo": true });
+        result["signing"][DF_SECP] = json!({ "sign": { "median_ns": 10_000.0 } });
+        result["signing"][GO]["sign"]["median_ns"] = json!(15_000.0);
+        let text = summary(&result).unwrap();
+        assert!(text.contains("Sign, k256: hypersdk 1.0."), "{text}");
+        assert!(text.contains("Sign, libsecp256k1: go 1.5, python 9.0."), "{text}");
     }
 
     #[test]

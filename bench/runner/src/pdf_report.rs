@@ -3,9 +3,9 @@
 
 use serde_json::Value;
 
-use crate::offline::{COMPETITORS, DF, DF_SECP};
+use crate::offline::{COMPETITORS, DF, DF_SECP, PY_FAST};
 use crate::pdf::{self, Font, PAGE_HEIGHT, PAGE_WIDTH, Page, Rgb};
-use crate::report::{Table, heading, tables};
+use crate::report::{PURE_RUST, Table, heading, signs_with_c, tables};
 
 const MARGIN: f64 = 40.0;
 const CONTENT: f64 = PAGE_WIDTH - 2.0 * MARGIN;
@@ -89,8 +89,16 @@ fn band(layout: &mut Layout, result: &Value) {
 }
 
 /// The headline figures: in compare mode, ratios against the fastest other SDK on each test
-/// (below 1 when that SDK was faster); df-hyperliquid-core's own figures otherwise.
+/// (below 1 when that SDK was faster); df-hyperliquid-core's own figures otherwise. Signing
+/// compares like with like: the default build (k256) against the fastest other pure-Rust SDK, and
+/// the `secp256k1` build against the fastest other SDK that signs with libsecp256k1 (C).
 fn tiles(layout: &mut Layout, result: &Value) {
+    let items = tile_items(result);
+    draw_tiles(layout, &items);
+}
+
+/// Each tile's figure and label.
+fn tile_items(result: &Value) -> Vec<(String, String)> {
     let f = |value: &Value| value.as_f64().unwrap_or(0.0);
     let sign = |name: &str| f(&result["signing"][name]["sign"]["median_ns"]);
     let parse = |name: &str, part: &str| f(&result["parsing"][name]["parse"][part]["frames_per_s"]);
@@ -103,10 +111,16 @@ fn tiles(layout: &mut Layout, result: &Value) {
             .filter(|name| parse(name, part) > 0.0)
             .max_by(|a, b| parse(a, part).total_cmp(&parse(b, part)))
     };
-    let fastest_sign =
-        others("signing").into_iter().filter(|name| sign(name) > 0.0).min_by(|a, b| sign(a).total_cmp(&sign(b)));
+    let fastest_sign = |pick: &dyn Fn(&str) -> bool| {
+        others("signing")
+            .into_iter()
+            .filter(|name| sign(name) > 0.0 && pick(name))
+            .min_by(|a, b| sign(a).total_cmp(&sign(b)))
+    };
+    let rust_signer = fastest_sign(&|name| PURE_RUST.contains(&name));
+    let c_signer = fastest_sign(&|name| signs_with_c(result, name));
     let mut items: Vec<(String, String)> = Vec::new();
-    if let (Some(parser), Some(signer)) = (fastest_parse("all"), fastest_sign)
+    if let Some(parser) = fastest_parse("all")
         && sign(DF) > 0.0
         && parse(DF, "all") > 0.0
     {
@@ -120,13 +134,15 @@ fn tiles(layout: &mut Layout, result: &Value) {
                 format!("l2Book parsing vs {books}"),
             ));
         }
-        items.push((
-            format!("{:.1}x", sign(signer) / sign(DF)),
-            format!("order signing vs {signer}, the fastest other signer"),
-        ));
-        if sign(DF_SECP) > 0.0 {
-            items
-                .push((format!("{:.1}x", sign(signer) / sign(DF_SECP)), format!("signing with secp256k1 vs {signer}")));
+        if let Some(signer) = rust_signer {
+            items.push((format!("{:.1}x", sign(signer) / sign(DF)), format!("pure-Rust signing vs {signer}")));
+        }
+        if let Some(signer) = c_signer
+            && sign(DF_SECP) > 0.0
+        {
+            // The coincurve row's own name does not fit a tile.
+            let shown = if signer == PY_FAST { "Python SDK + coincurve" } else { signer };
+            items.push((format!("{:.1}x", sign(signer) / sign(DF_SECP)), format!("libsecp256k1 signing vs {shown}")));
         }
     } else {
         items.push((format!("{:.1} us", sign(DF) / 1_000.0), "hash and sign one order".to_owned()));
@@ -135,6 +151,10 @@ fn tiles(layout: &mut Layout, result: &Value) {
         }
         items.push((format!("{:.2}M", parse(DF, "all") / 1e6), "websocket frames a second".to_owned()));
     }
+    items
+}
+
+fn draw_tiles(layout: &mut Layout, items: &[(String, String)]) {
     let gap = 10.0;
     let w = (CONTENT - gap * (items.len() as f64 - 1.0)) / items.len() as f64;
     let y = layout.y;
@@ -262,6 +282,33 @@ pub fn render(result: &Value) -> Vec<u8> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn signing_tiles_compare_like_with_like() {
+        use crate::offline::{GO, HYPERSDK, OFFICIAL_RUST, PY_FAST};
+        let sign = |us: f64| serde_json::json!({ "sign": { "median_ns": us * 1_000.0 } });
+        let parse = |rate: f64| serde_json::json!({ "parse": { "all": { "frames_per_s": rate }, "l2Book": { "frames_per_s": rate } } });
+        let result = serde_json::json!({
+            "versions": { "go_build": { "cgo": true } },
+            "signing": { DF: sign(24.0), DF_SECP: sign(11.0), HYPERSDK: sign(33.0), OFFICIAL_RUST: sign(24.0),
+                GO: sign(15.0), PY_FAST: sign(120.0) },
+            "parsing": { DF: parse(1_200_000.0), HYPERSDK: parse(480_000.0) },
+        });
+        let labels: Vec<String> =
+            tile_items(&result).into_iter().map(|(figure, label)| format!("{figure} {label}")).collect();
+        assert!(labels.contains(&format!("1.0x pure-Rust signing vs {OFFICIAL_RUST}")), "{labels:?}");
+        assert!(labels.contains(&format!("1.4x libsecp256k1 signing vs {GO}")), "{labels:?}");
+        assert!(!labels.iter().any(|label| label.contains("0.6x")), "{labels:?}");
+        // Each label fits the two lines a tile shows, with the longest SDK names.
+        let items = tile_items(&result);
+        let w = (CONTENT - 10.0 * (items.len() as f64 - 1.0)) / items.len() as f64;
+        let rust = crate::report::PURE_RUST.map(|name| format!("pure-Rust signing vs {name}"));
+        let c = [GO, "Python SDK + coincurve"].map(|name| format!("libsecp256k1 signing vs {name}"));
+        for label in rust.iter().chain(&c) {
+            let lines = pdf::wrap(label, Font::Regular, 8.0, w - 22.0).len();
+            assert!(lines <= 2, "{lines} lines: {label}");
+        }
+    }
 
     #[test]
     fn widths_follow_the_standard_metrics() {

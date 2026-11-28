@@ -18,7 +18,7 @@ command beside it, so `just` is optional.
 | `just bench` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run` | df-hyperliquid-core alone, offline |
 | `just bench-compare` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- run --compare` | the same against hypersdk, hyperliquid-sdk-rs, quicknode-hyperliquid-sdk, hyperliquid_rust_sdk, @nktkas/hyperliquid, go-hyperliquid and the official Python SDK |
 | `just bench-doctor` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- doctor` | which tools were found, and what a missing one skips |
-| `just bench-share` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- share` | the latest results in at most 280 characters, to post: df-hyperliquid-core's speed divided by each competitor's, for parsing and signing, where a figure below 1 means that competitor was faster; a run without competitors says "df-hyperliquid-core only, no comparison" |
+| `just bench-share` | `cargo run --release --locked --manifest-path bench/Cargo.toml -p bench-runner -- share` | the latest results in at most 280 characters, to post: df-hyperliquid-core's speed divided by each competitor's, for parsing and signing, where a figure below 1 means that competitor was faster; signing compares like with like, the default build (k256, pure Rust) against SDKs that do not use C and the `secp256k1` build against those that sign with libsecp256k1 (go-hyperliquid built with cgo, the Python SDK with coincurve); a run without competitors says "df-hyperliquid-core only, no comparison" |
 
 Options for `bench` and `bench-compare`, added after the command (`just bench-compare --network`):
 
