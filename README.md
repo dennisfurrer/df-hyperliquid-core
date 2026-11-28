@@ -14,7 +14,7 @@
 [![license](https://img.shields.io/crates/l/df-hyperliquid-core.svg)](#license)
 [![check](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml/badge.svg)](https://github.com/dennisfurrer/df-hyperliquid-core/actions/workflows/check.yml)
 
-Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest websocket parsing of the SDKs benchmarked, the fastest order signing of them with the `secp256k1` feature, and native or wasm transports.
+Rust SDK for [Hyperliquid](https://hyperliquid.xyz): markets, trading, transfers, earn, validators and deploys (spot, HIP-3 and HIP-4) in one crate, with full parity with the Hyperliquid API docs, exact decimals, the fastest websocket parsing of the SDKs benchmarked, the fastest signing of them with the optional `secp256k1` feature (on the same C library go-hyperliquid uses), a pure-Rust default level with the fastest other Rust SDK, and native or wasm transports.
 
 Project page: [dfurrer.com/products/df-hyperliquid-core](https://dfurrer.com/products/df-hyperliquid-core). For how Hyperliquid itself works (HyperCore, the HyperEVM, perps, outcome markets, signing, rate limits), see [HyperBooks](https://hyperbooks.xyz), the Hyperliquid documentation by the same author, and its [list of Hyperliquid SDKs and developer tools](https://hyperbooks.xyz/start/developer-tools/).
 

@@ -2,6 +2,16 @@
 
 All notable changes to df-hyperliquid-core. Versions follow [semantic versioning](https://semver.org) from 0.1.0.
 
+## 0.2.7
+
+No code changes to the crate.
+
+- The crates.io description and the README state the signing results like with like: the fastest signing of the SDKs benchmarked with the optional `secp256k1` feature, on the same C library go-hyperliquid uses, and a pure-Rust default level with the fastest other Rust SDK (hyperliquid_rust_sdk). The figures are those of 0.2.6's results file, `bench/results/2026-11-28-001007-apple-m5-max`.
+
+Benchmark harness in `bench/`:
+
+- The PDF's signing tiles and `just bench-share` compare like with like: the default build (k256, pure Rust) against the fastest other Rust SDK and the SDKs that do not use C, and the `secp256k1` build against the SDKs that sign with libsecp256k1 (go-hyperliquid built with cgo, the Python SDK with coincurve). Before, both builds were compared against the fastest signer of any kind, which put a pure-Rust build next to a C library.
+
 ## 0.2.6
 
 Added:
